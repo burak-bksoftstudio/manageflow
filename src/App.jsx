@@ -6,6 +6,7 @@ import AppSidebar from './components/AppSidebar';
 import { initialProjects } from './data/demo';
 import DashboardPage from './pages/DashboardPage';
 import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage';
+import TeamPage from './pages/TeamPage';
 
 const placeholderRoutes = [
   ['/flow-ai', 'Flow AI'],
@@ -14,7 +15,6 @@ const placeholderRoutes = [
   ['/calisma-alani', 'Çalışma Alanı'],
   ['/dosyalar', 'Dosyalar'],
   ['/zaman-takibi', 'Zaman Takibi'],
-  ['/ekipler', 'Ekipler'],
   ['/ozellestirme', 'Özelleştirme'],
   ['/kanallar', 'Kanallar'],
   ['/gelen-kutusu', 'Gelen Kutusu'],
@@ -65,6 +65,7 @@ export default function App() {
         <Route element={<AppLayout shellState={shellState} />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} openModal={setModal} />} />
+          <Route path="/ekipler" element={<TeamPage />} />
           {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
           <Route path="*" element={<NotFoundPage />} />
         </Route>

@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.3.0-architecture` |
-| Mevcut aşama | Route tabanlı, modüler ManageFlow frontend prototipi |
-| Sonraki ana hedef | Ekip/organizasyon modülü |
+| Mevcut sürüm | `0.4.0-team` |
+| Mevcut aşama | Ekip yönetimi bulunan route tabanlı frontend prototipi |
+| Sonraki ana hedef | Ekip modülü kalite, mobil ve test paketi |
 
 ---
 
@@ -301,6 +301,22 @@ Gerçek arama motoru veya veri kaynağı bulunmamaktadır.
 - Demo bildirim listesi bulunmaktadır.
 
 Bildirimler henüz kullanıcı hesabına veya gerçek olaylara bağlı değildir.
+
+### 4.11 Ekip yönetimi
+
+- `/ekipler` gerçek URL'si
+- Toplam, aktif ve davet bekleyen üye metrikleri
+- Departman sayısı
+- İsim, e-posta ve unvan araması
+- Rol, departman ve durum filtreleri
+- Masaüstü ekip tablosu
+- Responsive ekip üyesi kart davranışı
+- Üye detay drawer'ı
+- Üye bilgisi, rolü, departmanı ve durumunu düzenleme
+- Yeni ekip üyesi davet formu
+- Filtre sonucu boş durumu
+
+Ekip verileri şu anda demo state'tedir. Davet formu gerçek e-posta göndermez ve sayfa yenilendiğinde yapılan değişiklikler sıfırlanır.
 
 ---
 
@@ -869,13 +885,13 @@ Durum: **Devam ediyor**
 
 ### Faz 1 — ManageFlow marka ve ekip temeli
 
-Durum: **Planlandı**
+Durum: **Devam ediyor**
 
 - [x] Uygulama adını ve metinlerini ManageFlow olarak güncelle
 - [x] Özgün ManageFlow logosunu oluştur ve uygulamaya ekle
 - [x] Marka tokenlarını tanımla
-- [ ] Ekip sayfasının gerçek frontend arayüzünü oluştur
-- [ ] Ekip üyesi ekleme/düzenleme/devre dışı bırakma akışlarını demo veriyle doğrula
+- [x] Ekip sayfasının gerçek frontend arayüzünü oluştur
+- [x] Ekip üyesi ekleme/düzenleme/devre dışı bırakma akışlarını demo veriyle doğrula
 - [ ] Organizasyon seçici ve çalışma alanı bilgilerini düzenle
 - [ ] Ekip modülünün mobil, boş, yükleniyor ve hata durumlarını tasarla
 
@@ -1109,6 +1125,31 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.4.0-team`
+
+Eklenenler:
+
+- Ajans odaklı Ekipler sayfası
+- Ekip özet metrikleri
+- İsim/e-posta/unvan araması
+- Rol, departman ve durum filtreleri
+- Üye detay drawer'ı
+- Üye bilgisi, rolü, departmanı ve durumunu düzenleme akışı
+- Yeni üye davet formu ve bekleyen davet durumu
+- Filtre sonucu boş ekranı
+
+Doğrulama:
+
+- `npm run build`
+- `/ekipler` doğrudan erişim kontrolü
+- 1440 × 1000 masaüstü görsel kontrolü
+
+Bilinen sınırlamalar:
+
+- Ekip verileri demo state'te ve geçicidir.
+- Davet e-postası gönderilmez.
+- Backend, Auth ve organizasyon üyeliği henüz bağlı değildir.
 
 ### 19 Temmuz 2026 — `0.3.0-architecture`
 

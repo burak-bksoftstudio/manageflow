@@ -9,9 +9,9 @@
 | Proje adı | ManageFlow |
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
-| Son güncelleme | 18 Temmuz 2026 |
-| Mevcut sürüm | `0.2.0-brand` |
-| Mevcut aşama | ManageFlow markalı etkileşimli frontend prototipi |
+| Son güncelleme | 19 Temmuz 2026 |
+| Mevcut sürüm | `0.3.0-architecture` |
+| Mevcut aşama | Route tabanlı, modüler ManageFlow frontend prototipi |
 | Sonraki ana hedef | Ekip/organizasyon modülü |
 
 ---
@@ -70,7 +70,7 @@ Mevcut sürümde:
 | UI tasarımı | Hazır | Dashboard ve ortak tasarım dili oluşturuldu |
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
-| Routing | Başlanmadı | Modüller şu anda state ile değişiyor; gerçek URL rotaları yok |
+| Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
 | Backend | Başlanmadı | API veya sunucu fonksiyonu bulunmuyor |
 | Veritabanı | Başlanmadı | Kalıcı veri saklama yok |
 | Kimlik doğrulama | Başlanmadı | Kayıt ve giriş sistemi yok |
@@ -122,14 +122,21 @@ manage/
 ├── index.html
 ├── package.json
 ├── package-lock.json
+├── public/
+│   ├── manageflow-logo.svg
+│   └── manageflow-mark.svg
 └── src/
+    ├── components/
+    ├── data/
+    ├── pages/
+    ├── App.jsx
     ├── main.jsx
     └── styles.css
 ```
 
 ### Mevcut mimari hakkında not
 
-Prototip hızlı doğrulama amacıyla tek bir ana React dosyasında geliştirilmiştir. Ürün büyütülmeden önce bileşenlerin, sayfaların, hook'ların, servislerin ve veri tiplerinin ayrı klasörlere bölünmesi gerekir.
+Prototip; ortak layout, overlay, marka, demo veri ve sayfa bileşenlerine ayrılmıştır. Özellik sayısı büyüdükçe domain bazlı `features/`, servis, hook ve veri tipi katmanları eklenmelidir.
 
 Hedef frontend yapısı:
 
@@ -853,8 +860,8 @@ Durum: **Devam ediyor**
 - [x] Global arama görünümü ekle
 - [x] Production derlemesini doğrula
 - [x] Yaşayan geliştirme dokümanını oluştur
-- [ ] `main.jsx` dosyasını modüler bileşenlere ayır
-- [ ] React Router ekle
+- [x] `main.jsx` dosyasını modüler bileşenlere ayır
+- [x] React Router ekle
 - [ ] TypeScript'e geç
 - [ ] Tasarım tokenlarını ayrı dosyaya taşı
 - [ ] Toast ve hata durumları ekle
@@ -1102,6 +1109,33 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.3.0-architecture`
+
+Eklenenler:
+
+- React Router tabanlı gerçek URL yönlendirmesi
+- Ortak uygulama layout'u
+- Dashboard ve bütün menü modülleri için adreslenebilir rotalar
+- Bilinmeyen adresler için 404 ekranı
+- Arama overlay'i için Escape klavye davranışı
+
+Değiştirilenler:
+
+- Tek dosyalı prototip; layout, overlay, marka, veri ve sayfa bileşenlerine ayrıldı.
+- Sidebar butonları gerçek ve yenilenebilir bağlantılara dönüştürüldü.
+- Projeler üst menü kısayolu gerçek rotaya bağlandı.
+
+Doğrulama:
+
+- `npm run build`
+- `/dashboard`, `/ekipler` ve bilinmeyen URL için doğrudan erişim kontrolü
+- 1440 × 1000 masaüstü görsel regresyon kontrolü
+
+Bilinen sınırlamalar:
+
+- Ekipler rotası henüz placeholder ekran gösteriyor.
+- Backend ve kalıcı veri bulunmuyor.
 
 ### 18 Temmuz 2026 — `0.2.0-brand`
 

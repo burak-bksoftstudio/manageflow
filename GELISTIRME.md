@@ -11,8 +11,8 @@
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
 | Mevcut sürüm | `0.9.0-team-invitations` |
-| Mevcut aşama | Güvenli ekip daveti, e-posta gönderimi, kabul ve iptal altyapısı uzak Supabase ortamında aktif |
-| Sonraki ana hedef | İkinci kullanıcıyla davet kabulü ve organizasyonlar arası RLS izolasyonunu uçtan uca doğrulama |
+| Mevcut aşama | Güvenli ekip daveti ikinci gerçek kullanıcıyla uçtan uca doğrulandı; 2 aktif üyeli çalışma alanı çalışıyor |
+| Sonraki ana hedef | Member yetki sınırlarını ve organizasyonlar arası RLS izolasyonunu ikinci kullanıcıyla doğrulama |
 
 ---
 
@@ -369,7 +369,7 @@ Bildirimler henüz kullanıcı hesabına veya gerçek olaylara bağlı değildir
 - Daveti transaction içinde gerçek aktif organizasyon üyeliğine dönüştürme
 - Süresi dolan, tekrarlanan, yanlış hesapla açılan ve owner rolü isteyen davetleri engelleme
 
-Supabase yapılandırılmış ortamda ekip listesi, üyelik güncellemeleri ve davetler gerçek veriyi kullanır. Supabase bağlantısı olmayan demo ortamında önceki örnek veri davranışı korunur. Gerçek davet butonundaki `Yakında` durumu kaldırılmıştır. Uzak fonksiyon ve veritabanı hazırdır; ikinci e-posta hesabıyla tam kabul testi sıradaki doğrulama adımıdır.
+Supabase yapılandırılmış ortamda ekip listesi, üyelik güncellemeleri ve davetler gerçek veriyi kullanır. Supabase bağlantısı olmayan demo ortamında önceki örnek veri davranışı korunur. Gerçek davet butonundaki `Yakında` durumu kaldırılmıştır. İkinci gerçek e-posta hesabına davet teslimi, ilk giriş, kabul ve aktif üyeliğe dönüşüm uçtan uca doğrulanmıştır.
 
 ### 4.12 Kimlik doğrulama
 
@@ -1011,7 +1011,7 @@ Durum: **Devam ediyor**
 - [x] Owner/admin güvenli ekip daveti Edge Function'ını oluştur
 - [x] Davet görüntüleme, ilk şifre ve kabul rotasını oluştur
 - [x] Bekleyen davet listeleme ve iptal akışını ekle
-- [ ] İkinci e-posta hesabıyla davet teslimi ve kabulünü uçtan uca test et
+- [x] İkinci e-posta hesabıyla davet teslimi ve kabulünü uçtan uca test et
 - [ ] Admin/member ve çapraz organizasyon RLS matrisini ikinci kullanıcıyla test et
 - [ ] Profil ve organizasyon ayarlarını oluştur
 - [x] İlk RLS politikalarını yaz ve uzak şema linter'ıyla doğrula
@@ -1203,21 +1203,20 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Owner hesabından ikinci ve erişilebilir bir e-posta adresine davet gönder.
-2. Gelen Auth davet bağlantısının `/davet-kabul` rotasını doğru açtığını doğrula.
-3. İlk şifreyi belirle, daveti kabul et ve üyeliğin ekip listesine dönüştüğünü doğrula.
-4. İkinci kullanıcıyla çıkış/giriş kalıcılığını test et.
-5. Member rolünün ekip yönetme ve başka organizasyon verisi okuma girişimlerinin RLS tarafından reddedildiğini doğrula.
-6. Sonuçları belgeleyip müşteri/proje çekirdeğinin ilk küçük paketine geç.
+1. İkinci kullanıcıyla çıkış yapıp belirlenen şifreyle yeniden giriş kalıcılığını test et.
+2. Member hesabından ekip üyesi davet etme ve üye düzenleme girişimlerinin kapalı olduğunu doğrula.
+3. Member oturumuyla doğrudan yazma isteğinin RLS tarafından reddedildiğini doğrula.
+4. İkinci bir organizasyon oluşturarak üyeler ve davetler için çapraz organizasyon okumasını dene.
+5. RLS matrisinin owner/admin/member sonuçlarını belgeleyip otomatik entegrasyon testine dönüştür.
+6. Başarılı doğrulama sonrasında müşteri/proje çekirdeğinin ilk küçük paketine geç.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-İkinci kullanıcı davet e-postasını alır
-→ Güvenli bağlantı yalnızca doğru e-posta oturumunda açılır
-→ İlk şifre ve kabul işlemi üyelik oluşturur
-→ Yeniden giriş sonrasında üyelik korunur
+İkinci kullanıcı belirlenen şifreyle yeniden giriş yapar
+→ Aktif organizasyon üyeliği korunur
 → Member yönetici işlemi yapamaz
+→ Doğrudan yazma isteği RLS tarafından reddedilir
 → Başka organizasyonun davet ve üyeleri okunamaz
 ```
 
@@ -1255,14 +1254,19 @@ Uzak ortam doğrulaması:
 - `npm test` — 22/22 test başarılı
 - `npm run build` — uyarısız başarılı
 - Yerel uygulama `http://127.0.0.1:5173/` adresinde erişilebilir.
+- İkinci gerçek e-posta hesabı davet mesajını aldı ve güvenli bağlantı üzerinden giriş yaptı.
+- Davet kabulünden sonra bekleyen davet sayısı `1 → 0`, toplam/aktif üye sayısı `1 → 2` oldu.
+- İkinci hesap ekip listesinde `Ekip Üyesi`, `Yazılım`, `Aktif` değerleriyle görüntülendi.
+- İkinci hesabın sidebar organizasyon rolü `Ekip Üyesi` olarak yüklendi.
+- Ekip üyesi davet butonu member hesabında devre dışı kalarak frontend yetki sınırını doğruladı.
 
 Bilinen sınırlamalar / sıradaki doğrulama:
 
-- Gerçek davet teslimi ve kabulü ikinci e-posta hesabıyla henüz tamamlanmadı.
 - Supabase Auth izin listesinde `http://127.0.0.1:5173/davet-kabul` adresi bulunmalıdır.
 - Canlıya geçerken özel SMTP, production Site URL/redirect URL ve `MANAGEFLOW_APP_URL` secret'ı zorunludur.
 - Daveti yeniden gönderme butonu henüz yoktur; iptalden sonra yeni davet oluşturulabilir.
-- İkinci kullanıcıyla admin/member yetki matrisi ve çapraz organizasyon RLS izolasyonu henüz test edilmedi.
+- İkinci kullanıcıyla davet teslimi/kabulü doğrulandı; şifreyle yeniden giriş kalıcılığı henüz ayrıca test edilmedi.
+- Member frontend sınırı doğrulandı; doğrudan API yazma reddi ve çapraz organizasyon RLS izolasyonu henüz test edilmedi.
 
 ### 19 Temmuz 2026 — `0.8.0-real-team`
 

@@ -46,7 +46,7 @@ function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile 
   );
 }
 
-export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, onSignOut }) {
+export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, organization, onSignOut }) {
   const [openGroups, setOpenGroups] = useState([true, false]);
   const closeMobile = () => setMobileOpen(false);
 
@@ -64,7 +64,7 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
 
         <button className="organization">
           <Avatar />
-          <span className="organization-copy"><b>Burak'ın Çalışma Alanı</b><small>Yönetici · Değiştirme yakında</small></span>
+          <span className="organization-copy"><b>{organization.name}</b><small>{organization.roleLabel} · Değiştirme yakında</small></span>
           <ChevronDown />
         </button>
 

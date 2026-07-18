@@ -8,7 +8,7 @@ import { Logo } from '../components/Brand';
 import { useAuth } from '../features/auth/AuthContext';
 import { getAuthErrorMessage, validatePassword } from '../features/auth/authUtils';
 
-function AuthShell({ eyebrow, title, description, children }) {
+export function AuthShell({ eyebrow, title, description, children }) {
   const { isDemoMode, initializationError } = useAuth();
 
   return (

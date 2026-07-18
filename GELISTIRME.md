@@ -10,7 +10,7 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.4.2-availability` |
+| Mevcut sürüm | `0.4.3-avatar-fix` |
 | Mevcut aşama | Doğrulanmış ekip yönetimi bulunan modüler frontend prototipi |
 | Sonraki ana hedef | Supabase, Auth ve gerçek organizasyon üyeliği |
 
@@ -1145,6 +1145,20 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.4.3-avatar-fix`
+
+Düzeltilenler:
+
+- Sidebar altındaki profil avatarının yatay olarak esneyip oval görünmesi düzeltildi.
+- Profil metni ve avatar için CSS seçicileri ayrıştırıldı.
+- Daraltılmış ve mobil sidebar davranışı korundu.
+
+Doğrulama:
+
+- `npm test` — 7/7 test başarılı
+- `npm run build`
+- 1200 × 850 sidebar ve dashboard görsel kontrolü
 
 ### 19 Temmuz 2026 — `0.4.2-availability`
 

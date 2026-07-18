@@ -93,7 +93,7 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
 
         <div className="account">
           <Avatar />
-          <span><b>Burak Enes</b><small>burak@manageflow.co</small></span>
+          <span className="account-copy"><b>Burak Enes</b><small>burak@manageflow.co</small></span>
           <ChevronRight />
         </div>
       </aside>

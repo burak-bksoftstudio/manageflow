@@ -43,6 +43,18 @@ supabase secrets set MANAGEFLOW_APP_URL=https://app.manageflow.example
 
 Supabase'in varsayılan SMTP servisi production kullanımı için uygun değildir. Gerçek müşteri adreslerine davet gönderilmeden önce Authentication > SMTP Settings alanında özel SMTP yapılandırılmalıdır.
 
+## Uzak RLS smoke testi
+
+Owner/admin/member yetki matrisi ile organizasyonlar arası izolasyon bağlı projede şu komutla doğrulanır:
+
+```bash
+supabase db query --linked --file supabase/tests/rls_smoke.sql
+```
+
+Test geçici ikinci organizasyon ve davetler üretir; bütün işlemler tek transaction içinde çalışır ve en sonda `ROLLBACK` uygular. Başarılı sonuç `result: passed` değerini ve bütün güvenlik kontrollerini `true` olarak döndürür. Testin gerçek member hesabı bulabilmesi için bağlı projede en az bir aktif `member` üyeliği olmalıdır.
+
+Supabase Security Advisor davet önizleme/kabul RPC'lerini çağrılabilir `SECURITY DEFINER` fonksiyonlar olarak raporlar. Bu iki uyarı beklenir: davet edilen kullanıcı kabulden önce organizasyon RLS kapsamına girmediği için fonksiyonlar doğrulanmış Auth e-postasını davet e-postasıyla eşleştirerek kontrollü erişim sağlar. Free planda sızdırılmış parola kontrolü bulunmaz; production Pro plana geçtiğinde Auth Password Security bölümünden açılmalıdır.
+
 ## Kurallar
 
 - Uzak veritabanı tabloları Dashboard üzerinden elle değiştirilmemelidir.
@@ -50,4 +62,4 @@ Supabase'in varsayılan SMTP servisi production kullanımı için uygun değildi
 - `service_role` anahtarı hiçbir zaman frontend veya `VITE_` değişkeninde bulunmamalıdır.
 - Migration uzak projeye uygulanmadan önce RLS politikaları gözden geçirilmelidir.
 
-İlk migration profil, organizasyon, organizasyon üyeliği ve davet altyapısını oluşturur. İkinci migration doğrulanmış Auth e-postasını profile senkronlar ve e-posta alanını yalnızca Auth trigger'larının değiştirebilmesini sağlar. Üçüncü migration davet önizleme/kabul RPC'lerini ve davet edilen kişi adını ekler. Migration'lar `manageflow` uzak projesine uygulanmıştır. CLI bağlantısının ürettiği `supabase/.temp/` klasörü makineye özeldir ve Git'e eklenmez.
+İlk migration profil, organizasyon, organizasyon üyeliği ve davet altyapısını oluşturur. İkinci migration doğrulanmış Auth e-postasını profile senkronlar ve e-posta alanını yalnızca Auth trigger'larının değiştirebilmesini sağlar. Üçüncü migration davet önizleme/kabul RPC'lerini ve davet edilen kişi adını ekler. Dördüncü migration davet üzerinden owner atamasını RLS seviyesinde kapatır. Migration'lar `manageflow` uzak projesine uygulanmıştır. CLI bağlantısının ürettiği `supabase/.temp/` klasörü makineye özeldir ve Git'e eklenmez.

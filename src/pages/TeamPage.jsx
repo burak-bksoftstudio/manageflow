@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
 import {
-  canChangeOwnerAccess, filterTeamMembers, getTeamStats, validateInvite,
+  canChangeOwnerAccess, canManageTeamMember, filterTeamMembers, getTeamStats, validateInvite,
 } from '../features/team/teamUtils';
 import { useTeamMembers } from '../features/team/useTeamMembers';
 
@@ -275,7 +275,7 @@ export default function TeamPage() {
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
       {inviteOpen && <InviteMemberModal close={() => setInviteOpen(false)} inviteMember={sendInvite} members={members} />}
-      {selectedMember && <MemberDrawer member={selectedMember} close={closeMemberDrawer} updateMember={updateMember} revokeInvitation={revokeInvitation} canManage={canManage} canEditIdentity={isDemoMode} />}
+      {selectedMember && <MemberDrawer member={selectedMember} close={closeMemberDrawer} updateMember={updateMember} revokeInvitation={revokeInvitation} canManage={isDemoMode || canManageTeamMember(activeOrganization?.role, selectedMember)} canEditIdentity={isDemoMode} />}
     </>
   );
 }

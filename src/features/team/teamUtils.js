@@ -102,3 +102,8 @@ export function validateInvite(form, members) {
 export function canChangeOwnerAccess(member) {
   return member.role !== 'Sahip';
 }
+
+export function canManageTeamMember(actorRole, member) {
+  if (!['owner', 'admin'].includes(actorRole)) return false;
+  return member.role !== 'Sahip' || actorRole === 'owner';
+}

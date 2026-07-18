@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.9.0-team-invitations` |
-| Mevcut aşama | Güvenli ekip daveti ikinci gerçek kullanıcıyla uçtan uca doğrulandı; 2 aktif üyeli çalışma alanı çalışıyor |
-| Sonraki ana hedef | Member yetki sınırlarını ve organizasyonlar arası RLS izolasyonunu ikinci kullanıcıyla doğrulama |
+| Mevcut sürüm | `0.9.1-rls-hardening` |
+| Mevcut aşama | Owner/admin/member yetki matrisi ve organizasyonlar arası RLS izolasyonu uzak veritabanında doğrulandı |
+| Sonraki ana hedef | Müşteri modülünün organizasyona bağlı veri modeli, listesi ve ilk oluşturma akışı |
 
 ---
 
@@ -65,6 +65,8 @@ Mevcut sürümde:
 - İlk organizasyon onboarding akışı, aktif organizasyon context'i ve owner üyeliği gerçek Supabase verisiyle çalışmaktadır.
 - Owner/admin güvenli davet e-postası gönderebilir; alıcı doğrulanmış e-postasıyla daveti kabul ederek gerçek üyelik oluşturabilir.
 - Bekleyen davetler ekip listesinde görünür ve yetkili kullanıcı tarafından iptal edilebilir.
+- Member, admin ve owner veritabanı yetkileri rollback kullanan uzak RLS smoke testiyle doğrulanmıştır.
+- Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -95,7 +97,7 @@ Mevcut sürümde:
 | Backend | Kısmen hazır | Auth, organizasyon, ekip üyeliği ve davet Edge Function'ı bağlı; diğer iş modülleri henüz bağlı değil |
 | Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet ve güvenli kabul RPC'leri RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
-| Yetkilendirme | Kısmen hazır | RLS, korumalı rotalar, aktif organizasyon context'i ve owner rolü çalışıyor |
+| Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
 | Test altyapısı | Kısmen hazır | Vitest ve ekip domain testleri bulunuyor; UI/E2E testleri henüz yok |
@@ -1012,7 +1014,7 @@ Durum: **Devam ediyor**
 - [x] Davet görüntüleme, ilk şifre ve kabul rotasını oluştur
 - [x] Bekleyen davet listeleme ve iptal akışını ekle
 - [x] İkinci e-posta hesabıyla davet teslimi ve kabulünü uçtan uca test et
-- [ ] Admin/member ve çapraz organizasyon RLS matrisini ikinci kullanıcıyla test et
+- [x] Admin/member ve çapraz organizasyon RLS matrisini ikinci kullanıcıyla test et
 - [ ] Profil ve organizasyon ayarlarını oluştur
 - [x] İlk RLS politikalarını yaz ve uzak şema linter'ıyla doğrula
 
@@ -1203,26 +1205,61 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. İkinci kullanıcıyla çıkış yapıp belirlenen şifreyle yeniden giriş kalıcılığını test et.
-2. Member hesabından ekip üyesi davet etme ve üye düzenleme girişimlerinin kapalı olduğunu doğrula.
-3. Member oturumuyla doğrudan yazma isteğinin RLS tarafından reddedildiğini doğrula.
-4. İkinci bir organizasyon oluşturarak üyeler ve davetler için çapraz organizasyon okumasını dene.
-5. RLS matrisinin owner/admin/member sonuçlarını belgeleyip otomatik entegrasyon testine dönüştür.
-6. Başarılı doğrulama sonrasında müşteri/proje çekirdeğinin ilk küçük paketine geç.
+1. Organizasyona bağlı temel `clients` veri modelini ve durum alanlarını kesinleştir.
+2. Member için okuma, owner/admin/project manager için oluşturma-güncelleme RLS kurallarını yaz.
+3. Sidebar'a gerçek `/musteriler` rotasını ekle ve `Yakında` etiketini kaldır.
+4. Responsive müşteri listesi, loading, boş ve hata durumlarını oluştur.
+5. İlk müşteri oluşturma modalını gerçek Supabase insert işlemine bağla.
+6. Owner ve member hesaplarıyla oluşturma/okuma sınırlarını doğrulayıp ayrı commit gönder.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-İkinci kullanıcı belirlenen şifreyle yeniden giriş yapar
-→ Aktif organizasyon üyeliği korunur
-→ Member yönetici işlemi yapamaz
-→ Doğrudan yazma isteği RLS tarafından reddedilir
-→ Başka organizasyonun davet ve üyeleri okunamaz
+Owner ilk müşteri kaydını oluşturabilir
+→ Kayıt aktif organizasyona bağlanır
+→ Organizasyon üyeleri müşteri listesini okuyabilir
+→ Member yetkisiz oluşturma/güncelleme yapamaz
+→ Başka organizasyon müşteriyi göremez
+→ Müşteri sonraki pakette projeye bağlanmaya hazırdır
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.9.1-rls-hardening`
+
+Eklenenler ve iyileştirmeler:
+
+- Uzak Supabase veritabanında çalışabilen, bütün deneme değişikliklerini rollback eden `supabase/tests/rls_smoke.sql`
+- Gerçek owner/member kimliklerinden JWT claim bağlamı oluşturan yetki testi
+- Member'ın kendi organizasyonunu okuyabilmesi fakat üye güncelleme ve davet oluşturma işlemlerinin reddedilmesi
+- Member ve admin için geçici ikinci organizasyonun organizasyon/üyelik/davet kayıtlarını gizleme kontrolü
+- Admin'in normal üyeyi güncelleyebilmesi ve owner üyeliğini değiştirememesi kontrolü
+- Admin ve owner'ın davet üzerinden `owner` rolü atayamaması kontrolü
+- Davet insert/update RLS policy'lerinde `owner` rolünü veritabanı seviyesinde engelleyen hardening migration'ı
+- Admin arayüzünde owner üyeliği için düzenleme aksiyonunu gizleyen frontend-policy uyumu
+- Aktör rolü ile hedef üyeyi değerlendiren `canManageTeamMember` domain yardımcısı ve otomatik testi
+
+Doğrulama:
+
+- İkinci kullanıcı davette belirlediği şifreyle çıkış sonrasında yeniden giriş yaptı; üyelik ve aktif organizasyon kalıcı kaldı.
+- İlk RLS koşusu member update işlemini `42501` ile reddederek veritabanı korumasını doğruladı.
+- Tam RLS smoke testi `result: passed` döndürdü.
+- `member_read_own_organization`, `member_write_denied` ve `member_invitation_denied` kontrolleri geçti.
+- `admin_write_allowed`, `owner_membership_protected_from_admin` ve owner atama engelleri geçti.
+- `cross_organization_reads_hidden` kontrolü geçti.
+- Rollback sonrasında probe organizasyon ve davet sayıları ayrı sorguyla `0` olarak doğrulandı.
+- `20260719030000_harden_invitation_permissions.sql` uzak veritabanına uygulandı.
+- Yerel ve uzak migration geçmişleri `20260719030000` sürümünde eşleşti.
+- Uzak şema linter'ı hata bulmadı.
+- `npm test` — 23/23 test başarılı
+- `npm run build` — uyarısız başarılı
+
+Güvenlik danışmanı notları:
+
+- Davet önizleme ve kabul RPC'lerinin `SECURITY DEFINER` uyarıları bilinçlidir; davet edilen kullanıcı henüz organizasyon üyesi olmadığı için RLS'yi kontrollü geçmeleri gerekir. Her iki fonksiyon `auth.uid()`, doğrulanmış Auth e-postası ve davet e-postası eşleşmesini zorunlu tutar.
+- Supabase Free planda sızdırılmış parola koruması bulunmadığı için `auth_leaked_password_protection` uyarısı açıktır. Pro plana geçildiğinde Auth Password Security ayarından etkinleştirilmelidir.
 
 ### 19 Temmuz 2026 — `0.9.0-team-invitations`
 
@@ -1265,8 +1302,7 @@ Bilinen sınırlamalar / sıradaki doğrulama:
 - Supabase Auth izin listesinde `http://127.0.0.1:5173/davet-kabul` adresi bulunmalıdır.
 - Canlıya geçerken özel SMTP, production Site URL/redirect URL ve `MANAGEFLOW_APP_URL` secret'ı zorunludur.
 - Daveti yeniden gönderme butonu henüz yoktur; iptalden sonra yeni davet oluşturulabilir.
-- İkinci kullanıcıyla davet teslimi/kabulü doğrulandı; şifreyle yeniden giriş kalıcılığı henüz ayrıca test edilmedi.
-- Member frontend sınırı doğrulandı; doğrudan API yazma reddi ve çapraz organizasyon RLS izolasyonu henüz test edilmedi.
+- İkinci kullanıcıyla davet teslimi/kabulü doğrulandı; şifreyle yeniden giriş ve RLS matrisi `0.9.1` paketinde ayrıca doğrulandı.
 
 ### 19 Temmuz 2026 — `0.8.0-real-team`
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initialTeamMembers } from '../../data/demo';
 import {
-  canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamRoleLabel, getTeamRoleValue,
+  canChangeOwnerAccess, canManageTeamMember, filterTeamMembers, getInitials, getTeamRoleLabel, getTeamRoleValue,
   getTeamStats, mapInvitationToTeamMember, mapMembershipToTeamMember, validateInvite,
 } from './teamUtils';
 
@@ -41,6 +41,13 @@ describe('team utilities', () => {
   it('protects the workspace owner access', () => {
     expect(canChangeOwnerAccess(initialTeamMembers[0])).toBe(false);
     expect(canChangeOwnerAccess(initialTeamMembers[1])).toBe(true);
+  });
+
+  it('aligns member management actions with the actor role', () => {
+    expect(canManageTeamMember('owner', initialTeamMembers[0])).toBe(true);
+    expect(canManageTeamMember('admin', initialTeamMembers[0])).toBe(false);
+    expect(canManageTeamMember('admin', initialTeamMembers[1])).toBe(true);
+    expect(canManageTeamMember('member', initialTeamMembers[1])).toBe(false);
   });
 
   it('maps database roles in both directions', () => {

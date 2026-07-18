@@ -13,13 +13,13 @@ const navGroups = [
     title: 'Proje & Görev',
     icon: BriefcaseBusiness,
     items: [
-      { label: 'Projeler', to: '/projeler', icon: FolderKanban },
-      { label: 'Görevler', to: '/gorevler', icon: CheckSquare2 },
-      { label: 'Çalışma Alanı', to: '/calisma-alani', icon: Files },
-      { label: 'Dosyalar', to: '/dosyalar', icon: Files },
-      { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock },
+      { label: 'Projeler', to: '/projeler', icon: FolderKanban, badge: 'Yakında' },
+      { label: 'Görevler', to: '/gorevler', icon: CheckSquare2, badge: 'Yakında' },
+      { label: 'Çalışma Alanı', to: '/calisma-alani', icon: Files, badge: 'Yakında' },
+      { label: 'Dosyalar', to: '/dosyalar', icon: Files, badge: 'Yakında' },
+      { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock, badge: 'Yakında' },
       { label: 'Ekipler', to: '/ekipler', icon: Users },
-      { label: 'Özelleştirme', to: '/ozellestirme', icon: Settings2 },
+      { label: 'Özelleştirme', to: '/ozellestirme', icon: Settings2, badge: 'Yakında' },
     ],
   },
   {
@@ -27,9 +27,9 @@ const navGroups = [
     title: 'Ekip & Müşteri',
     icon: MessageSquare,
     items: [
-      { label: 'Kanallar', to: '/kanallar', icon: MessageSquare },
-      { label: 'Gelen Kutusu', to: '/gelen-kutusu', icon: Bell },
-      { label: 'Takvim', to: '/takvim', icon: CalendarDays },
+      { label: 'Kanallar', to: '/kanallar', icon: MessageSquare, badge: 'Yakında' },
+      { label: 'Gelen Kutusu', to: '/gelen-kutusu', icon: Bell, badge: 'Yakında' },
+      { label: 'Takvim', to: '/takvim', icon: CalendarDays, badge: 'Yakında' },
     ],
   },
 ];
@@ -64,13 +64,13 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
 
         <button className="organization">
           <Avatar />
-          <span className="organization-copy"><b>Burak'ın Çalışma Alanı</b><small>Yönetici</small></span>
+          <span className="organization-copy"><b>Burak'ın Çalışma Alanı</b><small>Yönetici · Değiştirme yakında</small></span>
           <ChevronDown />
         </button>
 
         <nav>
           <SideLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" topLevel closeMobile={closeMobile} />
-          <SideLink to="/flow-ai" icon={Sparkles} label="Flow AI" badge="AI" topLevel closeMobile={closeMobile} />
+          <SideLink to="/flow-ai" icon={Sparkles} label="Flow AI" badge="Yakında" topLevel closeMobile={closeMobile} />
 
           {navGroups.map((group, groupIndex) => (
             <div className="nav-group" key={group.label}>

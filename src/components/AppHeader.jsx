@@ -20,7 +20,7 @@ export default function AppHeader({ setMobileOpen, dark, setDark, openModal, set
     <header className="header">
       <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Menüyü aç"><Menu /></button>
       <button className="agenda-button" onClick={() => setAgendaOpen(true)}><CalendarDays /> Bugünkü Gündem</button>
-      <Link className="soft-button projects-shortcut" to="/projeler"><FolderKanban /> Projeler</Link>
+      <Link className="soft-button projects-shortcut" to="/projeler" title="Projeler modülü yakında"><FolderKanban /> Projeler <small className="soon-inline">Yakında</small></Link>
       <span className="header-separator" />
       <button className="round-button" onClick={() => openModal('create')} aria-label="Yeni oluştur"><Plus /></button>
       <button className="round-button" onClick={() => setDark(!dark)} aria-label="Temayı değiştir">{dark ? <Sun /> : <Moon />}</button>
@@ -30,7 +30,7 @@ export default function AppHeader({ setMobileOpen, dark, setDark, openModal, set
         <span className="dot" />
         {notificationOpen && (
           <div className="popover notifications">
-            <div className="popover-title"><b>Bildirimler</b><span>3 yeni</span></div>
+            <div className="popover-title"><b>Bildirimler</b><span>Demo · Gerçek bildirimler yakında</span></div>
             {notifications.map((text, index) => (
               <div className="notification" key={text}>
                 <i className={index === 2 ? 'amber' : ''} />
@@ -40,13 +40,13 @@ export default function AppHeader({ setMobileOpen, dark, setDark, openModal, set
           </div>
         )}
       </div>
-      <button className="round-button badge-button" aria-label="Duyurular"><Megaphone /><b>9+</b></button>
+      <button className="round-button badge-button soon-button" aria-label="Duyurular yakında" title="Duyurular yakında"><Megaphone /><b>Yakında</b></button>
 
       {searchOpen && (
         <div className="search-overlay" onMouseDown={() => setSearchOpen(false)}>
           <div className="search-box" onMouseDown={event => event.stopPropagation()}>
-            <Search /><input autoFocus placeholder="Proje, görev, kişi veya dosya ara..." /><kbd>ESC</kbd>
-            <div className="search-hint"><Command /> Aramaya başlayın — sonuçlar burada görünecek.</div>
+            <Search /><input autoFocus readOnly placeholder="Global arama yakında kullanılabilir olacak" /><kbd>ESC</kbd>
+            <div className="search-hint"><Command /> Proje, görev, kişi ve dosya araması <span className="soon-inline">Yakında</span></div>
           </div>
         </div>
       )}

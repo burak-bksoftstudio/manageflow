@@ -10,7 +10,7 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.4.1-team-quality` |
+| Mevcut sürüm | `0.4.2-availability` |
 | Mevcut aşama | Doğrulanmış ekip yönetimi bulunan modüler frontend prototipi |
 | Sonraki ana hedef | Supabase, Auth ve gerçek organizasyon üyeliği |
 
@@ -62,6 +62,21 @@ Mevcut sürümde:
 - Sayfa yenilendiğinde kullanıcı tarafından eklenen demo veriler sıfırlanır.
 - Kimlik doğrulama, yetkilendirme ve gerçek kullanıcı sistemi bulunmamaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
+- Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
+
+### Modül kullanılabilirliği
+
+| Modül | Durum |
+|---|---|
+| Dashboard | Demo verilerle kullanılabilir |
+| Ekipler | Demo CRUD akışlarıyla kullanılabilir |
+| Hızlı proje/görev oluşturma | Demo state ile kullanılabilir |
+| Gündem ve bildirimler | Demo içerikle önizlenebilir |
+| Projeler, Görevler ve Çalışma Alanı | Yakında |
+| Dosyalar ve Zaman Takibi | Yakında |
+| Flow AI | Yakında |
+| Kanallar, Gelen Kutusu ve Takvim | Yakında |
+| Özelleştirme ve organizasyon değiştirme | Yakında |
 
 ### Mevcut teknik seviye
 
@@ -1130,6 +1145,29 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.4.2-availability`
+
+Eklenenler:
+
+- Kullanıma hazır olmayan sidebar modüllerinde `Yakında` rozetleri
+- Placeholder sayfalarda belirgin geliştirme durumu
+- Global arama, duyurular ve projeler kısayolunda kullanılabilirlik açıklamaları
+- Dashboard proje detayları için `Yakında` işareti
+- Organizasyon değiştirme durumu için açıklama
+
+Değiştirilenler:
+
+- İşlem yapmayan placeholder CTA'ları devre dışı bırakıldı.
+- Bildirimlerin demo içerik olduğu açıkça belirtildi.
+- Dashboard ve Ekipler aktif modül olarak rozetsiz bırakıldı.
+
+Doğrulama:
+
+- `npm test` — 7/7 test başarılı
+- `npm run build`
+- 1440 × 1000 dashboard görsel kontrolü
+- 1200 × 850 placeholder modül görsel kontrolü
 
 ### 19 Temmuz 2026 — `0.4.1-team-quality`
 

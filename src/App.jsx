@@ -69,7 +69,7 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout shellState={shellState} />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} openModal={setModal} />} />
+          <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} />} />
           <Route path="/ekipler" element={<TeamPage />} />
           {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
           <Route path="*" element={<NotFoundPage />} />

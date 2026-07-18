@@ -1,7 +1,8 @@
 import {
-  Activity, CheckSquare2, ChevronRight, CirclePlus, FolderKanban,
-  MessageSquare, MoreHorizontal, Users,
+  Activity, CheckSquare2, CirclePlus, FolderKanban,
+  MessageSquare, Users,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Avatar } from '../components/Brand';
 
 function StatCard({ label, value, helper, icon: Icon, progress }) {
@@ -40,14 +41,14 @@ function ProjectList({ projects }) {
           <span className="project-name"><b>{project.name}</b><small>{project.client}</small></span>
           <span className="project-status">{project.status}</span>
           <span className="project-progress"><i><em style={{ width: `${project.progress}%` }} /></i><small>%{project.progress}</small></span>
-          <MoreHorizontal />
+          <span className="row-soon">Yakında</span>
         </button>
       ))}
     </div>
   );
 }
 
-export default function DashboardPage({ projects, taskCount, openModal }) {
+export default function DashboardPage({ projects, taskCount }) {
   return (
     <>
       <section className="hero">
@@ -81,7 +82,7 @@ export default function DashboardPage({ projects, taskCount, openModal }) {
       <section className="projects-card">
         <div className="section-heading">
           <div><h2><i /> Aktif Projeler</h2><p>Son güncellenen çalışmalar</p></div>
-          <button className="soft-button" onClick={() => openModal('project')}>Tümünü gör <ChevronRight /></button>
+          <Link className="soft-button" to="/projeler">Tümünü gör <small className="soon-inline">Yakında</small></Link>
         </div>
         <ProjectList projects={projects} />
       </section>

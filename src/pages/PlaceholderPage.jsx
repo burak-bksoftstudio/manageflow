@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Sparkles } from 'lucide-react';
+import { ArrowLeft, Clock3, Sparkles } from 'lucide-react';
 
 export function PlaceholderPage({ page }) {
   return (
     <section className="placeholder-page">
-      <div className="eyebrow"><i /> ÇALIŞMA ALANI</div>
+      <div className="eyebrow"><i /> YAKINDA</div>
       <h1>{page}</h1>
       <p>Bu modül ManageFlow tasarım sistemiyle birlikte kullanıma hazırlanıyor.</p>
       <div className="placeholder-card">
-        <Sparkles /><h2>{page} alanınız hazır</h2>
-        <p>Yeni kayıt ekleyerek çalışma alanınızı oluşturmaya başlayın.</p>
-        <button className="agenda-button"><Plus /> Yeni oluştur</button>
+        <Sparkles /><span className="coming-soon-badge">YAKINDA</span><h2>{page} üzerinde çalışıyoruz</h2>
+        <p>Bu özellik geliştirme planımızda. Hazır olduğunda burada kullanabileceksiniz.</p>
+        <button className="soft-button" disabled><Clock3 /> Geliştirme aşamasında</button>
       </div>
     </section>
   );

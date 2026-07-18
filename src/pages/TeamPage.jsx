@@ -196,7 +196,7 @@ export default function TeamPage() {
       <section className="team-card">
         <div className="team-card-head">
           <div><h2>Ekip üyeleri</h2><p>{filteredMembers.length} kişi görüntüleniyor</p></div>
-          <button className="icon-button"><MoreHorizontal /></button>
+          <button className="icon-button" disabled title="Toplu ekip işlemleri yakında" aria-label="Toplu ekip işlemleri yakında"><MoreHorizontal /></button>
         </div>
         <div className="team-toolbar">
           <label className="team-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="İsim, e-posta veya unvan ara" /></label>

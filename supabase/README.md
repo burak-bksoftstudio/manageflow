@@ -15,6 +15,17 @@ supabase link --project-ref PROJE_REF
 supabase db push
 ```
 
+## Auth yönlendirme adresleri
+
+Yerel kayıt doğrulama ve şifre yenileme akışları için Supabase Dashboard > Authentication > URL Configuration alanında şu adresler izin listesinde olmalıdır:
+
+```text
+http://127.0.0.1:5173/eposta-dogrula
+http://127.0.0.1:5173/sifre-yenile
+```
+
+Production yayını alındığında `Site URL` canlı domain olarak güncellenmeli ve aynı iki yol canlı domain ile ayrıca tanımlanmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır.
+
 ## Kurallar
 
 - Uzak veritabanı tabloları Dashboard üzerinden elle değiştirilmemelidir.

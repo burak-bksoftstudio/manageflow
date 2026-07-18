@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.5.1-supabase-connected` |
-| Mevcut aşama | Supabase uzak projesi bağlı ve çok kiracılı ilk şema production veritabanında |
-| Sonraki ana hedef | Auth kayıt/giriş arayüzü ve kullanıcı oturumu |
+| Mevcut sürüm | `0.6.0-auth-foundation` |
+| Mevcut aşama | Supabase Auth arayüzü, oturum yönetimi ve korumalı rotalar hazır |
+| Sonraki ana hedef | Gerçek e-posta akışını doğrulama ve organizasyon onboarding |
 
 ---
 
@@ -60,7 +60,8 @@ Mevcut sürümde:
 - Bazı arayüz etkileşimleri gerçekten çalışmaktadır.
 - Supabase istemcisi uzak projeye bağlıdır; mevcut ekranlar henüz demo verileri kullanmaktadır.
 - Sayfa yenilendiğinde kullanıcı tarafından eklenen demo veriler sıfırlanır.
-- Kimlik doğrulama, yetkilendirme ve gerçek kullanıcı sistemi bulunmamaktadır.
+- Supabase Auth kayıt, giriş, çıkış, doğrulama ve şifre yenileme arayüzleri bulunmaktadır.
+- Uygulama rotaları oturumsuz erişime karşı korunmaktadır; gerçek e-posta akışı henüz test hesabıyla doğrulanmamıştır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -68,6 +69,7 @@ Mevcut sürümde:
 
 | Modül | Durum |
 |---|---|
+| Kimlik doğrulama | Supabase ile bağlı; canlı e-posta testi bekliyor |
 | Dashboard | Demo verilerle kullanılabilir |
 | Ekipler | Demo CRUD akışlarıyla kullanılabilir |
 | Hızlı proje/görev oluşturma | Demo state ile kullanılabilir |
@@ -88,8 +90,8 @@ Mevcut sürümde:
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
 | Backend | Kısmen hazır | Supabase istemci katmanı ve uzak proje bağlantısı hazır; ekran sorguları henüz bağlanmadı |
 | Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik ve davet şeması RLS ile uzak veritabanına uygulandı |
-| Kimlik doğrulama | Başlanmadı | Kayıt ve giriş sistemi yok |
-| Yetkilendirme | Kısmen hazır | Veritabanında RLS ve rol kontrolleri var; frontend oturum/rol akışı henüz yok |
+| Kimlik doğrulama | Kısmen hazır | Kayıt, giriş, çıkış, doğrulama, şifre yenileme ve kalıcı oturum kodu hazır |
+| Yetkilendirme | Kısmen hazır | RLS, rol temeli ve korumalı frontend rotaları var; organizasyon context'i henüz yok |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
 | Test altyapısı | Kısmen hazır | Vitest ve ekip domain testleri bulunuyor; UI/E2E testleri henüz yok |
@@ -109,6 +111,7 @@ Mevcut sürümde:
 - Lucide React ikonları
 - Google Fonts üzerinden Archivo yazı tipi
 - Supabase JavaScript istemcisi
+- Supabase Auth
 - PostgreSQL/Supabase migration ve RLS altyapısı
 
 ### Mevcut komutlar
@@ -346,6 +349,24 @@ Bildirimler henüz kullanıcı hesabına veya gerçek olaylara bağlı değildir
 
 Ekip verileri şu anda demo state'tedir. Davet formu gerçek e-posta göndermez ve sayfa yenilendiğinde yapılan değişiklikler sıfırlanır.
 
+### 4.12 Kimlik doğrulama
+
+- `/giris`, `/kayit` ve `/sifremi-unuttum` genel erişim rotaları
+- `/eposta-dogrula` ve `/sifre-yenile` callback rotaları
+- Supabase oturumunun uygulama seviyesinde merkezi yönetimi
+- Oturumun tarayıcıda korunması ve token yenileme desteği
+- Oturumsuz kullanıcıyı giriş ekranına yönlendiren korumalı rotalar
+- Oturum açıkken giriş/kayıt ekranlarından Dashboard'a yönlendirme
+- Ad soyad metadata'sı ile kullanıcı kaydı
+- E-posta doğrulama bağlantısı
+- Şifre sıfırlama e-postası ve yeni şifre formu
+- Kullanıcıya gösterilen güvenli Türkçe hata mesajları
+- Gerçek kullanıcının ad, e-posta ve avatar baş harflerini sidebar/Dashboard'da gösterme
+- Sidebar üzerinden güvenli çıkış
+- Supabase bağlantısı olmayan geliştirme ortamında demo arayüzünü koruma
+
+Auth ekranları masaüstü ve mobil yerleşimde görsel olarak doğrulandı. Supabase URL izin listesi ve gerçek e-posta teslimi bir test hesabıyla henüz uçtan uca doğrulanmadı.
+
 ---
 
 ## 5. Henüz yapılmamış bağlantılar
@@ -353,9 +374,8 @@ Ekip verileri şu anda demo state'tedir. Davet formu gerçek e-posta göndermez 
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
 - Mevcut ekranların Supabase veritabanı sorguları
-- Kullanıcı kayıt/giriş sistemi
-- Şifre sıfırlama
-- E-posta doğrulama
+- Supabase Auth production Site URL ve yönlendirme adresleri
+- Gerçek e-posta doğrulama/şifre yenileme teslim testi
 - Google ile giriş
 - Organizasyon onboarding ve çalışma alanı değiştirme akışları
 - Rol ve izinlerin frontend üzerinde uygulanması
@@ -935,8 +955,10 @@ Durum: **Devam ediyor**
 - [x] İlk RLS politikalarını ve son sahip korumasını yaz
 - [x] Uzak Supabase projesini CLI ile bağla
 - [x] İlk migration'ı uzak veritabanına uygula
-- [ ] Auth kayıt/giriş/çıkış akışını oluştur
-- [ ] E-posta doğrulama ve şifre sıfırlama ekle
+- [x] Auth kayıt/giriş/çıkış akışını oluştur
+- [x] E-posta doğrulama ve şifre sıfırlama ekranlarını ekle
+- [x] Auth oturum sağlayıcısı ve korumalı rotaları ekle
+- [ ] Supabase Auth yönlendirme adreslerini yapılandır ve gerçek e-posta akışını test et
 - [x] Organizasyon ve organizasyon üyelik tablolarını kur
 - [x] Rol ve temel izinlerin veritabanı katmanını kur
 - [ ] Ekip ekranını gerçek veritabanına bağla
@@ -1130,13 +1152,12 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Auth sağlayıcısı ve oturum durumunu ekle.
-2. Kayıt, giriş ve çıkış akışlarını oluştur.
-3. E-posta doğrulama ve şifre sıfırlama ekranlarını ekle.
-4. Uygulama rotalarını oturumla koru.
-5. İlk kayıt sonrasında organizasyon oluşturma onboarding akışını bağla.
-6. Auth ve organizasyon akışlarını RLS ile gerçek kullanıcı üzerinden test et.
-7. Ekip ekranını Supabase verilerine bağla.
+1. Supabase Auth yerel yönlendirme adreslerini izin listesine ekle.
+2. Gerçek test hesabıyla kayıt, doğrulama, giriş, çıkış ve şifre yenilemeyi doğrula.
+3. İlk kayıt sonrasında organizasyon oluşturma onboarding akışını bağla.
+4. Aktif organizasyon context'i ve çalışma alanı seçicisini oluştur.
+5. Auth ve organizasyon akışlarını RLS ile gerçek kullanıcı üzerinden test et.
+6. Ekip ekranını Supabase verilerine bağla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
@@ -1152,6 +1173,37 @@ Kullanıcı güvenli biçimde kayıt olabilir ve giriş yapabilir
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.6.0-auth-foundation`
+
+Eklenenler:
+
+- Supabase session lifecycle'ını yöneten merkezi Auth provider
+- Gerçek kayıt, giriş, çıkış ve şifre sıfırlama API işlemleri
+- E-posta doğrulama ve yeni şifre callback ekranları
+- `/giris`, `/kayit`, `/sifremi-unuttum`, `/eposta-dogrula` ve `/sifre-yenile` rotaları
+- Oturumsuz erişimi `/giris` rotasına gönderen protected route katmanı
+- Oturum açıkken genel Auth ekranlarını engelleyen public-only route katmanı
+- Masaüstü ve mobil için özgün ManageFlow Auth arayüzü
+- Şifre görünürlüğü, form doğrulaması, loading, başarı ve güvenli hata durumları
+- Gerçek kullanıcı adı/e-postasıyla Dashboard ve sidebar kimliği
+- Sidebar çıkış kontrolü
+- Auth yardımcıları için 4 yeni otomatik test
+
+Doğrulama:
+
+- Oturumsuz `/dashboard` isteği `/giris` rotasına yönlendirildi.
+- Uzak Supabase Auth API bağlantısı ve `invalid_credentials` hata davranışı doğrulandı.
+- 1998 × 1246 masaüstü giriş ekranı görsel kontrolü
+- 430 × 900 mobil kayıt ekranı görsel kontrolü
+- `npm test` — 14/14 test başarılı
+- `npm run build` — başarılı
+
+Bilinen sınırlamalar:
+
+- Supabase Auth URL izin listesi henüz yerel callback yollarıyla yapılandırılmadı.
+- Gerçek e-posta doğrulama ve şifre yenileme bağlantısı henüz test hesabıyla doğrulanmadı.
+- İlk giriş sonrası organizasyon onboarding akışı henüz yok.
 
 ### 19 Temmuz 2026 — `0.5.1-supabase-connected`
 

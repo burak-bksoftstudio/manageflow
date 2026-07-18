@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '../components/Brand';
+import { useAuth } from '../features/auth/AuthContext';
+import { getUserIdentity } from '../features/auth/authUtils';
 
 function StatCard({ label, value, helper, icon: Icon, progress }) {
   return (
@@ -49,12 +51,15 @@ function ProjectList({ projects }) {
 }
 
 export default function DashboardPage({ projects, taskCount }) {
+  const { user } = useAuth();
+  const identity = user ? getUserIdentity(user) : { firstName: 'Burak', fullName: 'Burak Enes', initials: 'BE' };
+
   return (
     <>
       <section className="hero">
         <div className="eyebrow"><i /> DASHBOARD</div>
-        <h1>Hoş geldiniz, Burak</h1>
-        <div className="presence"><Avatar small /><span>Burak Enes</span><i /><Activity /><span>Canlı veri</span></div>
+        <h1>Hoş geldiniz, {identity.firstName}</h1>
+        <div className="presence"><Avatar small initials={identity.initials} /><span>{identity.fullName}</span><i /><Activity /><span>Canlı veri</span></div>
       </section>
 
       <section className="stats-grid">

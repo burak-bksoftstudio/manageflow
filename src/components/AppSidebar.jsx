@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   AlarmClock, Bell, BriefcaseBusiness, CalendarDays, CheckSquare2,
   ChevronDown, ChevronLeft, ChevronRight, Files, FolderKanban,
-  LayoutDashboard, MessageSquare, Settings2, Sparkles, Users, X,
+  LayoutDashboard, LogOut, MessageSquare, Settings2, Sparkles, Users, X,
 } from 'lucide-react';
 import { Avatar, Logo } from './Brand';
 
@@ -46,7 +46,7 @@ function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile 
   );
 }
 
-export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, onSignOut }) {
   const [openGroups, setOpenGroups] = useState([true, false]);
   const closeMobile = () => setMobileOpen(false);
 
@@ -92,9 +92,11 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
         </nav>
 
         <div className="account">
-          <Avatar />
-          <span className="account-copy"><b>Burak Enes</b><small>burak@manageflow.co</small></span>
-          <ChevronRight />
+          <Avatar initials={account.initials} />
+          <span className="account-copy"><b>{account.fullName}</b><small>{account.email}</small></span>
+          {onSignOut ? (
+            <button className="account-logout" onClick={onSignOut} aria-label="Çıkış yap" title="Çıkış yap"><LogOut /></button>
+          ) : <ChevronRight />}
         </div>
       </aside>
     </>

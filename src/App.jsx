@@ -4,6 +4,12 @@ import AppHeader from './components/AppHeader';
 import { AgendaDrawer, QuickCreateModal } from './components/AppOverlays';
 import AppSidebar from './components/AppSidebar';
 import { initialProjects } from './data/demo';
+import { useAuth } from './features/auth/AuthContext';
+import { ProtectedRoute, PublicOnlyRoute } from './features/auth/AuthRouteGuards';
+import { getUserIdentity } from './features/auth/authUtils';
+import {
+  ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage,
+} from './pages/AuthPages';
 import DashboardPage from './pages/DashboardPage';
 import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage';
 import TeamPage from './pages/TeamPage';
@@ -22,14 +28,21 @@ const placeholderRoutes = [
 ];
 
 function AppLayout({ shellState }) {
+  const { isDemoMode, signOut, user } = useAuth();
   const {
     collapsed, setCollapsed, mobileOpen, setMobileOpen, dark, setDark,
     setModal, setAgendaOpen, notificationOpen, setNotificationOpen,
   } = shellState;
+  const account = user ? getUserIdentity(user) : {
+    email: 'burak@manageflow.co', fullName: 'Burak Enes', initials: 'BE',
+  };
 
   return (
     <>
-      <AppSidebar {...{ collapsed, setCollapsed, mobileOpen, setMobileOpen }} />
+      <AppSidebar
+        {...{ collapsed, setCollapsed, mobileOpen, setMobileOpen, account }}
+        onSignOut={isDemoMode ? null : signOut}
+      />
       <main>
         <AppHeader
           {...{ setMobileOpen, dark, setDark, setAgendaOpen, notificationOpen, setNotificationOpen }}
@@ -67,12 +80,21 @@ export default function App() {
   return (
     <div className={`app-shell ${shellClass}`}>
       <Routes>
-        <Route element={<AppLayout shellState={shellState} />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} />} />
-          <Route path="/ekipler" element={<TeamPage />} />
-          {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
-          <Route path="*" element={<NotFoundPage />} />
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/giris" element={<LoginPage />} />
+          <Route path="/kayit" element={<RegisterPage />} />
+          <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
+        </Route>
+        <Route path="/eposta-dogrula" element={<VerifyEmailPage />} />
+        <Route path="/sifre-yenile" element={<ResetPasswordPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout shellState={shellState} />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} />} />
+            <Route path="/ekipler" element={<TeamPage />} />
+            {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
         </Route>
       </Routes>
       {modal && <QuickCreateModal type={modal} close={() => setModal(null)} {...{ addProject, addTask }} />}

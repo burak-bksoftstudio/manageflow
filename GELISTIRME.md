@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.5.0-supabase-foundation` |
-| Mevcut aşama | Supabase bağlantı ve güvenli çok kiracılı şema temeli hazır |
-| Sonraki ana hedef | Supabase projesini bağlama ve Auth arayüzü |
+| Mevcut sürüm | `0.5.1-supabase-connected` |
+| Mevcut aşama | Supabase uzak projesi bağlı ve çok kiracılı ilk şema production veritabanında |
+| Sonraki ana hedef | Auth kayıt/giriş arayüzü ve kullanıcı oturumu |
 
 ---
 
@@ -58,7 +58,7 @@ Mevcut sürümde:
 - Masaüstü ve mobil arayüz bulunmaktadır.
 - Dashboard demo verilerle görüntülenmektedir.
 - Bazı arayüz etkileşimleri gerçekten çalışmaktadır.
-- Veriler herhangi bir backend veya veritabanına bağlı değildir.
+- Supabase istemcisi uzak projeye bağlıdır; mevcut ekranlar henüz demo verileri kullanmaktadır.
 - Sayfa yenilendiğinde kullanıcı tarafından eklenen demo veriler sıfırlanır.
 - Kimlik doğrulama, yetkilendirme ve gerçek kullanıcı sistemi bulunmamaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
@@ -86,10 +86,10 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Supabase istemci katmanı hazır; uzak proje henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Organizasyon şeması ve RLS migration'ı hazır; henüz uygulanmadı |
+| Backend | Kısmen hazır | Supabase istemci katmanı ve uzak proje bağlantısı hazır; ekran sorguları henüz bağlanmadı |
+| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik ve davet şeması RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Başlanmadı | Kayıt ve giriş sistemi yok |
-| Yetkilendirme | Başlanmadı | Organizasyon ve rol kontrolleri yok |
+| Yetkilendirme | Kısmen hazır | Veritabanında RLS ve rol kontrolleri var; frontend oturum/rol akışı henüz yok |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
 | Test altyapısı | Kısmen hazır | Vitest ve ekip domain testleri bulunuyor; UI/E2E testleri henüz yok |
@@ -350,15 +350,15 @@ Ekip verileri şu anda demo state'tedir. Davet formu gerçek e-posta göndermez 
 
 ## 5. Henüz yapılmamış bağlantılar
 
-Aşağıdaki sistemlerin hiçbiri mevcut prototipe bağlı değildir:
+Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
-- Veritabanı
+- Mevcut ekranların Supabase veritabanı sorguları
 - Kullanıcı kayıt/giriş sistemi
 - Şifre sıfırlama
 - E-posta doğrulama
 - Google ile giriş
-- Organizasyon sistemi
-- Rol ve izin yönetimi
+- Organizasyon onboarding ve çalışma alanı değiştirme akışları
+- Rol ve izinlerin frontend üzerinde uygulanması
 - Kalıcı proje kayıtları
 - Kalıcı görev kayıtları
 - Müşteri kayıtları
@@ -925,18 +925,20 @@ Durum: **Devam ediyor**
 
 ### Faz 2 — gerçek SaaS altyapısı
 
-Durum: **Planlandı**
+Durum: **Devam ediyor**
 
-- [ ] Supabase projesi oluştur
-- [ ] Ortam değişkenlerini tanımla
+- [x] Supabase projesi oluştur
+- [x] Ortam değişkenlerini tanımla
 - [x] Güvenli Supabase istemci ve demo fallback katmanını kur
 - [x] Veritabanı migration yapısını kur
 - [x] Profil, organizasyon, üyelik ve davet tablolarını tanımla
 - [x] İlk RLS politikalarını ve son sahip korumasını yaz
+- [x] Uzak Supabase projesini CLI ile bağla
+- [x] İlk migration'ı uzak veritabanına uygula
 - [ ] Auth kayıt/giriş/çıkış akışını oluştur
 - [ ] E-posta doğrulama ve şifre sıfırlama ekle
-- [ ] Organizasyon ve organizasyon üyelik tablolarını kur
-- [ ] Rol ve temel izinleri kur
+- [x] Organizasyon ve organizasyon üyelik tablolarını kur
+- [x] Rol ve temel izinlerin veritabanı katmanını kur
 - [ ] Ekip ekranını gerçek veritabanına bağla
 - [ ] Profil ve organizasyon ayarlarını oluştur
 - [ ] RLS politikalarını yaz ve test et
@@ -1105,12 +1107,10 @@ Her özellik tamamlanmış sayılmadan önce:
 
 ## 13. Bilinen mevcut eksikler ve teknik borç
 
-- Bütün React kodu büyük ölçüde `src/main.jsx` içinde bulunuyor.
 - TypeScript kullanılmıyor.
-- Gerçek router yok.
-- Demo sayfa geçişleri URL'yi değiştirmiyor.
-- State yönetimi yalnızca yerel React state ile yapılıyor.
+- Sunucu verisi/cache yönetim katmanı henüz yok; ekran state'i yerel React state ile yönetiliyor.
 - Veriler sabit/demo içeriklerden oluşuyor.
+- Auth sağlayıcısı, korumalı rota ve organizasyon context'i henüz yok.
 - Formlar gelişmiş doğrulama yapmıyor.
 - Hızlı görev oluşturma yalnızca sayacı artırıyor.
 - Arama gerçek sonuç üretmiyor.
@@ -1119,7 +1119,7 @@ Her özellik tamamlanmış sayılmadan önce:
 - Grafikler gerçek veri kullanmıyor.
 - Proje satırı detay sayfasına gitmiyor.
 - Placeholder modüller işlevsel değil.
-- Test bulunmuyor.
+- Domain/config testleri var; UI entegrasyon ve E2E testleri henüz yok.
 - ESLint/Prettier yapılandırması bulunmuyor.
 - CI/CD bulunmuyor.
 - Offline/PWA desteği bulunmuyor.
@@ -1130,32 +1130,54 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Ürün metinlerini ManageFlow olarak güncelle.
-2. Özgün ManageFlow logosunu uygulama kabuğuna yerleştir.
-3. Marka renk ve tipografi tokenlarını sabitle.
-4. Ekip modülünü ayrı bir gerçek sayfa olarak oluştur.
-5. Ekip listesi, üye detay paneli ve üye ekleme formunu demo veriyle çalıştır.
-6. Ekip modülünün boş, yükleniyor ve hata durumlarını tamamla.
-7. Mevcut frontend'i modüler dosya yapısına ayır.
-8. React Router kur ve Dashboard/Ekip sayfalarına gerçek URL ver.
-9. İlk paketi mobil, koyu tema ve production build ile doğrula.
-10. Sonraki pakette Supabase, Auth ve organizasyon üyeliğine geç.
+1. Auth sağlayıcısı ve oturum durumunu ekle.
+2. Kayıt, giriş ve çıkış akışlarını oluştur.
+3. E-posta doğrulama ve şifre sıfırlama ekranlarını ekle.
+4. Uygulama rotalarını oturumla koru.
+5. İlk kayıt sonrasında organizasyon oluşturma onboarding akışını bağla.
+6. Auth ve organizasyon akışlarını RLS ile gerçek kullanıcı üzerinden test et.
+7. Ekip ekranını Supabase verilerine bağla.
 
-İlk ManageFlow geliştirme paketinin başarı ölçütü:
+Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Uygulama ManageFlow markasıyla açılır
-→ Özgün logo bütün ana yüzeylerde doğru görünür
-→ Kullanıcı Ekip sayfasına gerçek URL ile gidebilir
-→ Ekip üyelerini listeleyebilir
-→ Demo ekip üyesi ekleyebilir ve düzenleyebilir
-→ Arayüz mobil ve koyu temada çalışır
-→ Production build hatasız tamamlanır
+Kullanıcı güvenli biçimde kayıt olabilir ve giriş yapabilir
+→ E-postasını doğrulayabilir
+→ Oturumu yenileme sonrasında korunur
+→ Yetkisiz kullanıcı uygulama ekranlarına erişemez
+→ İlk organizasyonunu oluşturabilir
+→ RLS başka organizasyonun verisine erişimi engeller
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.5.1-supabase-connected`
+
+Tamamlananlar:
+
+- Yerel uygulama `manageflow` Supabase projesine bağlandı.
+- Proje URL'si ve publishable key yalnızca Git tarafından yok sayılan `.env.local` içinde tanımlandı.
+- Supabase CLI cihaz doğrulamasıyla güvenli biçimde yetkilendirildi.
+- Yerel migration geçmişi uzak proje ile eşleştirildi.
+- Profil, organizasyon, üyelik ve davet şeması uzak PostgreSQL veritabanına uygulandı.
+- RLS politikaları, rol kontrolleri, otomatik profil/owner trigger'ları ve son owner koruması etkinleştirildi.
+- CLI'nin makineye özel `supabase/.temp/` çıktısı Git kapsamı dışında bırakıldı.
+
+Doğrulama:
+
+- Yerel ve uzak migration sürümleri: `20260718220000`
+- Anonim profil tablo isteği yetki verilmediği için `401` ile engellendi; tablo artık Data API tarafından bulunuyor.
+- `npm test` — 10/10 test başarılı
+- `npm run build` — başarılı
+- Publishable key dışında herhangi bir Supabase sırrı repository'ye eklenmedi.
+
+Bilinen sınırlamalar:
+
+- Auth arayüzü ve gerçek kullanıcı oturumu henüz bulunmuyor.
+- Authenticated RLS akışları gerçek test kullanıcısıyla henüz uçtan uca doğrulanmadı.
+- Ekip ekranı hâlâ demo state kullanıyor.
 
 ### 19 Temmuz 2026 — `0.5.0-supabase-foundation`
 

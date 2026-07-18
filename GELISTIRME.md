@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 18 Temmuz 2026 |
-| Mevcut sürüm | `0.1.1-product-plan` |
-| Mevcut aşama | Ürün kararları netleşmiş etkileşimli frontend prototipi |
-| Sonraki ana hedef | ManageFlow marka temeli ve ekip/organizasyon modülü |
+| Mevcut sürüm | `0.2.0-brand` |
+| Mevcut aşama | ManageFlow markalı etkileşimli frontend prototipi |
+| Sonraki ana hedef | Ekip/organizasyon modülü |
 
 ---
 
@@ -864,9 +864,9 @@ Durum: **Devam ediyor**
 
 Durum: **Planlandı**
 
-- [ ] Uygulama adını ve metinlerini ManageFlow olarak güncelle
-- [ ] Özgün ManageFlow logosunu oluştur ve uygulamaya ekle
-- [ ] Marka tokenlarını tanımla
+- [x] Uygulama adını ve metinlerini ManageFlow olarak güncelle
+- [x] Özgün ManageFlow logosunu oluştur ve uygulamaya ekle
+- [x] Marka tokenlarını tanımla
 - [ ] Ekip sayfasının gerçek frontend arayüzünü oluştur
 - [ ] Ekip üyesi ekleme/düzenleme/devre dışı bırakma akışlarını demo veriyle doğrula
 - [ ] Organizasyon seçici ve çalışma alanı bilgilerini düzenle
@@ -1102,6 +1102,35 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 18 Temmuz 2026 — `0.2.0-brand`
+
+Eklenenler:
+
+- `M` harfi ile ileri akış okunu birleştiren özgün ManageFlow logo sembolü
+- Sidebar için ManageFlow wordmark
+- SVG favicon ve paylaşım logosu
+- `#5B5CE2` kontrollü marka vurgu rengi
+- Açık/koyu temayla uyumlu marka tokenları
+
+Değiştirilenler:
+
+- Uygulama adı ve metadata ManageFlow olarak güncellendi.
+- Paket adı `manageflow` olarak değiştirildi.
+- AI menü adı Flow AI olarak güncellendi.
+- Demo kullanıcı e-posta alan adı ManageFlow olarak değiştirildi.
+- Aktif navigasyon, grafik, ilerleme ve focus durumları marka rengine bağlandı.
+
+Doğrulama:
+
+- `npm install`
+- `npm run build`
+- 1440 × 1000 masaüstü tarayıcı görsel kontrolü
+
+Bilinen sınırlamalar:
+
+- Ekip sayfası henüz placeholder durumunda.
+- Backend ve veritabanı bağlantısı bulunmuyor.
 
 ### 18 Temmuz 2026 — `0.1.1-product-plan`
 

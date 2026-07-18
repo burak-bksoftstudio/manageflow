@@ -43,7 +43,14 @@ const initialProjects = [
 ];
 
 function Logo() {
-  return <div className="logo" aria-label="Manage"><span>M</span><i /></div>;
+  return <a className="brand" href="/" aria-label="ManageFlow ana sayfa">
+    <svg className="brand-mark" viewBox="0 0 40 40" role="img" aria-hidden="true">
+      <rect width="40" height="40" rx="12" />
+      <path className="brand-m" d="M9.5 27.5V13l8.2 8.3 5.2-5.4" />
+      <path className="brand-flow" d="M18.8 29.2 30.5 12.8M24.2 12.8h6.3v6.4" />
+    </svg>
+    <span className="brand-wordmark">Manage<span>Flow</span></span>
+  </a>;
 }
 
 function Avatar({ small = false }) {
@@ -75,8 +82,8 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, active, s
           <button className={`nav-item top-level ${active === 'Dashboard' ? 'active' : ''}`} onClick={() => choose('Dashboard')}>
             <LayoutDashboard /><span>Dashboard</span>
           </button>
-          <button className={`nav-item top-level ${active === 'Mana' ? 'active' : ''}`} onClick={() => choose('Mana')}>
-            <Sparkles /><span>Mana</span><em>AI</em>
+          <button className={`nav-item top-level ${active === 'Flow AI' ? 'active' : ''}`} onClick={() => choose('Flow AI')}>
+            <Sparkles /><span>Flow AI</span><em>AI</em>
           </button>
 
           {navGroups.map((group, groupIndex) => (
@@ -98,7 +105,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, active, s
 
         <div className="account">
           <Avatar />
-          <span><b>Burak Enes</b><small>burak@manage.co</small></span>
+          <span><b>Burak Enes</b><small>burak@manageflow.co</small></span>
           <ChevronRight />
         </div>
       </aside>

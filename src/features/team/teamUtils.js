@@ -1,5 +1,47 @@
+const DATABASE_ROLE_LABELS = {
+  owner: 'Sahip',
+  admin: 'Yönetici',
+  project_manager: 'Proje Yöneticisi',
+  member: 'Ekip Üyesi',
+};
+
+const ROLE_DATABASE_VALUES = Object.fromEntries(
+  Object.entries(DATABASE_ROLE_LABELS).map(([databaseRole, label]) => [label, databaseRole]),
+);
+
+const memberColors = ['#5b5ce2', '#e2705b', '#2f8f78', '#bd6aa7', '#3b82b6', '#c08b35'];
+
 export function getInitials(name) {
   return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toLocaleUpperCase('tr-TR')).join('');
+}
+
+export function getTeamRoleLabel(databaseRole) {
+  return DATABASE_ROLE_LABELS[databaseRole] || 'Ekip Üyesi';
+}
+
+export function getTeamRoleValue(label) {
+  return ROLE_DATABASE_VALUES[label] || 'member';
+}
+
+export function mapMembershipToTeamMember(membership, profile, currentUserId) {
+  const name = profile?.full_name || profile?.email?.split('@')[0] || 'İsimsiz kullanıcı';
+  const colorIndex = Array.from(String(membership.user_id)).reduce((total, character) => total + character.charCodeAt(0), 0) % memberColors.length;
+  const joinedDate = membership.joined_at || membership.created_at;
+
+  return {
+    id: membership.id,
+    userId: membership.user_id,
+    name,
+    email: profile?.email || 'E-posta bilgisi yok',
+    initials: getInitials(name) || 'MF',
+    role: getTeamRoleLabel(membership.role),
+    department: membership.department || 'Belirtilmedi',
+    title: membership.title || 'Unvan belirtilmedi',
+    status: membership.status,
+    joinedAt: joinedDate ? new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(joinedDate)) : 'Tarih bilinmiyor',
+    lastActive: membership.user_id === currentUserId ? 'Şimdi' : 'Aktif üye',
+    color: memberColors[colorIndex],
+  };
 }
 
 export function getTeamStats(members) {
@@ -7,7 +49,7 @@ export function getTeamStats(members) {
     total: members.length,
     active: members.filter(member => member.status === 'active').length,
     pending: members.filter(member => member.status === 'pending').length,
-    departments: new Set(members.map(member => member.department).filter(Boolean)).size,
+    departments: new Set(members.map(member => member.department).filter(value => value && value !== 'Belirtilmedi')).size,
   };
 }
 

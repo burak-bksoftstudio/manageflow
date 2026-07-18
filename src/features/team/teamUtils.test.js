@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { initialTeamMembers } from '../../data/demo';
 import {
-  canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamStats, validateInvite,
+  canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamRoleLabel, getTeamRoleValue,
+  getTeamStats, mapMembershipToTeamMember, validateInvite,
 } from './teamUtils';
 
 describe('team utilities', () => {
   it('calculates team summary metrics', () => {
     expect(getTeamStats(initialTeamMembers)).toEqual({ total: 7, active: 5, pending: 1, departments: 5 });
+  });
+
+  it('does not count unspecified departments', () => {
+    expect(getTeamStats([{ status: 'active', department: 'Belirtilmedi' }]).departments).toBe(0);
   });
 
   it('filters members with Turkish case-insensitive search', () => {
@@ -36,5 +41,21 @@ describe('team utilities', () => {
   it('protects the workspace owner access', () => {
     expect(canChangeOwnerAccess(initialTeamMembers[0])).toBe(false);
     expect(canChangeOwnerAccess(initialTeamMembers[1])).toBe(true);
+  });
+
+  it('maps database roles in both directions', () => {
+    expect(getTeamRoleLabel('project_manager')).toBe('Proje Yöneticisi');
+    expect(getTeamRoleValue('Yönetici')).toBe('admin');
+  });
+
+  it('maps Supabase memberships to the team view model', () => {
+    const member = mapMembershipToTeamMember({
+      id: 'membership-1', user_id: 'user-1', role: 'owner', status: 'active',
+      department: null, title: null, joined_at: '2026-07-18T20:00:00.000Z', created_at: '2026-07-18T20:00:00.000Z',
+    }, { full_name: 'Burak Kiriş', email: 'burak@example.com' }, 'user-1');
+    expect(member).toMatchObject({
+      id: 'membership-1', userId: 'user-1', name: 'Burak Kiriş', role: 'Sahip',
+      department: 'Belirtilmedi', title: 'Unvan belirtilmedi', lastActive: 'Şimdi',
+    });
   });
 });

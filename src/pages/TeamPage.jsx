@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   BriefcaseBusiness, Building2, CalendarDays, Check, ChevronRight,
-  Mail, MailCheck, MoreHorizontal, Search, ShieldCheck, UserCheck,
-  UserPlus, Users, X,
+  CircleAlert, LoaderCircle, Mail, MailCheck, MoreHorizontal, RefreshCw,
+  Search, ShieldCheck, UserCheck, UserPlus, Users, X,
 } from 'lucide-react';
-import { initialTeamMembers } from '../data/demo';
+import { useOrganization } from '../features/organizations/OrganizationContext';
 import {
   canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamStats, validateInvite,
 } from '../features/team/teamUtils';
+import { useTeamMembers } from '../features/team/useTeamMembers';
 
 const roles = ['Sahip', 'Yönetici', 'Proje Yöneticisi', 'Ekip Üyesi'];
-const departments = ['Yönetim', 'Tasarım', 'Yazılım', 'Pazarlama', 'Operasyon'];
+const departments = ['Yönetim', 'Tasarım', 'Yazılım', 'Pazarlama', 'Operasyon', 'Belirtilmedi'];
 
 const statusLabels = {
   active: 'Aktif',
@@ -91,14 +92,23 @@ function InviteMemberModal({ close, addMember, members }) {
   );
 }
 
-function MemberDrawer({ member, close, updateMember }) {
+function MemberDrawer({ member, close, updateMember, canManage, canEditIdentity }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(member);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   useOverlayDismiss(close);
   const update = event => setDraft(value => ({ ...value, [event.target.name]: event.target.value }));
-  const persist = () => { updateMember(draft); setEditing(false); setConfirming(false); };
+  const persist = async () => {
+    setSaving(true);
+    setError('');
+    const result = await updateMember(draft);
+    setSaving(false);
+    if (result?.error) { setError(result.error); setConfirming(false); return; }
+    setEditing(false);
+    setConfirming(false);
+  };
   const save = () => {
     if (draft.name.trim().length < 3 || draft.title.trim().length < 2) { setError('Ad soyad ve görev unvanı boş bırakılamaz.'); return; }
     if (member.status !== 'inactive' && draft.status === 'inactive') { setConfirming(true); return; }
@@ -121,12 +131,13 @@ function MemberDrawer({ member, close, updateMember }) {
 
         {editing ? (
           <div className="drawer-form">
-            <label>Ad soyad<input name="name" value={draft.name} onChange={update} /></label>
+            <label>Ad soyad<input name="name" value={draft.name} onChange={update} disabled={!canEditIdentity} /></label>
             <label>Görev unvanı<input name="title" value={draft.title} onChange={update} /></label>
             <label>Rol<select name="role" value={draft.role} onChange={update} disabled={ownerProtected}>{(ownerProtected ? roles : roles.filter(role => role !== 'Sahip')).map(role => <option key={role}>{role}</option>)}</select></label>
             <label>Departman<select name="department" value={draft.department} onChange={update}>{departments.map(item => <option key={item}>{item}</option>)}</select></label>
             <label>Durum<select name="status" value={draft.status} onChange={update} disabled={ownerProtected}><option value="active">Aktif</option><option value="pending">Davet bekliyor</option><option value="inactive">Devre dışı</option></select></label>
             {ownerProtected && <p className="owner-note"><ShieldCheck /> Çalışma alanı sahibinin rolü ve erişimi değiştirilemez.</p>}
+            {!canEditIdentity && <p className="owner-note"><ShieldCheck /> Ad ve e-posta bilgileri kullanıcı profilinden yönetilir.</p>}
             {error && <div className="form-error" role="alert">{error}</div>}
           </div>
         ) : (
@@ -139,9 +150,9 @@ function MemberDrawer({ member, close, updateMember }) {
           </div>
         )}
 
-        {confirming && <div className="deactivate-confirm" role="alert"><b>Üyenin erişimi kapatılsın mı?</b><p>Üye çalışma alanına erişemez; geçmiş kayıtları korunur.</p><div><button className="soft-button" onClick={() => setConfirming(false)}>Vazgeç</button><button className="danger-button" onClick={persist}>Erişimi kapat</button></div></div>}
-        {!confirming && <div className="drawer-actions">
-          {editing ? <><button className="soft-button" onClick={() => { setDraft(member); setEditing(false); }}>Vazgeç</button><button className="agenda-button" onClick={save}><Check /> Kaydet</button></> : <button className="agenda-button full" onClick={() => setEditing(true)}>Bilgileri düzenle</button>}
+        {confirming && <div className="deactivate-confirm" role="alert"><b>Üyenin erişimi kapatılsın mı?</b><p>Üye çalışma alanına erişemez; geçmiş kayıtları korunur.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirming(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={persist} disabled={saving}>{saving ? 'Kaydediliyor…' : 'Erişimi kapat'}</button></div></div>}
+        {!confirming && canManage && <div className="drawer-actions">
+          {editing ? <><button className="soft-button" onClick={() => { setDraft(member); setEditing(false); setError(''); }} disabled={saving}>Vazgeç</button><button className="agenda-button" onClick={save} disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} {saving ? 'Kaydediliyor…' : 'Kaydet'}</button></> : <button className="agenda-button full" onClick={() => setEditing(true)}>Bilgileri düzenle</button>}
         </div>}
       </aside>
     </div>
@@ -149,7 +160,10 @@ function MemberDrawer({ member, close, updateMember }) {
 }
 
 export default function TeamPage() {
-  const [members, setMembers] = useState(initialTeamMembers);
+  const {
+    addDemoMember, error: teamError, isDemoMode, loading, members, refresh, updateMember: persistMember,
+  } = useTeamMembers();
+  const { activeOrganization } = useOrganization();
   const [query, setQuery] = useState('');
   const [role, setRole] = useState('all');
   const [department, setDepartment] = useState('all');
@@ -157,6 +171,7 @@ export default function TeamPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [toast, setToast] = useState('');
+  const canManage = isDemoMode || ['owner', 'admin'].includes(activeOrganization?.role);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -168,11 +183,13 @@ export default function TeamPage() {
 
   const filteredMembers = useMemo(() => filterTeamMembers(members, { query, role, department, status }), [members, query, role, department, status]);
 
-  const addMember = member => { setMembers(value => [member, ...value]); setToast(`${member.name} için davet oluşturuldu.`); };
-  const updateMember = updated => {
-    setMembers(value => value.map(member => member.id === updated.id ? updated : member));
+  const addMember = member => { addDemoMember(member); setToast(`${member.name} için demo davet oluşturuldu.`); };
+  const updateMember = async updated => {
+    const { error } = await persistMember(updated);
+    if (error) return { error: 'Üye bilgileri güncellenemedi. Yetkinizi ve bağlantınızı kontrol edip tekrar deneyin.' };
     setSelectedMember(updated);
     setToast(`${updated.name} güncellendi.`);
+    return { error: null };
   };
 
   return (
@@ -183,7 +200,14 @@ export default function TeamPage() {
           <h1>Ekibiniz, tek akışta.</h1>
           <p>Ajansınızdaki rolleri, departmanları ve erişimleri tek yerden yönetin.</p>
         </div>
-        <button className="agenda-button team-primary" onClick={() => setInviteOpen(true)}><UserPlus /> Ekip üyesi davet et</button>
+        <button
+          className="agenda-button team-primary"
+          onClick={() => setInviteOpen(true)}
+          disabled={!canManage || !isDemoMode}
+          title={!isDemoMode ? 'Gerçek davet akışı sıradaki geliştirme paketinde eklenecek' : undefined}
+        >
+          <UserPlus /> Ekip üyesi davet et {!isDemoMode && <small className="soon-inline">Yakında</small>}
+        </button>
       </section>
 
       <section className="team-stats-grid">
@@ -207,7 +231,9 @@ export default function TeamPage() {
 
         <div className="team-table">
           <div className="team-table-head"><span>ÜYE</span><span>ROL</span><span>DEPARTMAN</span><span>DURUM</span><span>SON AKTİFLİK</span><span /></div>
-          {filteredMembers.map(member => (
+          {loading && <div className="team-loading" role="status"><LoaderCircle className="spin" /><span>Organizasyon üyeleri yükleniyor…</span></div>}
+          {!loading && teamError && <div className="team-state-message error"><CircleAlert /><h3>Ekip verisi yüklenemedi</h3><p>Bağlantınızı kontrol edip tekrar deneyin.</p><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}
+          {!loading && !teamError && filteredMembers.map(member => (
             <button className="team-member-row" key={member.id} onClick={() => setSelectedMember(member)}>
               <span className="member-identity"><MemberAvatar member={member} /><span><b>{member.name}</b><small>{member.email}</small></span></span>
               <span className="cell-copy"><b>{member.role}</b><small>{member.title}</small></span>
@@ -217,13 +243,14 @@ export default function TeamPage() {
               <ChevronRight />
             </button>
           ))}
-          {filteredMembers.length === 0 && <div className="team-empty"><Search /><h3>Eşleşen ekip üyesi yok</h3><p>Filtreleri değiştirerek tekrar deneyin.</p></div>}
+          {!loading && !teamError && members.length === 0 && <div className="team-empty"><Users /><h3>Henüz ekip üyesi yok</h3><p>İlk üyelik oluşturulduğunda burada görünecek.</p></div>}
+          {!loading && !teamError && members.length > 0 && filteredMembers.length === 0 && <div className="team-empty"><Search /><h3>Eşleşen ekip üyesi yok</h3><p>Filtreleri değiştirerek tekrar deneyin.</p></div>}
         </div>
       </section>
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
-      {inviteOpen && <InviteMemberModal close={() => setInviteOpen(false)} addMember={addMember} members={members} />}
-      {selectedMember && <MemberDrawer member={selectedMember} close={() => setSelectedMember(null)} updateMember={updateMember} />}
+      {inviteOpen && isDemoMode && <InviteMemberModal close={() => setInviteOpen(false)} addMember={addMember} members={members} />}
+      {selectedMember && <MemberDrawer member={selectedMember} close={() => setSelectedMember(null)} updateMember={updateMember} canManage={canManage} canEditIdentity={isDemoMode} />}
     </>
   );
 }

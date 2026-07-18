@@ -33,4 +33,4 @@ Production yayını alındığında `Site URL` canlı domain olarak güncellenme
 - `service_role` anahtarı hiçbir zaman frontend veya `VITE_` değişkeninde bulunmamalıdır.
 - Migration uzak projeye uygulanmadan önce RLS politikaları gözden geçirilmelidir.
 
-İlk migration profil, organizasyon, organizasyon üyeliği ve davet altyapısını oluşturur. Migration, `manageflow` uzak projesine uygulanmıştır. CLI bağlantısının ürettiği `supabase/.temp/` klasörü makineye özeldir ve Git'e eklenmez.
+İlk migration profil, organizasyon, organizasyon üyeliği ve davet altyapısını oluşturur. İkinci migration doğrulanmış Auth e-postasını profile senkronlar ve e-posta alanını yalnızca Auth trigger'larının değiştirebilmesini sağlar. Migration'lar `manageflow` uzak projesine uygulanmıştır. CLI bağlantısının ürettiği `supabase/.temp/` klasörü makineye özeldir ve Git'e eklenmez.

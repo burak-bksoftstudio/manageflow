@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.7.0-organization-onboarding` |
-| Mevcut aşama | Auth doğrulandı; ilk gerçek organizasyon ve owner üyeliği çalışıyor |
-| Sonraki ana hedef | Ekip ekranını gerçek organizasyon üyelerine bağlama |
+| Mevcut sürüm | `0.8.0-real-team` |
+| Mevcut aşama | Ekip listesi ve üyelik güncellemeleri aktif organizasyonun gerçek Supabase verisini kullanıyor |
+| Sonraki ana hedef | Güvenli ekip daveti ve üyelik kabul akışı |
 
 ---
 
@@ -58,8 +58,8 @@ Mevcut sürümde:
 - Masaüstü ve mobil arayüz bulunmaktadır.
 - Dashboard demo verilerle görüntülenmektedir.
 - Bazı arayüz etkileşimleri gerçekten çalışmaktadır.
-- Supabase istemcisi uzak projeye bağlıdır; mevcut ekranlar henüz demo verileri kullanmaktadır.
-- Sayfa yenilendiğinde kullanıcı tarafından eklenen demo veriler sıfırlanır.
+- Supabase istemcisi uzak projeye bağlıdır; Auth, organizasyon ve ekip ekranları gerçek veriyi kullanmaktadır.
+- Dashboard, projeler, görevler ve diğer tamamlanmamış modüller demo verilerini kullanmaktadır.
 - Supabase Auth kayıt, giriş, çıkış, doğrulama ve şifre yenileme arayüzleri bulunmaktadır.
 - Uygulama rotaları oturumsuz erişime karşı korunmaktadır; kayıt, e-posta doğrulama, çıkış ve yeniden giriş gerçek hesapla doğrulanmıştır.
 - İlk organizasyon onboarding akışı, aktif organizasyon context'i ve owner üyeliği gerçek Supabase verisiyle çalışmaktadır.
@@ -73,7 +73,7 @@ Mevcut sürümde:
 | Kimlik doğrulama | Supabase ile bağlı; kayıt/doğrulama/giriş/çıkış doğrulandı |
 | Organizasyon onboarding | Gerçek Supabase verisiyle kullanılabilir |
 | Dashboard | Demo verilerle kullanılabilir |
-| Ekipler | Demo CRUD akışlarıyla kullanılabilir |
+| Ekipler | Gerçek üye listesi ve yetkili güncelleme akışıyla kullanılabilir; davet yakında |
 | Hızlı proje/görev oluşturma | Demo state ile kullanılabilir |
 | Gündem ve bildirimler | Demo içerikle önizlenebilir |
 | Projeler, Görevler ve Çalışma Alanı | Yakında |
@@ -90,7 +90,7 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Supabase istemci katmanı ve uzak proje bağlantısı hazır; ekran sorguları henüz bağlanmadı |
+| Backend | Kısmen hazır | Auth, organizasyon ve ekip üyelik sorguları bağlı; diğer iş modülleri henüz bağlı değil |
 | Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik ve davet şeması RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
 | Yetkilendirme | Kısmen hazır | RLS, korumalı rotalar, aktif organizasyon context'i ve owner rolü çalışıyor |
@@ -348,8 +348,15 @@ Bildirimler henüz kullanıcı hesabına veya gerçek olaylara bağlı değildir
 - Devre dışı bırakma onayı
 - İşlem başarı toast mesajları
 - Escape ile modal/drawer kapatma ve arka plan kaydırma kilidi
+- Aktif organizasyonun gerçek üyelik ve profil kayıtlarını RLS altında okuma
+- Profil e-postasını Supabase Auth kaynağından güvenli biçimde senkronlama
+- Loading, backend hata, yeniden deneme ve gerçek boş durumları
+- Owner/admin rollerine göre düzenleme yetkisi
+- Üyelik rolü, durum, departman ve unvanını Supabase'e kaydetme
+- Owner rolü ve erişimini arayüz/veritabanı seviyesinde koruma
+- Profil adı ve e-posta alanlarını ekip yöneticisinin değişikliğine kapatma
 
-Ekip verileri şu anda demo state'tedir. Davet formu gerçek e-posta göndermez ve sayfa yenilendiğinde yapılan değişiklikler sıfırlanır.
+Supabase yapılandırılmış ortamda ekip listesi ve üyelik güncellemeleri gerçek veriyi kullanır. Supabase bağlantısı olmayan demo ortamında önceki örnek veri davranışı korunur. Gerçek davet gönderimi henüz bulunmadığı için buton `Yakında` olarak işaretlidir.
 
 ### 4.12 Kimlik doğrulama
 
@@ -392,12 +399,12 @@ Gerçek hesapla ilk organizasyon oluşturuldu; uzak veritabanında 1 organizasyo
 
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
-- Mevcut ekranların Supabase veritabanı sorguları
+- Dashboard, proje, görev ve diğer iş modüllerinin Supabase sorguları
 - Supabase Auth production Site URL ve yönlendirme adresleri
 - Gerçek şifre yenileme e-posta teslim testi
 - Google ile giriş
 - Birden fazla organizasyon arasında çalışma alanı değiştirme akışı
-- Rol ve izinlerin frontend üzerinde uygulanması
+- Rol ve izinlerin ekip dışındaki modüllerde uygulanması
 - Kalıcı proje kayıtları
 - Kalıcı görev kayıtları
 - Müşteri kayıtları
@@ -984,7 +991,9 @@ Durum: **Devam ediyor**
 - [x] Rol ve temel izinlerin veritabanı katmanını kur
 - [x] İlk organizasyon onboarding akışını oluştur
 - [x] Aktif organizasyon context'ini ve owner üyeliğini gerçek veride doğrula
-- [ ] Ekip ekranını gerçek veritabanına bağla
+- [x] Ekip ekranını gerçek veritabanına bağla
+- [x] Ekip loading, boş, backend hata ve yeniden deneme durumlarını ekle
+- [x] Owner/admin üyelik güncelleme yetkisini uygula
 - [ ] Profil ve organizasyon ayarlarını oluştur
 - [ ] RLS politikalarını yaz ve test et
 
@@ -1175,27 +1184,61 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Ekip ekranının üyelik listesini gerçek Supabase verisine bağla.
-2. Ekip ekranına loading, boş ve backend hata durumlarını ekle.
-3. Aktif organizasyona bağlı davet kayıtlarını gerçek veritabanında oluştur.
-4. Owner/admin yetkilerini ekip işlemlerinde uygula.
-5. İkinci test kullanıcısıyla organizasyonlar arası RLS izolasyonunu doğrula.
-6. Şifre yenileme e-posta teslim akışını doğrula.
+1. Aktif organizasyona bağlı davet kaydını güvenli token ile oluştur.
+2. Davet e-postasını server-side Supabase Edge Function üzerinden gönder.
+3. Davet görüntüleme ve kabul rotasını oluştur.
+4. Kabul edilen kullanıcıyı gerçek organization membership kaydına dönüştür.
+5. Owner/admin davet yetkisini ve tekrar/iptal durumlarını uygula.
+6. İkinci test kullanıcısıyla organizasyonlar arası RLS izolasyonunu doğrula.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Aktif organizasyonun gerçek üyeleri listelenebilir
-→ Owner ve admin ekip yönetimi yapabilir
-→ Yetkisiz roller yönetim işlemi yapamaz
-→ Davet kaydı organizasyona bağlı oluşturulur
-→ Loading, boş ve hata durumları gösterilir
-→ RLS başka organizasyonun üyelerini göstermez
+Owner veya admin güvenli bir davet oluşturabilir
+→ Davet e-postası yalnızca sunucu tarafından gönderilir
+→ Alıcı bağlantıyı görüntüleyip kabul edebilir
+→ Kabul sonrasında gerçek ekip üyesi olur
+→ Tekrarlayan veya süresi dolmuş davet engellenir
+→ RLS başka organizasyonun davet ve üyelerini göstermez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.8.0-real-team`
+
+Eklenenler:
+
+- Aktif organizasyon üyeliklerini Supabase'ten okuyan `useTeamMembers` veri katmanı
+- Üyelik ve profil sorgularını birleştiren gerçek ekip görünüm modeli
+- Auth e-postasını profile güvenli biçimde senkronlayan ikinci veritabanı migration'ı
+- E-postanın istemci tarafından değiştirilmesini engelleyen kolon bazlı update yetkisi
+- Gerçek ekip loading, boş, hata ve yeniden deneme durumları
+- Owner/admin rollerine bağlı ekip düzenleme kontrolü
+- Rol, durum, departman ve unvan için gerçek Supabase update işlemi
+- Profil adı/e-postası ile organizasyon üyeliği alanlarının güvenli biçimde ayrılması
+- Gerçek davet akışı hazır olana kadar davet butonunda `Yakında` durumu
+- Veritabanı rolü ve ekip görünüm modeli için 3 yeni otomatik test
+- Departmanı belirtilmeyen üyelerin departman metriğine eklenmemesi
+
+Doğrulama:
+
+- Profil e-posta migration'ı uzak Supabase veritabanına uygulandı.
+- Yerel ve uzak migration geçmişleri `20260718225500` sürümünde eşleşti.
+- Uzak şema linter'ı hata bulmadı.
+- Demo ekip yerine aktif organizasyonun tek gerçek owner üyesi görüntülendi.
+- Gerçek ad, e-posta, owner rolü ve aktif durumu RLS altında okundu.
+- Owner rolü/durumu korunurken departman ve unvan Supabase'e kaydedildi.
+- Sayfa yenileme sonrasında güncellenen üyelik değerlerinin kalıcı olduğu doğrulandı.
+- `npm test` — 21/21 test başarılı
+- `npm run build` — uyarısız başarılı
+
+Bilinen sınırlamalar:
+
+- Davet butonu gerçek e-posta ve kabul akışı tamamlanana kadar devre dışıdır.
+- Son aktiflik bilgisi için ayrı presence/activity altyapısı henüz yoktur.
+- İkinci kullanıcıyla admin/member yetki matrisi ve çapraz organizasyon RLS izolasyonu henüz test edilmedi.
 
 ### 19 Temmuz 2026 — `0.7.0-organization-onboarding`
 

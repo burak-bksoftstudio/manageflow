@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.4.3-avatar-fix` |
-| Mevcut aşama | Doğrulanmış ekip yönetimi bulunan modüler frontend prototipi |
-| Sonraki ana hedef | Supabase, Auth ve gerçek organizasyon üyeliği |
+| Mevcut sürüm | `0.5.0-supabase-foundation` |
+| Mevcut aşama | Supabase bağlantı ve güvenli çok kiracılı şema temeli hazır |
+| Sonraki ana hedef | Supabase projesini bağlama ve Auth arayüzü |
 
 ---
 
@@ -86,8 +86,8 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Başlanmadı | API veya sunucu fonksiyonu bulunmuyor |
-| Veritabanı | Başlanmadı | Kalıcı veri saklama yok |
+| Backend | Kısmen hazır | Supabase istemci katmanı hazır; uzak proje henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Organizasyon şeması ve RLS migration'ı hazır; henüz uygulanmadı |
 | Kimlik doğrulama | Başlanmadı | Kayıt ve giriş sistemi yok |
 | Yetkilendirme | Başlanmadı | Organizasyon ve rol kontrolleri yok |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
@@ -108,6 +108,8 @@ Mevcut sürümde:
 - Vanilla CSS
 - Lucide React ikonları
 - Google Fonts üzerinden Archivo yazı tipi
+- Supabase JavaScript istemcisi
+- PostgreSQL/Supabase migration ve RLS altyapısı
 
 ### Mevcut komutlar
 
@@ -133,6 +135,7 @@ npm run preview
 
 ```text
 manage/
+├── .env.example
 ├── GELISTIRME.md
 ├── index.html
 ├── package.json
@@ -140,9 +143,14 @@ manage/
 ├── public/
 │   ├── manageflow-logo.svg
 │   └── manageflow-mark.svg
+├── supabase/
+│   ├── migrations/
+│   └── README.md
 └── src/
     ├── components/
     ├── data/
+    ├── features/
+    ├── lib/
     ├── pages/
     ├── App.jsx
     ├── main.jsx
@@ -921,7 +929,10 @@ Durum: **Planlandı**
 
 - [ ] Supabase projesi oluştur
 - [ ] Ortam değişkenlerini tanımla
-- [ ] Veritabanı migration yapısını kur
+- [x] Güvenli Supabase istemci ve demo fallback katmanını kur
+- [x] Veritabanı migration yapısını kur
+- [x] Profil, organizasyon, üyelik ve davet tablolarını tanımla
+- [x] İlk RLS politikalarını ve son sahip korumasını yaz
 - [ ] Auth kayıt/giriş/çıkış akışını oluştur
 - [ ] E-posta doğrulama ve şifre sıfırlama ekle
 - [ ] Organizasyon ve organizasyon üyelik tablolarını kur
@@ -1145,6 +1156,36 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.5.0-supabase-foundation`
+
+Eklenenler:
+
+- Supabase JavaScript istemcisi
+- Güvenli `VITE_SUPABASE_URL` ve publishable key yapılandırması
+- Bağlantı bilgileri yokken mevcut demo arayüzünü koruyan fallback davranışı
+- `.env.example` ve Supabase bağlantı rehberi
+- Profil, organizasyon, organizasyon üyeliği ve davet tabloları için migration
+- Owner, admin, proje yöneticisi ve ekip üyesi rolleri
+- Aktif, davet bekleyen ve devre dışı üyelik durumları
+- Organizasyon bazlı RLS yardımcıları ve politikaları
+- Son aktif sahibin silinmesini/devre dışı bırakılmasını engelleyen veritabanı koruması
+- Organizasyon kurucusu ve davet e-postası bütünlük korumaları
+- Supabase yapılandırması için 3 otomatik test
+
+Doğrulama:
+
+- `npm test` — 10/10 test başarılı
+- `npm run build`
+- Hassas `service_role` anahtarının frontend'e eklenmediği kontrol edildi.
+- Demo modunda mevcut arayüzün build çıktısı korundu.
+
+Bilinen sınırlamalar:
+
+- Supabase uzak projesi henüz oluşturulmadı veya bağlanmadı.
+- Migration henüz gerçek PostgreSQL veritabanında uygulanıp test edilmedi.
+- Auth ekranı ve kullanıcı oturumu henüz bulunmuyor.
+- Ekip ekranı henüz Supabase sorgularını kullanmıyor.
 
 ### 19 Temmuz 2026 — `0.4.3-avatar-fix`
 

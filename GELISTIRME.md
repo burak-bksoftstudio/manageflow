@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.4.0-team` |
-| Mevcut aşama | Ekip yönetimi bulunan route tabanlı frontend prototipi |
-| Sonraki ana hedef | Ekip modülü kalite, mobil ve test paketi |
+| Mevcut sürüm | `0.4.1-team-quality` |
+| Mevcut aşama | Doğrulanmış ekip yönetimi bulunan modüler frontend prototipi |
+| Sonraki ana hedef | Supabase, Auth ve gerçek organizasyon üyeliği |
 
 ---
 
@@ -77,7 +77,7 @@ Mevcut sürümde:
 | Yetkilendirme | Başlanmadı | Organizasyon ve rol kontrolleri yok |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
-| Test altyapısı | Başlanmadı | Birim/E2E testleri bulunmuyor |
+| Test altyapısı | Kısmen hazır | Vitest ve ekip domain testleri bulunuyor; UI/E2E testleri henüz yok |
 | Deployment | Başlanmadı | Production ortamı ve domain bağlantısı yok |
 
 ---
@@ -315,6 +315,11 @@ Bildirimler henüz kullanıcı hesabına veya gerçek olaylara bağlı değildir
 - Üye bilgisi, rolü, departmanı ve durumunu düzenleme
 - Yeni ekip üyesi davet formu
 - Filtre sonucu boş durumu
+- Tekrarlayan e-posta ve form doğrulaması
+- Çalışma alanı sahibi rol/erişim koruması
+- Devre dışı bırakma onayı
+- İşlem başarı toast mesajları
+- Escape ile modal/drawer kapatma ve arka plan kaydırma kilidi
 
 Ekip verileri şu anda demo state'tedir. Davet formu gerçek e-posta göndermez ve sayfa yenilendiğinde yapılan değişiklikler sıfırlanır.
 
@@ -880,8 +885,8 @@ Durum: **Devam ediyor**
 - [x] React Router ekle
 - [ ] TypeScript'e geç
 - [ ] Tasarım tokenlarını ayrı dosyaya taşı
-- [ ] Toast ve hata durumları ekle
-- [ ] Test altyapısını kur
+- [x] Toast ve hata durumları ekle
+- [x] Test altyapısını kur
 
 ### Faz 1 — ManageFlow marka ve ekip temeli
 
@@ -1125,6 +1130,32 @@ Uygulama ManageFlow markasıyla açılır
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.4.1-team-quality`
+
+Eklenenler:
+
+- Vitest test altyapısı ve `npm test` komutu
+- Ekip arama, filtre, metrik, davet doğrulama ve sahip koruması için 7 otomatik test
+- Davet formu e-posta, ad soyad, unvan ve tekrar eden üye doğrulaması
+- Üyeyi devre dışı bırakmadan önce onay akışı
+- Çalışma alanı sahibinin rol ve erişimini koruyan kurallar
+- Ekip işlemleri için başarı toast mesajları
+- Modal/drawer için Escape ile kapatma ve arka plan kaydırma kilidi
+- Tema tercihinin tarayıcıda saklanması
+
+Doğrulama:
+
+- `npm test` — 7/7 test başarılı
+- `npm run build`
+- 500 × 900 mobil ekip ekranı görsel kontrolü
+- Koyu tema değişkenleri ve kalıcı tema davranışı kontrolü
+
+Bilinen sınırlamalar:
+
+- UI ve uçtan uca tarayıcı testleri henüz bulunmuyor.
+- Ekip verileri sayfa yenilemesinde sıfırlanır.
+- Gerçek davet e-postası ve yetki kontrolü backend aşamasını bekliyor.
 
 ### 19 Temmuz 2026 — `0.4.0-team`
 

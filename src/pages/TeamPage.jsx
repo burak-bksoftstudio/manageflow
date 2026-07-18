@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BriefcaseBusiness, Building2, CalendarDays, Check, ChevronRight,
   Mail, MailCheck, MoreHorizontal, Search, ShieldCheck, UserCheck,
   UserPlus, Users, X,
 } from 'lucide-react';
 import { initialTeamMembers } from '../data/demo';
+import {
+  canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamStats, validateInvite,
+} from '../features/team/teamUtils';
 
 const roles = ['Sahip', 'Yönetici', 'Proje Yöneticisi', 'Ekip Üyesi'];
 const departments = ['Yönetim', 'Tasarım', 'Yazılım', 'Pazarlama', 'Operasyon'];
@@ -33,24 +36,41 @@ function MemberAvatar({ member, large = false }) {
   );
 }
 
-function InviteMemberModal({ close, addMember }) {
+function useOverlayDismiss(close) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = event => event.key === 'Escape' && close();
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [close]);
+}
+
+function InviteMemberModal({ close, addMember, members }) {
   const [form, setForm] = useState({ name: '', email: '', role: 'Ekip Üyesi', department: 'Tasarım', title: '' });
-  const update = event => setForm(value => ({ ...value, [event.target.name]: event.target.value }));
+  const [error, setError] = useState('');
+  useOverlayDismiss(close);
+  const update = event => { setError(''); setForm(value => ({ ...value, [event.target.name]: event.target.value })); };
   const submit = event => {
     event.preventDefault();
-    const initials = form.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
+    const validationError = validateInvite(form, members);
+    if (validationError) { setError(validationError); return; }
     addMember({
-      ...form, id: `member-${Date.now()}`, initials: initials || 'YK', status: 'pending',
+      ...form, name: form.name.trim(), email: form.email.trim().toLocaleLowerCase('tr-TR'), title: form.title.trim(),
+      id: `member-${Date.now()}`, initials: getInitials(form.name) || 'YK', status: 'pending',
       joinedAt: 'Davet gönderildi', lastActive: 'Henüz katılmadı', color: '#5b5ce2',
     });
     close();
   };
 
   return (
-    <div className="modal-layer" onMouseDown={close}>
-      <form className="modal team-modal" onSubmit={submit} onMouseDown={event => event.stopPropagation()}>
+    <div className="modal-layer" onMouseDown={close} role="presentation">
+      <form className="modal team-modal" onSubmit={submit} onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="invite-title">
         <div className="modal-head">
-          <div><span>EKİP DAVETİ</span><h2>Yeni ekip üyesi</h2><p>Kişiyi ajans çalışma alanınıza davet edin.</p></div>
+          <div><span>EKİP DAVETİ</span><h2 id="invite-title">Yeni ekip üyesi</h2><p>Kişiyi ajans çalışma alanınıza davet edin.</p></div>
           <button type="button" className="icon-button" onClick={close} aria-label="Pencereyi kapat"><X /></button>
         </div>
         <div className="team-form-grid">
@@ -60,6 +80,7 @@ function InviteMemberModal({ close, addMember }) {
           <label>Departman<select name="department" value={form.department} onChange={update}>{departments.map(item => <option key={item}>{item}</option>)}</select></label>
           <label className="full-field">Görev unvanı<input name="title" required value={form.title} onChange={update} placeholder="Örn. Senior Designer" /></label>
         </div>
+        {error && <div className="form-error" role="alert">{error}</div>}
         <div className="invite-note"><Mail /><span><b>Davet e-postası hazır</b><small>Backend bağlandığında davet bağlantısı bu adrese gönderilecek.</small></span></div>
         <div className="modal-actions">
           <button type="button" className="soft-button" onClick={close}>Vazgeç</button>
@@ -73,14 +94,23 @@ function InviteMemberModal({ close, addMember }) {
 function MemberDrawer({ member, close, updateMember }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(member);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState('');
+  useOverlayDismiss(close);
   const update = event => setDraft(value => ({ ...value, [event.target.name]: event.target.value }));
-  const save = () => { updateMember(draft); setEditing(false); };
+  const persist = () => { updateMember(draft); setEditing(false); setConfirming(false); };
+  const save = () => {
+    if (draft.name.trim().length < 3 || draft.title.trim().length < 2) { setError('Ad soyad ve görev unvanı boş bırakılamaz.'); return; }
+    if (member.status !== 'inactive' && draft.status === 'inactive') { setConfirming(true); return; }
+    persist();
+  };
+  const ownerProtected = !canChangeOwnerAccess(member);
 
   return (
-    <div className="drawer-layer" onMouseDown={close}>
-      <aside className="drawer member-drawer" onMouseDown={event => event.stopPropagation()}>
+    <div className="drawer-layer" onMouseDown={close} role="presentation">
+      <aside className="drawer member-drawer" onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="member-title">
         <div className="drawer-head">
-          <div><span>EKİP ÜYESİ</span><h2>Üye detayları</h2></div>
+          <div><span>EKİP ÜYESİ</span><h2 id="member-title">Üye detayları</h2></div>
           <button className="icon-button" onClick={close} aria-label="Paneli kapat"><X /></button>
         </div>
         <div className="member-profile">
@@ -93,9 +123,11 @@ function MemberDrawer({ member, close, updateMember }) {
           <div className="drawer-form">
             <label>Ad soyad<input name="name" value={draft.name} onChange={update} /></label>
             <label>Görev unvanı<input name="title" value={draft.title} onChange={update} /></label>
-            <label>Rol<select name="role" value={draft.role} onChange={update}>{roles.map(role => <option key={role}>{role}</option>)}</select></label>
+            <label>Rol<select name="role" value={draft.role} onChange={update} disabled={ownerProtected}>{(ownerProtected ? roles : roles.filter(role => role !== 'Sahip')).map(role => <option key={role}>{role}</option>)}</select></label>
             <label>Departman<select name="department" value={draft.department} onChange={update}>{departments.map(item => <option key={item}>{item}</option>)}</select></label>
-            <label>Durum<select name="status" value={draft.status} onChange={update}><option value="active">Aktif</option><option value="pending">Davet bekliyor</option><option value="inactive">Devre dışı</option></select></label>
+            <label>Durum<select name="status" value={draft.status} onChange={update} disabled={ownerProtected}><option value="active">Aktif</option><option value="pending">Davet bekliyor</option><option value="inactive">Devre dışı</option></select></label>
+            {ownerProtected && <p className="owner-note"><ShieldCheck /> Çalışma alanı sahibinin rolü ve erişimi değiştirilemez.</p>}
+            {error && <div className="form-error" role="alert">{error}</div>}
           </div>
         ) : (
           <div className="member-details">
@@ -107,9 +139,10 @@ function MemberDrawer({ member, close, updateMember }) {
           </div>
         )}
 
-        <div className="drawer-actions">
+        {confirming && <div className="deactivate-confirm" role="alert"><b>Üyenin erişimi kapatılsın mı?</b><p>Üye çalışma alanına erişemez; geçmiş kayıtları korunur.</p><div><button className="soft-button" onClick={() => setConfirming(false)}>Vazgeç</button><button className="danger-button" onClick={persist}>Erişimi kapat</button></div></div>}
+        {!confirming && <div className="drawer-actions">
           {editing ? <><button className="soft-button" onClick={() => { setDraft(member); setEditing(false); }}>Vazgeç</button><button className="agenda-button" onClick={save}><Check /> Kaydet</button></> : <button className="agenda-button full" onClick={() => setEditing(true)}>Bilgileri düzenle</button>}
-        </div>
+        </div>}
       </aside>
     </div>
   );
@@ -123,26 +156,23 @@ export default function TeamPage() {
   const [status, setStatus] = useState('all');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [toast, setToast] = useState('');
 
-  const stats = useMemo(() => ({
-    total: members.length,
-    active: members.filter(member => member.status === 'active').length,
-    pending: members.filter(member => member.status === 'pending').length,
-    departments: new Set(members.map(member => member.department)).size,
-  }), [members]);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timeout = window.setTimeout(() => setToast(''), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
 
-  const filteredMembers = useMemo(() => members.filter(member => {
-    const searchText = `${member.name} ${member.email} ${member.title}`.toLocaleLowerCase('tr-TR');
-    return searchText.includes(query.toLocaleLowerCase('tr-TR'))
-      && (role === 'all' || member.role === role)
-      && (department === 'all' || member.department === department)
-      && (status === 'all' || member.status === status);
-  }), [members, query, role, department, status]);
+  const stats = useMemo(() => getTeamStats(members), [members]);
 
-  const addMember = member => setMembers(value => [member, ...value]);
+  const filteredMembers = useMemo(() => filterTeamMembers(members, { query, role, department, status }), [members, query, role, department, status]);
+
+  const addMember = member => { setMembers(value => [member, ...value]); setToast(`${member.name} için davet oluşturuldu.`); };
   const updateMember = updated => {
     setMembers(value => value.map(member => member.id === updated.id ? updated : member));
     setSelectedMember(updated);
+    setToast(`${updated.name} güncellendi.`);
   };
 
   return (
@@ -191,7 +221,8 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {inviteOpen && <InviteMemberModal close={() => setInviteOpen(false)} addMember={addMember} />}
+      {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
+      {inviteOpen && <InviteMemberModal close={() => setInviteOpen(false)} addMember={addMember} members={members} />}
       {selectedMember && <MemberDrawer member={selectedMember} close={() => setSelectedMember(null)} updateMember={updateMember} />}
     </>
   );

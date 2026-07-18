@@ -19,6 +19,7 @@ import DashboardPage from './pages/DashboardPage';
 import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage';
 
 const OrganizationOnboardingPage = lazy(() => import('./pages/OrganizationOnboardingPage'));
+const InvitationAcceptancePage = lazy(() => import('./pages/InvitationAcceptancePage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 
 function LazyPage({ children }) {
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="/eposta-dogrula" element={<VerifyEmailPage />} />
         <Route path="/sifre-yenile" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute />}>
+          <Route path="/davet-kabul" element={<LazyPage><InvitationAcceptancePage /></LazyPage>} />
           <Route path="/kurulum" element={<LazyPage><OrganizationOnboardingPage /></LazyPage>} />
           <Route element={<OrganizationRouteGuard />}>
             <Route element={<AppLayout shellState={shellState} />}>

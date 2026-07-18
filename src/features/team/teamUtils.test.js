@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { initialTeamMembers } from '../../data/demo';
 import {
   canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamRoleLabel, getTeamRoleValue,
-  getTeamStats, mapMembershipToTeamMember, validateInvite,
+  getTeamStats, mapInvitationToTeamMember, mapMembershipToTeamMember, validateInvite,
 } from './teamUtils';
 
 describe('team utilities', () => {
@@ -56,6 +56,17 @@ describe('team utilities', () => {
     expect(member).toMatchObject({
       id: 'membership-1', userId: 'user-1', name: 'Burak Kiriş', role: 'Sahip',
       department: 'Belirtilmedi', title: 'Unvan belirtilmedi', lastActive: 'Şimdi',
+    });
+  });
+
+  it('maps pending invitations into the team list', () => {
+    const member = mapInvitationToTeamMember({
+      id: 'invitation-1', full_name: 'Ayşe Yılmaz', email: 'ayse@example.com', role: 'project_manager',
+      department: 'Tasarım', title: 'Art Director', expires_at: '2026-07-26T00:00:00.000Z',
+    });
+    expect(member).toMatchObject({
+      id: 'invitation-1', invitationId: 'invitation-1', isInvitation: true, name: 'Ayşe Yılmaz',
+      role: 'Proje Yöneticisi', status: 'pending', lastActive: 'Henüz katılmadı',
     });
   });
 });

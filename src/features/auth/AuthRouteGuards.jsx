@@ -16,7 +16,7 @@ export function ProtectedRoute() {
 
   if (loading) return <AuthLoading />;
   if (isDemoMode) return <Outlet />;
-  if (!session) return <Navigate to="/giris" replace state={{ from: location.pathname }} />;
+  if (!session) return <Navigate to="/giris" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
   return <Outlet />;
 }
 

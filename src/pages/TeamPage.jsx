@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
 import {
-  canChangeOwnerAccess, filterTeamMembers, getInitials, getTeamStats, validateInvite,
+  canChangeOwnerAccess, filterTeamMembers, getTeamStats, validateInvite,
 } from '../features/team/teamUtils';
 import { useTeamMembers } from '../features/team/useTeamMembers';
 
@@ -50,20 +50,25 @@ function useOverlayDismiss(close) {
   }, [close]);
 }
 
-function InviteMemberModal({ close, addMember, members }) {
+function InviteMemberModal({ close, inviteMember, members }) {
   const [form, setForm] = useState({ name: '', email: '', role: 'Ekip Üyesi', department: 'Tasarım', title: '' });
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   useOverlayDismiss(close);
   const update = event => { setError(''); setForm(value => ({ ...value, [event.target.name]: event.target.value })); };
-  const submit = event => {
+  const submit = async event => {
     event.preventDefault();
     const validationError = validateInvite(form, members);
     if (validationError) { setError(validationError); return; }
-    addMember({
-      ...form, name: form.name.trim(), email: form.email.trim().toLocaleLowerCase('tr-TR'), title: form.title.trim(),
-      id: `member-${Date.now()}`, initials: getInitials(form.name) || 'YK', status: 'pending',
-      joinedAt: 'Davet gönderildi', lastActive: 'Henüz katılmadı', color: '#5b5ce2',
+    setSaving(true);
+    const result = await inviteMember({
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim().toLocaleLowerCase('tr-TR'),
+      title: form.title.trim(),
     });
+    setSaving(false);
+    if (result?.error) { setError(result.error.message); return; }
     close();
   };
 
@@ -72,7 +77,7 @@ function InviteMemberModal({ close, addMember, members }) {
       <form className="modal team-modal" onSubmit={submit} onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="invite-title">
         <div className="modal-head">
           <div><span>EKİP DAVETİ</span><h2 id="invite-title">Yeni ekip üyesi</h2><p>Kişiyi ajans çalışma alanınıza davet edin.</p></div>
-          <button type="button" className="icon-button" onClick={close} aria-label="Pencereyi kapat"><X /></button>
+          <button type="button" className="icon-button" onClick={close} aria-label="Pencereyi kapat" disabled={saving}><X /></button>
         </div>
         <div className="team-form-grid">
           <label className="full-field">Ad soyad<input name="name" required autoFocus value={form.name} onChange={update} placeholder="Örn. Ayşe Yılmaz" /></label>
@@ -82,22 +87,23 @@ function InviteMemberModal({ close, addMember, members }) {
           <label className="full-field">Görev unvanı<input name="title" required value={form.title} onChange={update} placeholder="Örn. Senior Designer" /></label>
         </div>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="invite-note"><Mail /><span><b>Davet e-postası hazır</b><small>Backend bağlandığında davet bağlantısı bu adrese gönderilecek.</small></span></div>
+        <div className="invite-note"><Mail /><span><b>Güvenli davet bağlantısı</b><small>Bağlantı yalnızca bu e-posta adresiyle doğrulanan hesap tarafından kabul edilebilir.</small></span></div>
         <div className="modal-actions">
-          <button type="button" className="soft-button" onClick={close}>Vazgeç</button>
-          <button className="agenda-button"><UserPlus /> Davet oluştur</button>
+          <button type="button" className="soft-button" onClick={close} disabled={saving}>Vazgeç</button>
+          <button className="agenda-button" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <UserPlus />} {saving ? 'Gönderiliyor…' : 'Daveti gönder'}</button>
         </div>
       </form>
     </div>
   );
 }
 
-function MemberDrawer({ member, close, updateMember, canManage, canEditIdentity }) {
+function MemberDrawer({ member, close, updateMember, revokeInvitation, canManage, canEditIdentity }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(member);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmingRevoke, setConfirmingRevoke] = useState(false);
   useOverlayDismiss(close);
   const update = event => setDraft(value => ({ ...value, [event.target.name]: event.target.value }));
   const persist = async () => {
@@ -115,12 +121,20 @@ function MemberDrawer({ member, close, updateMember, canManage, canEditIdentity 
     persist();
   };
   const ownerProtected = !canChangeOwnerAccess(member);
+  const revoke = async () => {
+    setSaving(true);
+    setError('');
+    const result = await revokeInvitation(member.invitationId);
+    setSaving(false);
+    if (result?.error) { setError('Davet iptal edilemedi. Yetkinizi ve bağlantınızı kontrol edip tekrar deneyin.'); return; }
+    close({ revoked: true, member });
+  };
 
   return (
     <div className="drawer-layer" onMouseDown={close} role="presentation">
       <aside className="drawer member-drawer" onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="member-title">
         <div className="drawer-head">
-          <div><span>EKİP ÜYESİ</span><h2 id="member-title">Üye detayları</h2></div>
+          <div><span>{member.isInvitation ? 'BEKLEYEN DAVET' : 'EKİP ÜYESİ'}</span><h2 id="member-title">{member.isInvitation ? 'Davet detayları' : 'Üye detayları'}</h2></div>
           <button className="icon-button" onClick={close} aria-label="Paneli kapat"><X /></button>
         </div>
         <div className="member-profile">
@@ -151,7 +165,9 @@ function MemberDrawer({ member, close, updateMember, canManage, canEditIdentity 
         )}
 
         {confirming && <div className="deactivate-confirm" role="alert"><b>Üyenin erişimi kapatılsın mı?</b><p>Üye çalışma alanına erişemez; geçmiş kayıtları korunur.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirming(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={persist} disabled={saving}>{saving ? 'Kaydediliyor…' : 'Erişimi kapat'}</button></div></div>}
-        {!confirming && canManage && <div className="drawer-actions">
+        {confirmingRevoke && <div className="deactivate-confirm" role="alert"><b>Davet iptal edilsin mi?</b><p>Bu bağlantı artık üyelik oluşturamaz. Gerekirse daha sonra yeni davet gönderebilirsiniz.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingRevoke(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={revoke} disabled={saving}>{saving ? 'İptal ediliyor…' : 'Daveti iptal et'}</button></div></div>}
+        {!confirming && !confirmingRevoke && member.isInvitation && canManage && <div className="drawer-actions"><button className="soft-button full" onClick={() => setConfirmingRevoke(true)}>Daveti iptal et</button></div>}
+        {!confirming && !confirmingRevoke && !member.isInvitation && canManage && <div className="drawer-actions">
           {editing ? <><button className="soft-button" onClick={() => { setDraft(member); setEditing(false); setError(''); }} disabled={saving}>Vazgeç</button><button className="agenda-button" onClick={save} disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} {saving ? 'Kaydediliyor…' : 'Kaydet'}</button></> : <button className="agenda-button full" onClick={() => setEditing(true)}>Bilgileri düzenle</button>}
         </div>}
       </aside>
@@ -161,7 +177,8 @@ function MemberDrawer({ member, close, updateMember, canManage, canEditIdentity 
 
 export default function TeamPage() {
   const {
-    addDemoMember, error: teamError, isDemoMode, loading, members, refresh, updateMember: persistMember,
+    error: teamError, inviteMember, isDemoMode, loading, members, refresh, revokeInvitation,
+    updateMember: persistMember,
   } = useTeamMembers();
   const { activeOrganization } = useOrganization();
   const [query, setQuery] = useState('');
@@ -183,7 +200,15 @@ export default function TeamPage() {
 
   const filteredMembers = useMemo(() => filterTeamMembers(members, { query, role, department, status }), [members, query, role, department, status]);
 
-  const addMember = member => { addDemoMember(member); setToast(`${member.name} için demo davet oluşturuldu.`); };
+  const sendInvite = async form => {
+    const result = await inviteMember(form);
+    if (!result.error) setToast(`${form.name} için davet e-postası gönderildi.`);
+    return result;
+  };
+  const closeMemberDrawer = result => {
+    setSelectedMember(null);
+    if (result?.revoked) setToast(`${result.member.name} için bekleyen davet iptal edildi.`);
+  };
   const updateMember = async updated => {
     const { error } = await persistMember(updated);
     if (error) return { error: 'Üye bilgileri güncellenemedi. Yetkinizi ve bağlantınızı kontrol edip tekrar deneyin.' };
@@ -203,10 +228,10 @@ export default function TeamPage() {
         <button
           className="agenda-button team-primary"
           onClick={() => setInviteOpen(true)}
-          disabled={!canManage || !isDemoMode}
-          title={!isDemoMode ? 'Gerçek davet akışı sıradaki geliştirme paketinde eklenecek' : undefined}
+          disabled={!canManage}
+          title={!canManage ? 'Yalnızca çalışma alanı sahibi veya yöneticisi davet gönderebilir' : undefined}
         >
-          <UserPlus /> Ekip üyesi davet et {!isDemoMode && <small className="soon-inline">Yakında</small>}
+          <UserPlus /> Ekip üyesi davet et
         </button>
       </section>
 
@@ -249,8 +274,8 @@ export default function TeamPage() {
       </section>
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
-      {inviteOpen && isDemoMode && <InviteMemberModal close={() => setInviteOpen(false)} addMember={addMember} members={members} />}
-      {selectedMember && <MemberDrawer member={selectedMember} close={() => setSelectedMember(null)} updateMember={updateMember} canManage={canManage} canEditIdentity={isDemoMode} />}
+      {inviteOpen && <InviteMemberModal close={() => setInviteOpen(false)} inviteMember={sendInvite} members={members} />}
+      {selectedMember && <MemberDrawer member={selectedMember} close={closeMemberDrawer} updateMember={updateMember} revokeInvitation={revokeInvitation} canManage={canManage} canEditIdentity={isDemoMode} />}
     </>
   );
 }

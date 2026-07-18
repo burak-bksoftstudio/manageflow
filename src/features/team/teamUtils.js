@@ -44,6 +44,29 @@ export function mapMembershipToTeamMember(membership, profile, currentUserId) {
   };
 }
 
+export function mapInvitationToTeamMember(invitation) {
+  const name = invitation.full_name || invitation.email?.split('@')[0] || 'Davet edilen kullanıcı';
+  const colorIndex = Array.from(String(invitation.email)).reduce((total, character) => total + character.charCodeAt(0), 0) % memberColors.length;
+
+  return {
+    id: invitation.id,
+    invitationId: invitation.id,
+    isInvitation: true,
+    userId: null,
+    name,
+    email: invitation.email,
+    initials: getInitials(name) || 'MF',
+    role: getTeamRoleLabel(invitation.role),
+    department: invitation.department || 'Belirtilmedi',
+    title: invitation.title || 'Unvan belirtilmedi',
+    status: 'pending',
+    joinedAt: 'Davet gönderildi',
+    lastActive: 'Henüz katılmadı',
+    expiresAt: invitation.expires_at,
+    color: memberColors[colorIndex],
+  };
+}
+
 export function getTeamStats(members) {
   return {
     total: members.length,

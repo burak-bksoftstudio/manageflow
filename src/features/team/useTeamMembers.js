@@ -5,7 +5,9 @@ import { initialTeamMembers } from '../../data/demo';
 import { useAuth } from '../auth/AuthContext';
 import { useOrganization } from '../organizations/OrganizationContext';
 import { requireSupabase } from '../../lib/supabase';
-import { getTeamRoleValue, mapMembershipToTeamMember } from './teamUtils';
+import {
+  getInitials, getTeamRoleValue, mapInvitationToTeamMember, mapMembershipToTeamMember,
+} from './teamUtils';
 
 export function useTeamMembers() {
   const { isDemoMode, user } = useAuth();
@@ -29,14 +31,25 @@ export function useTeamMembers() {
     setLoading(true);
     setError(null);
     const client = requireSupabase();
-    const { data: memberships, error: membershipError } = await client
-      .from('organization_members')
-      .select('id, user_id, role, status, department, title, joined_at, created_at')
-      .eq('organization_id', activeOrganization.id)
-      .order('created_at', { ascending: true });
+    const [membershipResult, invitationResult] = await Promise.all([
+      client
+        .from('organization_members')
+        .select('id, user_id, role, status, department, title, joined_at, created_at')
+        .eq('organization_id', activeOrganization.id)
+        .order('created_at', { ascending: true }),
+      client
+        .from('organization_invitations')
+        .select('id, email, full_name, role, status, department, title, expires_at, created_at')
+        .eq('organization_id', activeOrganization.id)
+        .eq('status', 'pending')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false }),
+    ]);
+    const { data: memberships, error: membershipError } = membershipResult;
+    const { data: invitations, error: invitationError } = invitationResult;
 
-    if (membershipError) {
-      setError(membershipError);
+    if (membershipError || invitationError) {
+      setError(membershipError || invitationError);
       setLoading(false);
       return;
     }
@@ -53,9 +66,12 @@ export function useTeamMembers() {
     }
 
     const profilesById = new Map(profiles.map(profile => [profile.id, profile]));
-    setMembers(memberships.map(membership => mapMembershipToTeamMember(
-      membership, profilesById.get(membership.user_id), user.id,
-    )));
+    setMembers([
+      ...invitations.map(mapInvitationToTeamMember),
+      ...memberships.map(membership => mapMembershipToTeamMember(
+        membership, profilesById.get(membership.user_id), user.id,
+      )),
+    ]);
     setLoading(false);
   }, [activeOrganization, isDemoMode, user]);
 
@@ -103,13 +119,77 @@ export function useTeamMembers() {
     if (isDemoMode) setMembers(value => [member, ...value]);
   }, [isDemoMode]);
 
+  const inviteMember = useCallback(async form => {
+    if (isDemoMode) {
+      const invitationId = `member-${Date.now()}`;
+      const member = {
+        ...form,
+        id: invitationId,
+        invitationId,
+        isInvitation: true,
+        initials: getInitials(form.name) || 'MF',
+        status: 'pending',
+        joinedAt: 'Davet gönderildi',
+        lastActive: 'Henüz katılmadı',
+        color: '#5b5ce2',
+      };
+      addDemoMember(member);
+      return { data: member, error: null };
+    }
+
+    const client = requireSupabase();
+    const { data, error: functionError } = await client.functions.invoke('invite-member', {
+      body: {
+        organizationId: activeOrganization.id,
+        fullName: form.name.trim(),
+        email: form.email.trim().toLocaleLowerCase('tr-TR'),
+        role: getTeamRoleValue(form.role),
+        department: form.department === 'Belirtilmedi' ? null : form.department,
+        title: form.title.trim(),
+      },
+    });
+
+    if (functionError) {
+      let message = 'Davet oluşturulamadı. Bağlantınızı kontrol edip tekrar deneyin.';
+      try {
+        const payload = await functionError.context?.json();
+        if (payload?.error) message = payload.error;
+      } catch {
+        // Keep the safe fallback message when the function did not return JSON.
+      }
+      return { data: null, error: new Error(message) };
+    }
+
+    await loadMembers();
+    return { data, error: null };
+  }, [activeOrganization, addDemoMember, isDemoMode, loadMembers]);
+
+  const revokeInvitation = useCallback(async invitationId => {
+    if (isDemoMode) {
+      setMembers(value => value.filter(member => member.invitationId !== invitationId));
+      return { error: null };
+    }
+    const client = requireSupabase();
+    const { error: revokeError } = await client
+      .from('organization_invitations')
+      .update({ status: 'revoked' })
+      .eq('id', invitationId)
+      .eq('organization_id', activeOrganization.id)
+      .eq('status', 'pending');
+    if (revokeError) return { error: revokeError };
+    await loadMembers();
+    return { error: null };
+  }, [activeOrganization, isDemoMode, loadMembers]);
+
   return useMemo(() => ({
     addDemoMember,
     error,
+    inviteMember,
     isDemoMode,
     loading,
     members,
     refresh: loadMembers,
+    revokeInvitation,
     updateMember,
-  }), [addDemoMember, error, isDemoMode, loadMembers, loading, members, updateMember]);
+  }), [addDemoMember, error, inviteMember, isDemoMode, loadMembers, loading, members, revokeInvitation, updateMember]);
 }

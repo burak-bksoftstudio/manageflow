@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 
-export function Logo() {
+export function Logo({ to = '/dashboard', ariaLabel = 'ManageFlow ana sayfa' }) {
   return (
-    <Link className="brand" to="/dashboard" aria-label="ManageFlow ana sayfa">
+    <Link className="brand" to={to} aria-label={ariaLabel}>
       <svg className="brand-mark" viewBox="0 0 40 40" role="img" aria-hidden="true">
         <rect width="40" height="40" rx="12" />
         <path className="brand-m" d="M9.5 27.5V13l8.2 8.3 5.2-5.4" />

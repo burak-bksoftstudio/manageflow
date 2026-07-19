@@ -1,7 +1,7 @@
 import {
   lazy, Suspense, useEffect, useMemo, useState,
 } from 'react';
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Outlet, Route, Routes } from 'react-router-dom';
 import AppHeader from './components/AppHeader';
 import { AgendaDrawer, QuickCreateModal } from './components/AppOverlays';
 import AppSidebar from './components/AppSidebar';
@@ -20,6 +20,7 @@ import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage';
 
 const OrganizationOnboardingPage = lazy(() => import('./pages/OrganizationOnboardingPage'));
 const InvitationAcceptancePage = lazy(() => import('./pages/InvitationAcceptancePage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
@@ -96,6 +97,7 @@ export default function App() {
   return (
     <div className={`app-shell ${shellClass}`}>
       <Routes>
+        <Route path="/" element={<LazyPage><LandingPage /></LazyPage>} />
         <Route element={<PublicOnlyRoute />}>
           <Route path="/giris" element={<LoginPage />} />
           <Route path="/kayit" element={<RegisterPage />} />
@@ -108,7 +110,6 @@ export default function App() {
           <Route path="/kurulum" element={<LazyPage><OrganizationOnboardingPage /></LazyPage>} />
           <Route element={<OrganizationRouteGuard />}>
             <Route element={<AppLayout shellState={shellState} />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/ekipler" element={<LazyPage><TeamPage /></LazyPage>} />
               <Route path="/musteriler" element={<LazyPage><ClientsPage /></LazyPage>} />

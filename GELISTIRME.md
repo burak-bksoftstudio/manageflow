@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.28.0-workspace-notes` |
-| Mevcut aşama | Proje bazlı ortak notlardan oluşan Çalışma Alanı v1 geliştirildi; production kullanıcı kabulü bekliyor |
-| Sonraki ana hedef | Zaman Takibi v1.1 ve Çalışma Alanı v1 akışlarını production hesabıyla doğrulamak |
+| Mevcut sürüm | `0.29.0-public-landing` |
+| Mevcut aşama | Herkese açık SaaS landing page, oturum duyarlı CTA'lar, responsive ürün sunumu ve SEO temeli geliştirildi |
+| Sonraki ana hedef | Landing page'i production'da doğrulamak; ardından zaman kayıtlarını güvenli düzeltme/arşivleme paketine geçmek |
 
 ---
 
@@ -98,6 +98,7 @@ Mevcut sürümde:
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
 | Production yayını | Vercel, GitHub deployment, özel domain, HTTPS ve production Auth origin bağlantıları çalışıyor |
+| Herkese açık landing | `/` rotasında ürün anlatımı, canlı modüller/yol haritası ayrımı, FAQ, güvenlik anlatımı ve kayıt/giriş CTA'ları hazır |
 | Organizasyon değiştirme | Yakında |
 
 ### Mevcut teknik seviye
@@ -665,6 +666,24 @@ Uzak migration sayısı 18'e yükselmiştir. Yeni zaman takibi güvenlik testi `
 - Çapraz organizasyon izolasyonu, yazar sahteciliği, üye/yönetici düzenleme ve arşivli proje engelini kapsayan ayrı rollback güvenlik testi
 
 Uzak migration sayısı 19'a yükselmiştir. Proje notları güvenlik testi `result: passed`, tam RLS ve zaman takibi regresyon testleri `result: passed`, uzak schema lint temizdir. Production kabulünde not oluşturma, sayfa yenilemesinde kalıcılık, proje/arama filtresi ve ikinci üyeyle salt okunur/yönetici davranışı doğrulanacaktır.
+
+### 4.22 Herkese açık SaaS landing page
+
+- Uygulama shell'inden bağımsız, herkese açık gerçek `/` rotası
+- Özgün ManageFlow metinleri ve görsel bileşenleriyle ajans odaklı hero alanı
+- Kodla oluşturulan dashboard, Kanban, zaman takibi ve proje notları ürün önizlemeleri
+- Müşteri → proje → iş yürütme → teslim çalışma akışı
+- Mevcut modüller ile yol haritasındaki özellikleri açıkça ayıran ürün durumu alanı
+- Çok kiracılı veri izolasyonu, RLS ve rol tabanlı erişimi anlatan güvenlik bölümü
+- Ajans, yaratıcı stüdyo ve küçük ekip kullanım senaryoları
+- SSS, final CTA ve kapsamlı footer
+- Oturum durumuna göre kayıt veya `/dashboard` aksiyonu gösteren CTA'lar
+- Giriş ve kayıt akışlarına doğrudan bağlantı
+- Masaüstü, tablet ve mobil kırılımlar; bağımsız landing tasarım tokenları
+- Sayfa başlığı, açıklama, canonical, robots, Open Graph ve Twitter metadata temeli
+- Landing sayfasının ayrı lazy-loaded route chunk'ı
+
+Landing bilgi mimarisi pazar referansı olarak incelenen Managelify yaklaşımından esinlenmiştir; marka, metin, arayüz önizlemeleri ve kod ManageFlow için özgün hazırlanmıştır. Fiyatlandırma henüz kesinleşmediği için gerçekte bulunmayan paket veya ticari iddia eklenmemiştir.
 
 ---
 
@@ -1374,6 +1393,7 @@ Durum: **Devam ediyor**
 - [x] Domain ve DNS
 - [x] Production Supabase backend ve environment bağlantısı
 - [x] Supabase Auth production Site URL ve redirect adresleri
+- [x] Herkese açık SaaS landing page ve temel SEO metadata
 - [ ] Sentry hata takibi
 - [ ] Ürün analitiği
 - [ ] Yedekleme ve geri yükleme planı
@@ -1482,11 +1502,11 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Production hesabıyla geçmiş bir manuel süre kaydı oluştur ve sayfa yenilemesinde korunduğunu doğrula.
-2. Haftalar arasında gezinme ile proje/görev filtrelerinin doğru kayıt ve toplamı gösterdiğini doğrula.
-3. Çalışma Alanı'nda proje notu oluştur, yenilemede kalıcılığı ve proje/arama filtresini doğrula.
-4. İkinci üyeyle ortak not görünürlüğü ve rol korumalı düzenleme davranışını doğrula.
-5. Kabul sonrasında hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla.
+1. Production landing sayfasını masaüstü ve mobilde aç; navigasyon, anchor ve CTA akışlarını doğrula.
+2. Oturumsuz CTA'nın `/kayit`, giriş bağlantısının `/giris`, oturumlu CTA'nın `/dashboard` rotasına gittiğini doğrula.
+3. Zaman Takibi v1.1 ve Çalışma Alanı v1 production kabul kontrollerini tamamla.
+4. Hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla ve uygula.
+5. Sonraki pakette owner/admin ekip timesheet ekranına geç.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
@@ -1501,6 +1521,37 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.29.0-public-landing`
+
+Eklenenler:
+
+- Herkese açık `/` SaaS landing page
+- Ajans odaklı hero, kod tabanlı ürün önizlemesi, özellik grupları ve çalışma akışı
+- Görev, zaman takibi ve proje notları ekran turları
+- Güvenlik, hedef kitle, canlı modüller/yol haritası, SSS, final CTA ve footer bölümleri
+- Oturum duyarlı uygulama/kayıt aksiyonları
+- Canonical, robots, Open Graph ve Twitter SEO metadata
+- Projeyi başka geliştirici veya yapay zekâya devretmek için kapsamlı `HAKKINDA.md`
+
+Değiştirilenler:
+
+- Uygulama içi logonun varsayılan davranışı korunurken landing için hedef rota ve erişilebilir etiket desteği eklendi
+- Korumalı uygulama başlangıcı `/dashboard`, herkese açık ürün başlangıcı `/` olacak şekilde rota ayrımı netleştirildi
+- Sürüm `0.29.0` olarak yükseltildi
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 94/94 test başarılı
+- `npm run build` — başarılı; lazy-loaded landing sayfası yaklaşık 25,0 kB / 6,4 kB gzip
+- Yerel `/` ve `/giris` doğrudan HTTP kontrolleri `200`
+- 1440px masaüstü ve dar ekran tarayıcı render kontrolleri
+
+Bilinen sınırlamalar:
+
+- Cookie/analitik, yasal sayfalar, fiyatlandırma ve müşteri referansları henüz bulunmuyor.
+- UI entegrasyon, görsel regresyon ve E2E test altyapısı henüz bulunmuyor.
+- Production deployment ve kullanıcı kabul kontrolü bu commit sonrasında yapılacak.
 
 ### 20 Temmuz 2026 — `0.28.0-workspace-notes`
 

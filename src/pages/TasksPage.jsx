@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
   Columns3, FileText, FolderKanban, GripVertical, ListChecks, ListTodo, LoaderCircle,
-  Pencil, Plus, RefreshCw, Rows3, Search, ShieldCheck, Timer, Trash2, UserRound, X,
+  MessageSquare, Pencil, Plus, RefreshCw, Rows3, Search, Send, ShieldCheck, Timer,
+  Trash2, UserRound, X,
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
 import { useProjectMembers } from '../features/projects/useProjectMembers';
@@ -16,6 +17,10 @@ import {
   getChecklistErrorMessage, getChecklistProgress, validateChecklistTitle,
 } from '../features/tasks/checklistUtils';
 import { useTaskChecklist } from '../features/tasks/useTaskChecklist';
+import {
+  getTaskCommentErrorMessage, getTaskCommentPermissions, validateTaskComment,
+} from '../features/tasks/commentUtils';
+import { useTaskComments } from '../features/tasks/useTaskComments';
 
 const statusOptions = Object.entries(TASK_STATUS_LABELS);
 const priorityOptions = Object.entries(TASK_PRIORITY_LABELS);
@@ -153,6 +158,89 @@ function TaskChecklistSection({ taskId, canChange }) {
   );
 }
 
+function TaskCommentsSection({ taskId, canComment }) {
+  const { activeOrganization } = useOrganization();
+  const {
+    addComment, comments, currentUserId, error: loadError, loading, refresh,
+    removeComment, updateComment,
+  } = useTaskComments(taskId);
+  const [body, setBody] = useState('');
+  const [editingId, setEditingId] = useState('');
+  const [editingBody, setEditingBody] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState('');
+  const [savingId, setSavingId] = useState('');
+  const [sending, setSending] = useState(false);
+  const [actionError, setActionError] = useState('');
+
+  const submit = async event => {
+    event.preventDefault();
+    const validationError = validateTaskComment(body);
+    if (validationError) { setActionError(validationError); return; }
+    setSending(true);
+    setActionError('');
+    const result = await addComment(body);
+    setSending(false);
+    if (result.error) { setActionError(getTaskCommentErrorMessage(result.error)); return; }
+    setBody('');
+  };
+  const saveEdit = async commentId => {
+    const validationError = validateTaskComment(editingBody);
+    if (validationError) { setActionError(validationError); return; }
+    setSavingId(commentId);
+    setActionError('');
+    const result = await updateComment(commentId, editingBody);
+    setSavingId('');
+    if (result.error) { setActionError(getTaskCommentErrorMessage(result.error)); return; }
+    setEditingId('');
+    setEditingBody('');
+  };
+  const remove = async commentId => {
+    setSavingId(commentId);
+    setActionError('');
+    const result = await removeComment(commentId);
+    setSavingId('');
+    if (result.error) { setActionError(getTaskCommentErrorMessage(result.error)); return; }
+    setConfirmDeleteId('');
+  };
+
+  return (
+    <section className="task-comments-section">
+      <header><span><MessageSquare /></span><div><small>YORUMLAR</small><b>{comments.length} mesaj</b></div></header>
+      {loading && <div className="task-comment-state"><LoaderCircle className="spin" /> Yorumlar yükleniyor…</div>}
+      {!loading && loadError && <div className="task-comment-state error"><CircleAlert /> Yorumlar yüklenemedi.<button type="button" onClick={refresh}>Tekrar dene</button></div>}
+      {!loading && !loadError && comments.length === 0 && <div className="task-comment-empty"><MessageSquare /><span><b>Henüz yorum yok</b><small>{canComment ? 'İlk notu veya güncellemeyi paylaşın.' : 'Bu görevde yeni yorum yazılamıyor.'}</small></span></div>}
+      {!loading && !loadError && comments.length > 0 && (
+        <div className="task-comment-list">
+          {comments.map(comment => {
+            const permissions = getTaskCommentPermissions(comment, currentUserId, activeOrganization?.role);
+            return (
+              <article className="task-comment" key={comment.id}>
+                <i>{comment.authorInitials}</i>
+                <div>
+                  <header><b>{comment.authorName}</b><span>{formatDateTime(comment.createdAt)}{comment.editedAt ? ' · düzenlendi' : ''}</span></header>
+                  {editingId === comment.id ? (
+                    <div className="task-comment-edit">
+                      <textarea autoFocus maxLength="4000" value={editingBody} onChange={event => { setEditingBody(event.target.value); setActionError(''); }} />
+                      <div><button type="button" onClick={() => { setEditingId(''); setEditingBody(''); }} disabled={savingId === comment.id}>Vazgeç</button><button type="button" className="primary" onClick={() => saveEdit(comment.id)} disabled={savingId === comment.id}>{savingId === comment.id ? <LoaderCircle className="spin" /> : <Check />} Kaydet</button></div>
+                    </div>
+                  ) : (
+                    <p>{comment.body}</p>
+                  )}
+                  {confirmDeleteId === comment.id && <div className="task-comment-delete-confirm"><span>Yorum kalıcı olarak silinsin mi?</span><button type="button" onClick={() => setConfirmDeleteId('')} disabled={savingId === comment.id}>Vazgeç</button><button type="button" onClick={() => remove(comment.id)} disabled={savingId === comment.id}>{savingId === comment.id ? 'Siliniyor…' : 'Sil'}</button></div>}
+                </div>
+                {!editingId && !confirmDeleteId && (permissions.canEdit || permissions.canDelete) && <div className="task-comment-actions">{permissions.canEdit && <button type="button" onClick={() => { setEditingId(comment.id); setEditingBody(comment.body); setActionError(''); }} aria-label={`${comment.authorName} yorumunu düzenle`} title="Yorumu düzenle"><Pencil /></button>}{permissions.canDelete && <button type="button" onClick={() => setConfirmDeleteId(comment.id)} aria-label={`${comment.authorName} yorumunu sil`} title="Yorumu sil"><Trash2 /></button>}</div>}
+              </article>
+            );
+          })}
+        </div>
+      )}
+      {canComment && !loading && !loadError && <form className="task-comment-compose" onSubmit={submit}><textarea value={body} onChange={event => { setBody(event.target.value); setActionError(''); }} maxLength="4000" placeholder="Görevle ilgili bir güncelleme yazın…" aria-label="Yeni görev yorumu" /><div><small>{body.length}/4000</small><button disabled={sending}>{sending ? <LoaderCircle className="spin" /> : <Send />}{sending ? 'Gönderiliyor…' : 'Gönder'}</button></div></form>}
+      {!canComment && !loading && !loadError && <p className="task-comment-readonly"><Archive /> Arşivlenmiş görev veya projede yeni yorum yazılamaz.</p>}
+      {actionError && <div className="form-error" role="alert">{actionError}</div>}
+    </section>
+  );
+}
+
 function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canManage }) {
   const [draft, setDraft] = useState(task);
   const [editing, setEditing] = useState(false);
@@ -238,6 +326,7 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
         )}
 
         {!editing && <TaskChecklistSection taskId={draft.id} canChange={canChange && !draft.isArchived} />}
+        {!editing && <TaskCommentsSection taskId={draft.id} canComment={!projectLocked && !draft.isArchived} />}
 
         {confirmingArchive && <div className="deactivate-confirm" role="alert"><b>Görev arşivlensin mi?</b><p>Görev silinmeyecek; proje bağlantısı, sorumlusu ve tamamlanma geçmişi korunacak.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingArchive(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={() => changeArchive(true)} disabled={saving}>{saving ? 'Arşivleniyor…' : 'Arşivle'}</button></div></div>}
         {!confirmingArchive && canChange && <div className="drawer-actions task-drawer-actions">

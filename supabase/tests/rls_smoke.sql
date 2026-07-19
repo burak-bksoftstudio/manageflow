@@ -227,6 +227,57 @@ select set_config(
   true
 );
 
+with main_probe_comment as (
+  insert into public.task_comments (
+    organization_id, task_id, body, author_id
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Main RLS Comment Probe',
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.main_comment_id',
+  (select id::text from main_probe_comment),
+  true
+);
+
+with other_probe_comment as (
+  insert into public.task_comments (
+    organization_id, task_id, body, author_id
+  ) values (
+    current_setting('manageflow_test.other_organization_id')::uuid,
+    current_setting('manageflow_test.other_task_id')::uuid,
+    'Other RLS Comment Probe',
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.other_comment_id',
+  (select id::text from other_probe_comment),
+  true
+);
+
+with member_probe_comment as (
+  insert into public.task_comments (
+    organization_id, task_id, body, author_id
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Member RLS Comment Moderation Probe',
+    current_setting('manageflow_test.member_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.member_comment_id',
+  (select id::text from member_probe_comment),
+  true
+);
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -241,6 +292,7 @@ select set_config(
 do $$
 declare
   affected_rows integer;
+  comment_probe_id uuid;
 begin
   if auth.uid() <> current_setting('manageflow_test.member_id')::uuid then
     raise exception 'RLS probe failed: member JWT identity was not applied.';
@@ -357,6 +409,22 @@ begin
     where checklist_item.id = current_setting('manageflow_test.other_checklist_id')::uuid
   ) then
     raise exception 'RLS probe failed: member can read another organization task checklist.';
+  end if;
+
+  if (
+    select count(*)
+    from public.task_comments comment
+    where comment.id = current_setting('manageflow_test.main_comment_id')::uuid
+  ) <> 1 then
+    raise exception 'RLS probe failed: member cannot read their task comments.';
+  end if;
+
+  if exists (
+    select 1
+    from public.task_comments comment
+    where comment.id = current_setting('manageflow_test.other_comment_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member can read another organization task comment.';
   end if;
 
   begin
@@ -526,6 +594,48 @@ begin
   if affected_rows <> 0 then
     raise exception 'RLS probe failed: member can delete a task checklist item.';
   end if;
+
+  insert into public.task_comments (
+    organization_id, task_id, body, author_id
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Member Comment Allowed',
+    current_setting('manageflow_test.member_id')::uuid
+  ) returning id into comment_probe_id;
+
+  update public.task_comments
+  set body = 'Member Comment Edited'
+  where id = comment_probe_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 or not exists (
+    select 1 from public.task_comments comment
+    where comment.id = comment_probe_id and comment.edited_at is not null
+  ) then
+    raise exception 'RLS probe failed: member cannot edit their own comment.';
+  end if;
+
+  delete from public.task_comments
+  where id = comment_probe_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: member cannot delete their own comment.';
+  end if;
+
+  update public.task_comments
+  set body = body
+  where id = current_setting('manageflow_test.main_comment_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: member can edit another author comment.';
+  end if;
+
+  delete from public.task_comments
+  where id = current_setting('manageflow_test.main_comment_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: member can delete another author comment.';
+  end if;
 end;
 $$;
 
@@ -551,6 +661,7 @@ do $$
 declare
   affected_rows integer;
   checklist_probe_id uuid;
+  comment_probe_id uuid;
 begin
   update public.organization_members
   set title = title
@@ -732,6 +843,45 @@ begin
     raise exception 'RLS probe failed: admin cannot delete a task checklist item.';
   end if;
 
+  insert into public.task_comments (
+    organization_id, task_id, body, author_id
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Admin Comment Allowed',
+    current_setting('manageflow_test.member_id')::uuid
+  ) returning id into comment_probe_id;
+
+  update public.task_comments
+  set body = 'Admin Own Comment Edited'
+  where id = comment_probe_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot edit their own comment.';
+  end if;
+
+  update public.task_comments
+  set body = body
+  where id = current_setting('manageflow_test.main_comment_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: admin can edit another author comment.';
+  end if;
+
+  delete from public.task_comments
+  where id = current_setting('manageflow_test.member_comment_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot moderate another author comment.';
+  end if;
+
+  delete from public.task_comments
+  where id = comment_probe_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot delete their own comment.';
+  end if;
+
   update public.tasks
   set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
   where id = current_setting('manageflow_test.main_task_id')::uuid;
@@ -747,6 +897,20 @@ begin
       current_setting('manageflow_test.member_id')::uuid
     );
     raise exception 'RLS probe failed: archived task accepted a checklist item.';
+  exception
+    when insufficient_privilege or check_violation then null;
+  end;
+
+  begin
+    insert into public.task_comments (
+      organization_id, task_id, body, author_id
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_task_id')::uuid,
+      'Archived Task Comment Denied',
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: archived task accepted a comment.';
   exception
     when insufficient_privilege or check_violation then null;
   end;
@@ -989,6 +1153,15 @@ begin
     current_setting('manageflow_test.member_id')::uuid
   );
 
+  insert into public.task_comments (
+    organization_id, task_id, body, author_id
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Project Manager Comment Allowed',
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
   if exists (
     select 1
     from public.clients client
@@ -1103,6 +1276,20 @@ begin
     when foreign_key_violation or insufficient_privilege or check_violation then null;
   end;
 
+  begin
+    insert into public.task_comments (
+      organization_id, task_id, body, author_id
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.other_task_id')::uuid,
+      'Cross Organization Comment Denied',
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: another organization task accepted a comment.';
+  exception
+    when foreign_key_violation or insufficient_privilege or check_violation then null;
+  end;
+
   delete from public.project_members
   where project_id = current_setting('manageflow_test.main_project_id')::uuid
     and user_id = current_setting('manageflow_test.member_id')::uuid;
@@ -1187,6 +1374,9 @@ select
   true as member_task_write_denied,
   true as member_checklist_read_allowed,
   true as member_checklist_write_denied,
+  true as member_comment_read_allowed,
+  true as member_own_comment_write_allowed,
+  true as member_other_comment_write_denied,
   true as admin_write_allowed,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
@@ -1200,6 +1390,10 @@ select
   true as checklist_completion_timestamp_enforced,
   true as reopened_checklist_completion_cleared,
   true as archived_task_checklist_denied,
+  true as admin_own_comment_write_allowed,
+  true as admin_comment_moderation_allowed,
+  true as admin_other_comment_edit_denied,
+  true as archived_task_comment_denied,
   true as duplicate_project_assignment_denied,
   true as archived_project_assignment_denied,
   true as archived_project_task_denied,
@@ -1210,6 +1404,7 @@ select
   true as project_manager_project_team_write_allowed,
   true as project_manager_task_write_allowed,
   true as project_manager_checklist_write_allowed,
+  true as project_manager_comment_write_allowed,
   true as removed_project_member_task_unassigned,
   true as owner_client_write_allowed,
   true as owner_project_write_allowed,
@@ -1227,6 +1422,8 @@ select
   true as cross_organization_task_project_denied,
   true as cross_organization_checklists_hidden,
   true as cross_organization_checklist_task_denied,
+  true as cross_organization_comments_hidden,
+  true as cross_organization_comment_task_denied,
   true as inactive_project_assignment_denied,
   true as non_project_member_task_assignment_denied,
   true as cross_organization_project_client_denied,

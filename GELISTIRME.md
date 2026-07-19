@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.19.0-task-checklist` |
-| Mevcut aşama | Görev detayında kalıcı checklist, gerçek ilerleme ve rol bazlı yönetim çalışıyor |
-| Sonraki ana hedef | Görev yorumlarını ve temel aktivite geçmişini gerçek veriye bağlamak |
+| Mevcut sürüm | `0.20.0-task-comments` |
+| Mevcut aşama | Görev detayında kalıcı yorum akışı, yazar işlemleri ve admin moderasyonu çalışıyor |
+| Sonraki ana hedef | Görev aktivite geçmişini veritabanı olaylarıyla otomatik kaydetmek |
 
 ---
 
@@ -69,7 +69,7 @@ Mevcut sürümde:
 - Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
-- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; görev detayındaki checklist kalıcı veriden yönetilmektedir.
+- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; görev detayındaki checklist ve yorumlar kalıcı veriden yönetilmektedir.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme, Liste/Kanban durum yönetimi ve checklist Supabase ile bağlı |
+| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist ve yorumlar Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
@@ -100,13 +100,13 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev ve checklist temeli bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev ve checklist şemaları RLS ile uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev, checklist ve yorum temeli bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev, checklist ve yorum şemaları RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
-| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev/checklist domain testleri bulunuyor; UI/E2E testleri henüz yok |
+| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev/checklist/yorum domain testleri bulunuyor; UI/E2E testleri henüz yok |
 | Deployment | Başlanmadı | Production ortamı ve domain bağlantısı yok |
 
 ---
@@ -522,8 +522,18 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Organizasyon üyeleri için okuma; owner/admin/proje yöneticisi için değişiklik RLS policy'leri
 - Checklist loading, hata, yeniden deneme ve boş durumları
 - Supabase olmayan ortam için görev bazlı kalıcı oturum içi demo checklist fallback'i
+- Göreve ve organizasyona bileşik foreign key ile bağlı gerçek `task_comments` tablosu
+- Aktif organizasyon üyelerinin arşivlenmemiş görevlerde yorum yazabilmesi
+- Görev drawer'ında kronolojik yorum akışı, yazar adı, avatar baş harfleri ve zaman bilgisi
+- Yorum yazarının kendi yorumunu düzenlemesi ve kalıcı silme onayıyla kaldırması
+- Owner/admin rollerinin başka kullanıcı yorumunu silerek moderasyon yapabilmesi
+- Başka bir yazarın yorum metnini değiştirmeyi tüm roller için reddeden RLS kuralı
+- Yorum değiştiğinde `edited_at` zamanını otomatik kaydeden trigger
+- Yorumun organizasyon, görev, yazar ve oluşturulma kimliğini değişmez tutan bütünlük koruması
+- Yorum loading, hata, yeniden deneme, boş liste, gönderim ve salt okunur durumları
+- Supabase olmayan ortam için görev bazlı oturum içi demo yorum fallback'i
 
-Görev CRUD yaşam döngüsü, proje ekibi atama, Liste/Kanban ve checklist akışları tamamlanmıştır. Alt görev ilişkileri, yorum ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
+Görev CRUD yaşam döngüsü, proje ekibi atama, Liste/Kanban, checklist ve yorum akışları tamamlanmıştır. Alt görev ilişkileri ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
 
 ---
 
@@ -1146,7 +1156,7 @@ Durum: **Devam ediyor**
 - [x] Görev atamaları
 - [x] Görev checklist'i
 - [ ] Alt görev ilişkileri
-- [ ] Görev yorumları
+- [x] Görev yorumları
 - [ ] Aktivite geçmişi
 - [x] Dashboard'u gerçek verilere bağla
 - [x] Liste ve Kanban görünümü
@@ -1319,27 +1329,68 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Göreve bağlı ve organizasyon kapsamlı `task_comments` veri modelini oluştur.
-2. Yorum metni, yazar, oluşturulma ve düzenlenme zamanlarını tanımla.
-3. Aktif organizasyon üyelerinin arşivlenmemiş görevlerde yorum yazabilmesini sağla.
-4. Yalnızca yorum yazarının kendi yorumunu düzenleyip silebilmesini; owner/admin rollerinin moderasyon yapabilmesini tanımla.
-5. Görev detay drawer'ında kronolojik yorum akışı, yazma alanı ve gönderim durumlarını ekle.
-6. RLS izolasyonu, boş/loading/hata durumları ve uzak güvenlik testlerini tamamla.
+1. Göreve bağlı, organizasyon kapsamlı ve sonradan değiştirilemeyen `task_activities` veri modelini oluştur.
+2. Görev oluşturma, alan güncelleme, durum değişikliği, atama, arşivleme ve geri açma olaylarını tanımla.
+3. Olayları kullanıcı isteğine güvenmeden veritabanı trigger'larıyla otomatik kaydet.
+4. Eski/yeni değerleri güvenli JSON metadata içinde sakla ve olayı gerçekleştiren kullanıcıyı kaydet.
+5. Görev detay drawer'ında en yeniden eskiye okunabilir aktivite zaman çizelgesi göster.
+6. Append-only bütünlüğü, RLS izolasyonu, loading/hata/boş durumları ve uzak güvenlik testlerini tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Aktif organizasyon üyesi görev detayında yorum yazabilir
-→ Yorum gerçek yazar ve zaman bilgisiyle listelenir
-→ Sayfa yenilendiğinde yorum korunur
-→ Yazar kendi yorumunu düzenleyebilir ve silebilir
-→ Yetkisiz kullanıcı başka kişinin yorumunu değiştiremez
-→ Başka organizasyonun yorumları RLS ile görünmez
+Görev oluşturulduğunda ilk aktivite otomatik kaydedilir
+→ Durum, görevli, öncelik ve tarih değişiklikleri ayrı olaylar olarak görünür
+→ Arşivleme ve geri açma geçmişi korunur
+→ Aktivite kayıtları frontend tarafından değiştirilemez veya silinemez
+→ Olaylar gerçek aktör ve zaman bilgisiyle listelenir
+→ Başka organizasyonun aktiviteleri RLS ile görünmez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.20.0-task-comments`
+
+Eklenenler:
+
+- Göreve ve organizasyona bağlı gerçek `task_comments` tablosu
+- Yorum metni, yazar, düzenlenme zamanı ve standart zaman damgası alanları
+- Organizasyon/görev bağlantısını koruyan bileşik foreign key ve görev silindiğinde cascade temizleme
+- Yorum değiştiğinde `edited_at` zamanını otomatik kaydeden veritabanı trigger'ı
+- Yorumun organizasyon, görev, yazar ve oluşturulma kimliğini değişmez tutan bütünlük koruması
+- Görev detay drawer'ında kronolojik yorum listesi, yazar baş harfleri ve zaman bilgisi
+- Yorum oluşturma, kendi yorumunu düzenleme ve onaylı kalıcı silme akışları
+- Owner/admin için başka kullanıcı yorumunu silen moderasyon kontrolü
+- Loading, hata, yeniden deneme, boş liste, gönderim ve salt okunur durumlar
+- Supabase olmayan demo ortamı için görev bazlı yorum fallback'i
+- Yorum doğrulama, eşleme, yazar görünümü, yetki ve hata yardımcıları için 4 otomatik test
+
+Yetkilendirme ve güvenlik:
+
+- Tüm aktif organizasyon üyeleri aktif proje içindeki arşivlenmemiş görevlere yorum yazabilir.
+- Her kullanıcı yalnızca kendi yorum metnini düzenleyebilir.
+- Yazar kendi yorumunu; owner/admin ise moderasyon amacıyla diğer yorumları silebilir.
+- Başka bir yazarın yorum metnini admin dahil hiçbir rol değiştiremez.
+- Arşivlenmiş görev ve projelerde yorum değişiklikleri RLS seviyesinde reddedilir.
+- Başka organizasyona ait görev/yorum ilişkisi bileşik foreign key ve RLS ile engellenir.
+- Uzak RLS smoke testine üye yazarlığı, admin moderasyonu, arşivli görev ve çapraz organizasyon kontrolleri eklendi.
+
+Doğrulama:
+
+- `npm test -- --run` — 11 test dosyasında 66 test geçti
+- `npm run build`
+- `git diff --check`
+- `npx supabase db lint --linked --level error` — şema hatası bulunmadı
+- `npx supabase db query --linked --file supabase/tests/rls_smoke.sql` — `result: passed`
+- `npx supabase migration list --linked` — 12 yerel/uzak migration eşleşiyor
+
+Bilinen sınırlamalar:
+
+- Yorumlarda mention, dosya eki, emoji tepkisi ve gerçek zamanlı güncelleme henüz yoktur.
+- Görev aktivite geçmişi ve bildirim üretimi henüz bağlı değildir.
+- UI entegrasyon ve E2E testleri henüz bulunmuyor.
 
 ### 19 Temmuz 2026 — `0.19.0-task-checklist`
 

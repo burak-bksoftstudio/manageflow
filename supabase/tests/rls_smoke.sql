@@ -234,6 +234,23 @@ begin
     raise exception 'RLS probe failed: member can read another organization project.';
   end if;
 
+  if (
+    select count(*)
+    from public.project_members project_member
+    where project_member.project_id = current_setting('manageflow_test.main_project_id')::uuid
+      and project_member.user_id = current_setting('manageflow_test.owner_id')::uuid
+  ) <> 1 then
+    raise exception 'RLS probe failed: member cannot read their project team.';
+  end if;
+
+  if exists (
+    select 1
+    from public.project_members project_member
+    where project_member.project_id = current_setting('manageflow_test.other_project_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member can read another organization project team.';
+  end if;
+
   begin
     update public.organization_members
     set title = title
@@ -317,6 +334,28 @@ begin
   exception
     when insufficient_privilege then null;
   end;
+
+  begin
+    insert into public.project_members (
+      organization_id, project_id, user_id, assigned_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: member can assign a project member.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  delete from public.project_members
+  where project_id = current_setting('manageflow_test.main_project_id')::uuid
+    and user_id = current_setting('manageflow_test.owner_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: member can remove a project member.';
+  end if;
 end;
 $$;
 
@@ -421,6 +460,37 @@ begin
     raise exception 'RLS probe failed: reopened completed project did not use safe progress.';
   end if;
 
+  insert into public.project_members (
+    organization_id, project_id, user_id, assigned_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
+  begin
+    insert into public.project_members (
+      organization_id, project_id, user_id, assigned_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: duplicate project member assignment was accepted.';
+  exception
+    when unique_violation then null;
+  end;
+
+  delete from public.project_members
+  where project_id = current_setting('manageflow_test.main_project_id')::uuid
+    and user_id = current_setting('manageflow_test.member_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot remove a project member.';
+  end if;
+
   update public.projects
   set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
   where id = current_setting('manageflow_test.main_project_id')::uuid;
@@ -434,9 +504,32 @@ begin
     raise exception 'RLS probe failed: admin cannot archive a project as self.';
   end if;
 
+  begin
+    insert into public.project_members (
+      organization_id, project_id, user_id, assigned_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: archived project accepts member assignments.';
+  exception
+    when insufficient_privilege or check_violation then null;
+  end;
+
   update public.projects
   set archived_at = null, archived_by = null
   where id = current_setting('manageflow_test.main_project_id')::uuid;
+
+  insert into public.project_members (
+    organization_id, project_id, user_id, assigned_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid
+  );
 
   insert into public.projects (
     organization_id, client_id, name, status, created_by
@@ -445,6 +538,23 @@ begin
     current_setting('manageflow_test.main_client_id')::uuid,
     'Admin Project Allowed ' || replace(gen_random_uuid()::text, '-', ''),
     'planned',
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
+  delete from public.project_members
+  where project_id = current_setting('manageflow_test.main_project_id')::uuid
+    and user_id = current_setting('manageflow_test.member_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: project manager cannot remove a project member.';
+  end if;
+
+  insert into public.project_members (
+    organization_id, project_id, user_id, assigned_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid,
     current_setting('manageflow_test.member_id')::uuid
   );
 
@@ -593,6 +703,43 @@ begin
     when insufficient_privilege then null;
   end;
 
+  begin
+    insert into public.project_members (
+      organization_id, project_id, user_id, assigned_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.other_project_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid,
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: another organization project accepted a member.';
+  exception
+    when foreign_key_violation or insufficient_privilege or check_violation then null;
+  end;
+
+  delete from public.project_members
+  where project_id = current_setting('manageflow_test.main_project_id')::uuid
+    and user_id = current_setting('manageflow_test.member_id')::uuid;
+
+  update public.organization_members
+  set status = 'inactive'
+  where organization_id = current_setting('manageflow_test.main_organization_id')::uuid
+    and user_id = current_setting('manageflow_test.member_id')::uuid;
+
+  begin
+    insert into public.project_members (
+      organization_id, project_id, user_id, assigned_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid,
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: inactive organization member was assigned to a project.';
+  exception
+    when check_violation then null;
+  end;
+
   insert into public.projects (
     organization_id, client_id, name, status, created_by
   ) values (
@@ -631,14 +778,20 @@ select
   true as member_client_write_denied,
   true as member_project_read_allowed,
   true as member_project_write_denied,
+  true as member_project_team_read_allowed,
+  true as member_project_team_write_denied,
   true as admin_write_allowed,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
   true as admin_project_archive_allowed,
+  true as admin_project_team_write_allowed,
+  true as duplicate_project_assignment_denied,
+  true as archived_project_assignment_denied,
   true as completed_project_progress_enforced,
   true as completed_project_reopen_progress_safe,
   true as project_manager_client_write_allowed,
   true as project_manager_project_write_allowed,
+  true as project_manager_project_team_write_allowed,
   true as owner_client_write_allowed,
   true as owner_project_write_allowed,
   true as project_archive_actor_protected,
@@ -648,6 +801,9 @@ select
   true as cross_organization_reads_hidden,
   true as cross_organization_clients_hidden,
   true as cross_organization_projects_hidden,
+  true as cross_organization_project_teams_hidden,
+  true as cross_organization_project_assignment_denied,
+  true as inactive_project_assignment_denied,
   true as cross_organization_project_client_denied,
   true as all_probe_changes_rolled_back;
 

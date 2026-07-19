@@ -422,6 +422,26 @@ h1 { font-size:clamp(34px,3.2vw,54px);letter-spacing:-.055em;font-weight:400;mar
 .project-completion-note svg,.project-archive-note svg { width:16px;flex:0 0 auto;color:var(--accent); }
 .project-drawer-actions > * { margin-top:0; }
 .project-archive-button { color:#9b3a30; }
+.project-team-section { margin-top:18px;border:1px solid var(--line);border-radius:16px;overflow:hidden; }
+.project-team-head { min-height:62px;padding:12px 14px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--line); }
+.project-team-head > span { width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--accent-soft);color:var(--accent); }
+.project-team-head svg { width:16px; }.project-team-head > div { display:flex;flex-direction:column;gap:5px; }
+.project-team-head small { color:var(--muted);font-size:7px;letter-spacing:.15em; }.project-team-head b { font-size:10px; }
+.project-team-list { display:flex;flex-direction:column; }
+.project-team-member { min-height:58px;padding:9px 13px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line); }
+.project-team-member > i { width:34px;height:34px;flex:0 0 auto;border-radius:10px;background:var(--panel-soft);color:var(--accent);font-style:normal;font-size:9px;font-weight:700;display:grid;place-items:center; }
+.project-team-member > span { min-width:0;flex:1;display:flex;flex-direction:column;gap:5px; }
+.project-team-member b { font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }.project-team-member small { color:var(--muted);font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.project-team-member > button { width:30px;height:30px;flex:0 0 auto;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer; }
+.project-team-member > button:hover { color:#9b3a30;border-color:#e1b6b1; }.project-team-member > button:disabled { opacity:.55;cursor:not-allowed; }.project-team-member > button svg { width:13px; }
+.project-team-assign { padding:12px;display:grid;grid-template-columns:1fr auto;gap:8px;background:var(--panel-soft); }
+.project-team-assign select { min-width:0;height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:0 30px 0 10px;font-size:8px; }
+.project-team-assign button { height:38px;border:0;border-radius:999px;background:var(--black);color:var(--panel);padding:0 13px;display:flex;align-items:center;gap:6px;font-size:8px;cursor:pointer; }.project-team-assign button svg { width:13px; }.project-team-assign button:disabled { opacity:.55;cursor:not-allowed; }
+.project-team-state,.project-team-empty { min-height:86px;padding:14px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--muted);font-size:8px;text-align:center; }
+.project-team-state > svg,.project-team-empty > svg { width:17px; }.project-team-state button { border:0;background:transparent;color:var(--accent);font-size:8px;cursor:pointer; }
+.project-team-empty { justify-content:flex-start;text-align:left; }.project-team-empty > span { display:flex;flex-direction:column;gap:5px; }.project-team-empty b { color:var(--text);font-size:9px; }.project-team-empty small { font-size:7px;line-height:1.4; }
+.project-team-complete,.project-team-locked { margin:0;padding:11px 13px;display:flex;align-items:center;gap:7px;background:var(--panel-soft);color:var(--muted);font-size:8px; }.project-team-complete svg,.project-team-locked svg { width:13px;color:var(--accent); }
+.project-team-section > .form-error { margin:10px 12px 12px; }
 
 /* Authentication */
 .app-shell .auth-page { margin-left:0;min-height:100vh;display:grid;grid-template-columns:minmax(500px,.92fr) minmax(520px,1.08fr);background:var(--panel); }

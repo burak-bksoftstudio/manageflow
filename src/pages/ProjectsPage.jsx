@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, Building2, CalendarDays, Check, CircleAlert, Clock3,
   FileText, FolderKanban, Gauge, LoaderCircle, Pencil, Plus, RefreshCw, Search,
-  ShieldCheck, Sparkles, X,
+  ShieldCheck, Sparkles, UserMinus, UserPlus, UsersRound, X,
 } from 'lucide-react';
 import { useClients } from '../features/clients/useClients';
 import { useOrganization } from '../features/organizations/OrganizationContext';
@@ -10,6 +10,8 @@ import {
   canManageProjects, filterProjects, getProjectErrorMessage, getProjectStats,
   normalizeProjectProgress, PROJECT_STATUS_LABELS, validateProject,
 } from '../features/projects/projectUtils';
+import { getProjectMemberErrorMessage } from '../features/projects/projectMemberUtils';
+import { useProjectMembers } from '../features/projects/useProjectMembers';
 import { useProjects } from '../features/projects/useProjects';
 
 const statusOptions = Object.entries(PROJECT_STATUS_LABELS);
@@ -75,6 +77,51 @@ function CreateProjectModal({ clients, close, createProject }) {
 function formatDate(date) {
   if (!date) return 'Tarih belirlenmedi';
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${date}T12:00:00`));
+}
+
+function ProjectTeamSection({ projectId, isArchived, canManage }) {
+  const {
+    assignMember, assignedMembers, availableMembers, error: loadError, loading, refresh, removeMember,
+  } = useProjectMembers(projectId);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [savingUserId, setSavingUserId] = useState('');
+  const [actionError, setActionError] = useState('');
+
+  useEffect(() => {
+    setSelectedUserId(current => availableMembers.some(member => member.userId === current)
+      ? current
+      : availableMembers[0]?.userId || '');
+  }, [availableMembers]);
+
+  const assign = async () => {
+    if (!selectedUserId) return;
+    setSavingUserId(selectedUserId);
+    setActionError('');
+    const result = await assignMember(selectedUserId);
+    setSavingUserId('');
+    if (result.error) setActionError(getProjectMemberErrorMessage(result.error));
+  };
+  const remove = async userId => {
+    setSavingUserId(userId);
+    setActionError('');
+    const result = await removeMember(userId);
+    setSavingUserId('');
+    if (result.error) setActionError(getProjectMemberErrorMessage(result.error));
+  };
+
+  return (
+    <section className="project-team-section">
+      <div className="project-team-head"><span><UsersRound /></span><div><small>PROJE EKİBİ</small><b>{assignedMembers.length} kişi atanmış</b></div></div>
+      {loading && <div className="project-team-state"><LoaderCircle className="spin" /> Ekip yükleniyor…</div>}
+      {!loading && loadError && <div className="project-team-state error"><CircleAlert /> Ekip yüklenemedi.<button onClick={refresh}>Tekrar dene</button></div>}
+      {!loading && !loadError && assignedMembers.length === 0 && <div className="project-team-empty"><UsersRound /><span><b>Henüz kimse atanmadı</b><small>Yetkili kullanıcılar aktif ekip üyelerini projeye ekleyebilir.</small></span></div>}
+      {!loading && !loadError && assignedMembers.length > 0 && <div className="project-team-list">{assignedMembers.map(member => <div className="project-team-member" key={member.userId}><i>{member.initials}</i><span><b>{member.name}{member.isCurrentUser ? ' · Siz' : ''}</b><small>{member.title} · {member.department}</small></span>{canManage && !isArchived && <button onClick={() => remove(member.userId)} disabled={Boolean(savingUserId)} aria-label={`${member.name} üyesini projeden çıkar`} title="Projeden çıkar">{savingUserId === member.userId ? <LoaderCircle className="spin" /> : <UserMinus />}</button>}</div>)}</div>}
+      {canManage && !isArchived && !loading && !loadError && availableMembers.length > 0 && <div className="project-team-assign"><select value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} aria-label="Projeye atanacak ekip üyesi">{availableMembers.map(member => <option value={member.userId} key={member.userId}>{member.name} · {member.title}</option>)}</select><button onClick={assign} disabled={!selectedUserId || Boolean(savingUserId)}>{savingUserId === selectedUserId ? <LoaderCircle className="spin" /> : <UserPlus />} Ekle</button></div>}
+      {canManage && !isArchived && !loading && !loadError && assignedMembers.length > 0 && availableMembers.length === 0 && <p className="project-team-complete"><Check /> Tüm aktif ekip üyeleri bu projede.</p>}
+      {isArchived && <p className="project-team-locked"><Archive /> Arşivlenmiş projelerde ekip değiştirilemez.</p>}
+      {actionError && <div className="form-error" role="alert">{actionError}</div>}
+    </section>
+  );
 }
 
 function ProjectDrawer({ project, clients, close, updateProject, setProjectArchived, canManage }) {
@@ -151,6 +198,8 @@ function ProjectDrawer({ project, clients, close, updateProject, setProjectArchi
             {draft.isArchived && <p className="project-archive-note"><Archive /> Bu proje arşivde tutuluyor. Verileri silinmedi ve yetkili kullanıcı tarafından yeniden açılabilir.</p>}
           </>
         )}
+
+        {!editing && <ProjectTeamSection projectId={draft.id} isArchived={draft.isArchived} canManage={canManage} />}
 
         {confirmingArchive && <div className="deactivate-confirm" role="alert"><b>Proje arşivlensin mi?</b><p>Proje silinmeyecek; müşteri bağlantısı ve geçmiş çalışma bağlamı korunacak.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingArchive(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={() => changeArchive(true)} disabled={saving}>{saving ? 'Arşivleniyor…' : 'Arşivle'}</button></div></div>}
         {!confirmingArchive && canManage && <div className="drawer-actions project-drawer-actions">

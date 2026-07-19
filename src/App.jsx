@@ -24,6 +24,7 @@ const TeamPage = lazy(() => import('./pages/TeamPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
+const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function LazyPage({ children }) {
@@ -34,7 +35,6 @@ const placeholderRoutes = [
   ['/flow-ai', 'Flow AI'],
   ['/calisma-alani', 'Çalışma Alanı'],
   ['/dosyalar', 'Dosyalar'],
-  ['/zaman-takibi', 'Zaman Takibi'],
   ['/kanallar', 'Kanallar'],
   ['/gelen-kutusu', 'Gelen Kutusu'],
   ['/takvim', 'Takvim'],
@@ -114,6 +114,7 @@ export default function App() {
               <Route path="/musteriler" element={<LazyPage><ClientsPage /></LazyPage>} />
               <Route path="/projeler" element={<LazyPage><ProjectsPage /></LazyPage>} />
               <Route path="/gorevler" element={<LazyPage><TasksPage /></LazyPage>} />
+              <Route path="/zaman-takibi" element={<LazyPage><TimeTrackingPage /></LazyPage>} />
               <Route path="/ozellestirme" element={<LazyPage><SettingsPage /></LazyPage>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />

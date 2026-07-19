@@ -17,7 +17,7 @@ const navGroups = [
       { label: 'Görevler', to: '/gorevler', icon: CheckSquare2 },
       { label: 'Çalışma Alanı', to: '/calisma-alani', icon: Files, badge: 'Yakında' },
       { label: 'Dosyalar', to: '/dosyalar', icon: Files, badge: 'Yakında' },
-      { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock, badge: 'Yakında' },
+      { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock },
       { label: 'Ekipler', to: '/ekipler', icon: Users },
       { label: 'Özelleştirme', to: '/ozellestirme', icon: Settings2 },
     ],

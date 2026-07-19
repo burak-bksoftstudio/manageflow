@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.27.0-time-history` |
-| Mevcut aşama | Güvenli manuel süre girişi ve haftalık kişisel geçmiş geliştirildi; production kullanıcı kabulü bekliyor |
-| Sonraki ana hedef | Manuel süre ve haftalık filtreleri production hesabıyla doğrulayıp Çalışma Alanı v1'e geçmek |
+| Mevcut sürüm | `0.28.0-workspace-notes` |
+| Mevcut aşama | Proje bazlı ortak notlardan oluşan Çalışma Alanı v1 geliştirildi; production kullanıcı kabulü bekliyor |
+| Sonraki ana hedef | Zaman Takibi v1.1 ve Çalışma Alanı v1 akışlarını production hesabıyla doğrulamak |
 
 ---
 
@@ -73,6 +73,7 @@ Mevcut sürümde:
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı kendi profil adını, telefonunu ve HTTPS avatar adresini güncelleyebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
 - Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir.
+- Ekip üyeleri aktif projelere ortak not ekleyebilir, proje veya metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
@@ -90,7 +91,7 @@ Mevcut sürümde:
 | Görevler | Gerçek CRUD, hiyerarşi, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar, aktivite geçmişi ve kalıcı gelişmiş filtre/sıralama bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
-| Çalışma Alanı | Yakında |
+| Çalışma Alanı | Gerçek proje bağlantılı ortak notlar, arama, proje filtresi, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı; kabul testi bekliyor |
 | Dosyalar | Yakında |
 | Zaman Takibi | Gerçek sayaç, sunucu doğrulamalı manuel süre, haftalık kişisel geçmiş ve proje/görev filtreleri Supabase ile bağlı; v1 doğrulandı, v1.1 kabul testi bekliyor |
 | Flow AI | Yakında |
@@ -107,8 +108,8 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, profil/organizasyon ayarları, ekip, müşteri, proje, görev ve kişisel zaman takibi temeli bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Çekirdek SaaS ve `time_entries` şemaları RLS/bütünlük kurallarıyla uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, profil/organizasyon ayarları, ekip, müşteri, proje, görev, zaman takibi ve proje notları bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Çekirdek SaaS, `time_entries` ve `project_notes` şemaları RLS/bütünlük kurallarıyla uzak veritabanına uygulandı |
 | Kimlik doğrulama | Hazır | Kayıt, doğrulama, giriş, çıkış, kalıcı oturum ve güvenli şifre yenileme canlı hesapla doğrulandı |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
@@ -644,6 +645,26 @@ Veritabanı migration'ları uzak projeye uygulanmış, zaman takibi RLS testi ve
 - Doğrudan insert reddi, RPC sınırı, manuel süre hesabı, geleceğe kayıt reddi ve mevcut sayaç/RLS regresyonlarını kapsayan rollback smoke testi
 
 Uzak migration sayısı 18'e yükselmiştir. Yeni zaman takibi güvenlik testi `result: passed`, tam RLS regresyon testi `result: passed` ve uzak schema lint temizdir. Production kullanıcı kabulünde geçmiş bir manuel kaydın eklenmesi, yenilemede korunması ve haftalık proje/görev filtrelerinde görünmesi doğrulanacaktır.
+
+### 4.21 Çalışma Alanı v1 — proje notları
+
+- Sidebar'da aktif, lazy-loaded gerçek `/calisma-alani` rotası
+- Aktif organizasyon, zorunlu proje ve not yazarıyla ilişkili `project_notes` tablosu
+- 2–160 karakter başlık ve 1–10.000 karakter düz metin içerik bütünlüğü
+- Proje listesinden tüm notlara veya tek proje bağlamına geçiş
+- Başlık, içerik, proje ve yazar alanlarında Türkçe uyumlu arama
+- Toplam not, not bulunan proje, kullanıcının notları ve bu hafta güncellenen not metrikleri
+- Not oluşturma, tam içerik görüntüleme ve düzenleme modalı
+- Bütün üyeler için organizasyon notlarını okuma ve aktif projeye not ekleme
+- Yazarın kendi notunu; owner/admin/project manager rollerinin organizasyon notlarını düzenleyebilmesi
+- Arşivli projede yeni not veya not düzenleme engeli
+- Organizasyon/proje/yazar/oluşturulma bağlamını değiştirilemez tutan trigger
+- V1 kapsamında not silmeyi tablo yetkisi ve RLS seviyesinde kapatma
+- Masaüstü, tablet, mobil, açık/koyu tema, loading, hata, boş ve salt okunur durumları
+- Not doğrulama, eşleme, izin, arama, metrik ve hata davranışları için 5 yeni otomatik test
+- Çapraz organizasyon izolasyonu, yazar sahteciliği, üye/yönetici düzenleme ve arşivli proje engelini kapsayan ayrı rollback güvenlik testi
+
+Uzak migration sayısı 19'a yükselmiştir. Proje notları güvenlik testi `result: passed`, tam RLS ve zaman takibi regresyon testleri `result: passed`, uzak schema lint temizdir. Production kabulünde not oluşturma, sayfa yenilemesinde kalıcılık, proje/arama filtresi ve ikinci üyeyle salt okunur/yönetici davranışı doğrulanacaktır.
 
 ---
 
@@ -1301,6 +1322,7 @@ Durum: **Devam ediyor**
 - [x] Zaman takip sayacı gerçek kullanıcı kabul testi
 - [x] Güvenli manuel süre girişi
 - [x] Haftalık kişisel geçmiş ve proje/görev filtreleri
+- [x] Proje bazlı ortak Çalışma Alanı notları
 - [ ] Timesheet
 - [ ] Proje raporları
 - [ ] Global arama
@@ -1462,9 +1484,9 @@ Her özellik tamamlanmış sayılmadan önce:
 
 1. Production hesabıyla geçmiş bir manuel süre kaydı oluştur ve sayfa yenilemesinde korunduğunu doğrula.
 2. Haftalar arasında gezinme ile proje/görev filtrelerinin doğru kayıt ve toplamı gösterdiğini doğrula.
-3. Basit proje notlarından oluşan Çalışma Alanı v1'i geliştir.
-4. Çalışma Alanı v1 kabulünden sonra hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla.
-5. Kişisel geçmişi ekip timesheet'i, dışa aktarma ve raporlama katmanına genişlet.
+3. Çalışma Alanı'nda proje notu oluştur, yenilemede kalıcılığı ve proje/arama filtresini doğrula.
+4. İkinci üyeyle ortak not görünürlüğü ve rol korumalı düzenleme davranışını doğrula.
+5. Kabul sonrasında hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
@@ -1479,6 +1501,38 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.28.0-workspace-notes`
+
+Eklenenler:
+
+- Gerçek `/calisma-alani` sayfası ve aktif sidebar bağlantısı
+- Proje gezgini, ortak not kartları, tam not görünümü ve arama
+- Not oluşturma ve rol/yazar korumalı düzenleme
+- Çalışma alanı not/proje/yazar/haftalık güncelleme metrikleri
+- Responsive açık/koyu tema, loading, hata, boş ve salt okunur durumları
+- `project_notes` tablosu, alan bütünlüğü, bağlam trigger'ları ve organizasyon izole RLS politikaları
+- V1 not silme yetkilerini açıkça kapatan güvenlik sınırı
+- Not domain davranışlarına ait 5 yeni otomatik test
+- Ayrı, rollback kullanan proje notları RLS/bütünlük smoke testi
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 94/94 test başarılı
+- `npm run build` — başarılı; lazy-loaded Çalışma Alanı sayfası yaklaşık 15,0 kB
+- Uzak migration sayısı 19; yerel ve uzak migration geçmişi eşleşiyor
+- Proje notları güvenlik smoke testi — `result: passed`, 11 güvenlik/bütünlük alanı `true`
+- Mevcut tam RLS ve zaman takibi regresyon testleri — `result: passed`
+- Uzak Supabase schema lint — hata/uyarı yok
+
+Kabul testi:
+
+- Production hesabıyla not oluşturma, yenilemede kalıcılık, proje/arama filtresi ve düzenleme kullanıcı doğrulaması bekliyor.
+
+Bilinen sınırlamalar:
+
+- Not silme/arşivleme, sabitleme, etiketler, zengin metin, sürüm geçmişi ve eşzamanlı düzenleme henüz yok.
+- UI entegrasyon/E2E test altyapısı henüz bulunmuyor.
 
 ### 20 Temmuz 2026 — `0.27.0-time-history`
 

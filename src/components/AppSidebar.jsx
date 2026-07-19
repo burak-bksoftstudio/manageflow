@@ -15,7 +15,7 @@ const navGroups = [
     items: [
       { label: 'Projeler', to: '/projeler', icon: FolderKanban },
       { label: 'Görevler', to: '/gorevler', icon: CheckSquare2 },
-      { label: 'Çalışma Alanı', to: '/calisma-alani', icon: Files, badge: 'Yakında' },
+      { label: 'Çalışma Alanı', to: '/calisma-alani', icon: Files },
       { label: 'Dosyalar', to: '/dosyalar', icon: Files, badge: 'Yakında' },
       { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock },
       { label: 'Ekipler', to: '/ekipler', icon: Users },

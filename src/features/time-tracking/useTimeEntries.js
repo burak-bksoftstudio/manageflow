@@ -5,9 +5,11 @@ import { initialProjects, initialTasks } from '../../data/demo';
 import { requireSupabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { useOrganization } from '../organizations/OrganizationContext';
-import { mapDatabaseTimeEntry, normalizeTimerForm } from './timeTrackingUtils';
+import {
+  getManualStartedAt, mapDatabaseTimeEntry, normalizeManualTimeForm, normalizeTimerForm,
+} from './timeTrackingUtils';
 
-const timeEntrySelect = 'id, organization_id, project_id, task_id, user_id, note, started_at, ended_at, duration_seconds, created_at';
+const timeEntrySelect = 'id, organization_id, project_id, task_id, user_id, note, entry_type, started_at, ended_at, duration_seconds, created_at';
 
 export function useTimeEntries() {
   const { isDemoMode, user } = useAuth();
@@ -105,6 +107,7 @@ export function useTimeEntries() {
         taskTitle: form.taskTitle || '',
         userId: user?.id || 'demo-user',
         note: normalized.note,
+        entryType: 'timer',
         startedAt: now,
         endedAt: '',
         durationSeconds: null,
@@ -116,21 +119,58 @@ export function useTimeEntries() {
     }
 
     const client = requireSupabase();
-    const { data, error: createError } = await client
-      .from('time_entries')
-      .insert({
-        organization_id: activeOrganization.id,
-        project_id: normalized.projectId,
-        task_id: normalized.taskId || null,
-        user_id: user.id,
-        note: normalized.note || null,
-      })
-      .select('id')
-      .single();
+    const { data, error: createError } = await client.rpc('start_time_entry', {
+      target_note: normalized.note || null,
+      target_organization_id: activeOrganization.id,
+      target_project_id: normalized.projectId,
+      target_task_id: normalized.taskId || null,
+    });
     if (createError) return { data: null, error: createError };
     const refreshed = await loadTimeEntries(false);
-    return { data: refreshed.data?.find(entry => entry.id === data.id) || null, error: refreshed.error };
+    return { data: refreshed.data?.find(entry => entry.id === data) || null, error: refreshed.error };
   }, [activeOrganization, entries, isDemoMode, loadTimeEntries, user]);
+
+  const createManualEntryRecord = useCallback(async form => {
+    const normalized = normalizeManualTimeForm(form);
+    const startedAt = getManualStartedAt(normalized);
+
+    if (isDemoMode) {
+      const endedAt = new Date(startedAt.getTime() + normalized.durationMinutes * 60 * 1000).toISOString();
+      const project = projects.find(item => item.id === normalized.projectId);
+      const task = tasks.find(item => item.id === normalized.taskId);
+      const record = {
+        id: `time-entry-${Date.now()}`,
+        organizationId: activeOrganization?.id || 'demo-organization',
+        projectId: normalized.projectId,
+        projectName: project?.name || 'Demo proje',
+        taskId: normalized.taskId,
+        taskTitle: task?.title || '',
+        userId: user?.id || 'demo-user',
+        note: normalized.note,
+        entryType: 'manual',
+        startedAt: startedAt.toISOString(),
+        endedAt,
+        durationSeconds: normalized.durationMinutes * 60,
+        isActive: false,
+        createdAt: new Date().toISOString(),
+      };
+      setEntries(value => [record, ...value]);
+      return { data: record, error: null };
+    }
+
+    const client = requireSupabase();
+    const { data, error: createError } = await client.rpc('create_manual_time_entry', {
+      target_duration_minutes: normalized.durationMinutes,
+      target_note: normalized.note || null,
+      target_organization_id: activeOrganization.id,
+      target_project_id: normalized.projectId,
+      target_started_at: startedAt.toISOString(),
+      target_task_id: normalized.taskId || null,
+    });
+    if (createError) return { data: null, error: createError };
+    const refreshed = await loadTimeEntries(false);
+    return { data: refreshed.data?.find(entry => entry.id === data) || null, error: refreshed.error };
+  }, [activeOrganization, isDemoMode, loadTimeEntries, projects, tasks, user]);
 
   const stopTimerRecord = useCallback(async entryId => {
     const currentEntry = entries.find(entry => entry.id === entryId && entry.isActive);
@@ -164,6 +204,7 @@ export function useTimeEntries() {
 
   return useMemo(() => ({
     activeEntry: entries.find(entry => entry.isActive) || null,
+    createManualEntry: createManualEntryRecord,
     entries,
     error,
     loading,
@@ -172,5 +213,5 @@ export function useTimeEntries() {
     startTimer: startTimerRecord,
     stopTimer: stopTimerRecord,
     tasks,
-  }), [entries, error, loadTimeEntries, loading, projects, startTimerRecord, stopTimerRecord, tasks]);
+  }), [createManualEntryRecord, entries, error, loadTimeEntries, loading, projects, startTimerRecord, stopTimerRecord, tasks]);
 }

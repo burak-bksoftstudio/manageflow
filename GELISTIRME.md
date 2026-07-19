@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.26.0-time-tracking` |
-| Mevcut aşama | Zaman Takibi v1 başlatma, yenilemede sürdürme ve durdurma akışı production'da doğrulandı |
-| Sonraki ana hedef | Manuel süre girişi ve haftalık kişisel geçmiş paketini oluşturmak |
+| Mevcut sürüm | `0.27.0-time-history` |
+| Mevcut aşama | Güvenli manuel süre girişi ve haftalık kişisel geçmiş geliştirildi; production kullanıcı kabulü bekliyor |
+| Sonraki ana hedef | Manuel süre ve haftalık filtreleri production hesabıyla doğrulayıp Çalışma Alanı v1'e geçmek |
 
 ---
 
@@ -72,7 +72,7 @@ Mevcut sürümde:
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı kendi profil adını, telefonunu ve HTTPS avatar adresini güncelleyebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
-- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; sunucu zamanı, bugünkü toplam ve kişisel kayıt geçmişi Supabase üzerinde korunur.
+- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
@@ -92,7 +92,7 @@ Mevcut sürümde:
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
 | Dosyalar | Yakında |
-| Zaman Takibi | Gerçek kişisel sayaç, proje/görev bağlantısı, yenilemede sürdürme, bugünkü metrikler ve kayıt listesi Supabase ile bağlı ve doğrulandı |
+| Zaman Takibi | Gerçek sayaç, sunucu doğrulamalı manuel süre, haftalık kişisel geçmiş ve proje/görev filtreleri Supabase ile bağlı; v1 doğrulandı, v1.1 kabul testi bekliyor |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
@@ -627,6 +627,24 @@ Vercel production yayını özel domain üzerinden çalışmaktadır. Cloudflare
 
 Veritabanı migration'ları uzak projeye uygulanmış, zaman takibi RLS testi ve mevcut tam RLS regresyon testi `passed`, schema lint temizdir. Gerçek hesapla sayaç başlatma, sayfayı yeniledikten sonra aynı sunucu başlangıç zamanıyla sürdürme, durdurma ve kaydı listede koruma production ortamında doğrulanmıştır.
 
+### 4.20 Zaman Takibi v1.1 — manuel süre ve haftalık geçmiş
+
+- Geçmiş tarih, yerel başlangıç saati, dakika cinsinden süre, proje, isteğe bağlı görev ve not alanlarıyla manuel kayıt modalı
+- İstemci ve sunucuda 1–1440 dakika sınırı; gelecekte başlayan veya geleceğe uzanan kayıtları reddetme
+- Sayaç başlatma işlemini `start_time_entry` güvenli sunucu fonksiyonuna taşıma
+- Manuel kayıtları yalnızca `create_manual_time_entry` güvenli sunucu fonksiyonundan oluşturma
+- Authenticated rolünün `time_entries` tablosuna doğrudan `INSERT` yetkisini ve insert RLS politikasını kaldırma
+- Sunucuda aktif organizasyon üyeliği, arşivlenmemiş proje/görev, not uzunluğu ve zaman bütünlüğü doğrulaması
+- Sayaç ve manuel kayıtları ayıran değiştirilemez `entry_type` alanı
+- Pazartesi–pazar haftaları arasında ileri/geri gezinme
+- Haftalık toplam süre ile proje ve görev filtreleri
+- Bugünün akışı ve haftalık geçmişte manuel kayıt etiketi
+- Masaüstü, tablet, mobil, açık/koyu tema, boş ve hata durumları
+- Manuel form ve haftalık hesaplamalarla birlikte 89 otomatik test
+- Doğrudan insert reddi, RPC sınırı, manuel süre hesabı, geleceğe kayıt reddi ve mevcut sayaç/RLS regresyonlarını kapsayan rollback smoke testi
+
+Uzak migration sayısı 18'e yükselmiştir. Yeni zaman takibi güvenlik testi `result: passed`, tam RLS regresyon testi `result: passed` ve uzak schema lint temizdir. Production kullanıcı kabulünde geçmiş bir manuel kaydın eklenmesi, yenilemede korunması ve haftalık proje/görev filtrelerinde görünmesi doğrulanacaktır.
+
 ---
 
 ## 5. Henüz yapılmamış bağlantılar
@@ -634,7 +652,7 @@ Veritabanı migration'ları uzak projeye uygulanmış, zaman takibi RLS testi ve
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
 - Dosya, mesaj, bildirim ve takvim modüllerinin Supabase sorguları
-- Manuel süre girişi, haftalık timesheet ve ekip zaman raporları
+- Zaman kaydı düzeltme/arşivleme yaşam döngüsü, ekip timesheet'i ve ekip zaman raporları
 - Özel domainde production kayıt doğrulama ve davet kabul callback'lerinin canlı hesaplarla smoke testi
 - Google ile giriş
 - Birden fazla organizasyon arasında çalışma alanı değiştirme akışı
@@ -1281,6 +1299,8 @@ Durum: **Devam ediyor**
 - [ ] E-posta bildirimleri
 - [x] Zaman takip sayacı altyapısı ve gerçek arayüzü
 - [x] Zaman takip sayacı gerçek kullanıcı kabul testi
+- [x] Güvenli manuel süre girişi
+- [x] Haftalık kişisel geçmiş ve proje/görev filtreleri
 - [ ] Timesheet
 - [ ] Proje raporları
 - [ ] Global arama
@@ -1431,7 +1451,7 @@ Her özellik tamamlanmış sayılmadan önce:
 - Domain/config testleri var; UI entegrasyon ve E2E testleri henüz yok.
 - ESLint/Prettier yapılandırması bulunmuyor.
 - GitHub → Vercel production deployment bağlantısı bulunuyor; test/build için ayrı GitHub Actions kalite kapısı henüz yok.
-- Vite production build ana JavaScript chunk'ı 500 kB uyarı eşiğini aşıyor; sonraki performans paketinde vendor/code splitting gözden geçirilmeli.
+- Route bazlı code splitting çalışıyor; ilerleyen modüllerde ana bundle boyutu izlenmeye devam edilmeli.
 - Offline/PWA desteği bulunmuyor.
 
 ---
@@ -1440,11 +1460,11 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Gerçek hesapla sayaç başlatma, `/zaman-takibi` sayfasını yenileme ve aynı kaydı durdurma akışını doğrula.
-2. Manuel başlangıç/bitiş veya toplam süre girişi için sunucu tarafı bütünlük kurallarını tasarla.
-3. Günlük/haftalık kişisel geçmiş ve tarih/proje/görev filtrelerini ekle.
-4. Hatalı kaydı güvenli düzeltme/arşivleme yaşam döngüsünü rol ve sahiplik kurallarıyla oluştur.
-5. Zaman Takibi v1.1 sonrasında basit proje notlarından oluşan Çalışma Alanı v1'e geç.
+1. Production hesabıyla geçmiş bir manuel süre kaydı oluştur ve sayfa yenilemesinde korunduğunu doğrula.
+2. Haftalar arasında gezinme ile proje/görev filtrelerinin doğru kayıt ve toplamı gösterdiğini doğrula.
+3. Basit proje notlarından oluşan Çalışma Alanı v1'i geliştir.
+4. Çalışma Alanı v1 kabulünden sonra hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla.
+5. Kişisel geçmişi ekip timesheet'i, dışa aktarma ve raporlama katmanına genişlet.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
@@ -1459,6 +1479,37 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.27.0-time-history`
+
+Eklenenler:
+
+- Sunucu doğrulamalı manuel süre kayıt modalı
+- Pazartesi–pazar haftalık kişisel geçmiş, haftalar arası gezinme ve toplam süre
+- Proje ve görev geçmiş filtreleri
+- Bugün ve geçmiş listelerinde manuel kayıt ayrımı
+- Sayaç başlatma ve manuel ekleme için iki güvenli RPC sınırı
+- `entry_type` bütünlük alanı ve doğrudan authenticated tablo insert'ini kapatan migration
+- Manuel form, hafta sınırı, filtre ve toplam hesaplarına ait 2 yeni domain testi
+- Manuel kayıt güvenliği ve mevcut sayaç regresyonlarını birlikte kapsayan genişletilmiş uzak smoke testi
+
+Doğrulama:
+
+- `npm test` — 14 dosyada 89/89 test başarılı
+- `npm run build` — başarılı; Zaman Takibi lazy chunk'ı yaklaşık 23,8 kB, ana chunk yaklaşık 302,2 kB
+- Uzak migration sayısı 18; yerel ve uzak migration geçmişi eşleşiyor
+- Zaman takibi güvenlik smoke testi — `result: passed`, 12 güvenlik/bütünlük alanı `true`
+- Mevcut tam RLS regresyon testi — `result: passed`
+- Uzak Supabase schema lint — hata/uyarı yok
+
+Kabul testi:
+
+- Production hesabıyla manuel kayıt oluşturma, yenilemede kalıcılık ve haftalık filtre davranışı kullanıcı doğrulaması bekliyor.
+
+Bilinen sınırlamalar:
+
+- Kayıt düzeltme/arşivleme, ekip timesheet'i, dışa aktarma ve ekip raporları henüz yok.
+- UI entegrasyon/E2E test altyapısı henüz bulunmuyor.
 
 ### 20 Temmuz 2026 — `0.26.0-time-tracking`
 
@@ -1485,8 +1536,7 @@ Doğrulama:
 
 Bilinen sınırlamalar:
 
-- Manuel süre girişi, düzenleme/arşivleme, haftalık timesheet ve ekip raporları henüz yok.
-- Production build ana JavaScript chunk'ı minified 500 kB uyarı eşiğini aşıyor; gzip boyutu yaklaşık 152 kB.
+- Düzenleme/arşivleme, haftalık ekip timesheet'i ve ekip raporları henüz yok.
 
 ### 19 Temmuz 2026 — `0.25.1-custom-domain`
 

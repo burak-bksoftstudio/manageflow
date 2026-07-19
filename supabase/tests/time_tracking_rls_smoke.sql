@@ -134,17 +134,15 @@ select set_config(
 do $$
 declare
   member_entry_id uuid;
+  manual_entry_id uuid;
   affected_rows integer;
 begin
-  insert into public.time_entries (organization_id, project_id, task_id, user_id, note)
-  values (
+  member_entry_id := public.start_time_entry(
     current_setting('manageflow_time_test.organization_id')::uuid,
     current_setting('manageflow_time_test.project_id')::uuid,
     current_setting('manageflow_time_test.task_id')::uuid,
-    current_setting('manageflow_time_test.member_id')::uuid,
     '  Member timer  '
-  )
-  returning id into member_entry_id;
+  );
 
   if not exists (
     select 1 from public.time_entries entry
@@ -165,11 +163,11 @@ begin
   end if;
 
   begin
-    insert into public.time_entries (organization_id, project_id, user_id)
-    values (
+    perform public.start_time_entry(
       current_setting('manageflow_time_test.organization_id')::uuid,
       current_setting('manageflow_time_test.project_id')::uuid,
-      current_setting('manageflow_time_test.member_id')::uuid
+      null,
+      null
     );
     raise exception 'Time tracking probe failed: member started a second active timer.';
   exception
@@ -183,22 +181,23 @@ begin
       current_setting('manageflow_time_test.project_id')::uuid,
       current_setting('manageflow_time_test.owner_id')::uuid
     );
-    raise exception 'Time tracking probe failed: member created another user timer.';
+    raise exception 'Time tracking probe failed: direct table insertion remained available.';
   exception
     when insufficient_privilege then null;
   end;
 
   begin
-    insert into public.time_entries (organization_id, project_id, task_id, user_id)
-    values (
+    perform public.create_manual_time_entry(
       current_setting('manageflow_time_test.organization_id')::uuid,
       current_setting('manageflow_time_test.project_id')::uuid,
       current_setting('manageflow_time_test.second_task_id')::uuid,
-      current_setting('manageflow_time_test.member_id')::uuid
+      now() - interval '2 hours',
+      30,
+      null
     );
     raise exception 'Time tracking probe failed: a task from another project was accepted.';
   exception
-    when foreign_key_violation or insufficient_privilege then null;
+    when foreign_key_violation then null;
   end;
 
   update public.time_entries
@@ -230,6 +229,40 @@ begin
   exception
     when insufficient_privilege then null;
   end;
+
+  manual_entry_id := public.create_manual_time_entry(
+    current_setting('manageflow_time_test.organization_id')::uuid,
+    current_setting('manageflow_time_test.project_id')::uuid,
+    current_setting('manageflow_time_test.task_id')::uuid,
+    now() - interval '3 hours',
+    45,
+    '  Manual entry  '
+  );
+
+  if not exists (
+    select 1 from public.time_entries entry
+    where entry.id = manual_entry_id
+      and entry.entry_type = 'manual'
+      and entry.duration_seconds = 2700
+      and entry.ended_at = entry.started_at + interval '45 minutes'
+      and entry.note = 'Manual entry'
+  ) then
+    raise exception 'Time tracking probe failed: manual entry was not normalized and stored.';
+  end if;
+
+  begin
+    perform public.create_manual_time_entry(
+      current_setting('manageflow_time_test.organization_id')::uuid,
+      current_setting('manageflow_time_test.project_id')::uuid,
+      null,
+      now() - interval '10 minutes',
+      20,
+      null
+    );
+    raise exception 'Time tracking probe failed: a manual entry extended into the future.';
+  exception
+    when check_violation then null;
+  end;
 end;
 $$;
 
@@ -252,15 +285,15 @@ select set_config(
 do $$
 begin
   begin
-    insert into public.time_entries (organization_id, project_id, user_id)
-    values (
+    perform public.start_time_entry(
       current_setting('manageflow_time_test.organization_id')::uuid,
       current_setting('manageflow_time_test.project_id')::uuid,
-      current_setting('manageflow_time_test.member_id')::uuid
+      null,
+      null
     );
     raise exception 'Time tracking probe failed: archived project accepted a timer.';
   exception
-    when insufficient_privilege then null;
+    when foreign_key_violation then null;
   end;
 end;
 $$;
@@ -271,12 +304,14 @@ select
   'passed' as result,
   true as member_own_timer_allowed,
   true as server_time_lifecycle_enforced,
+  true as authenticated_rpc_boundary_enforced,
   true as single_active_timer_enforced,
   true as other_user_entries_hidden,
-  true as another_user_timer_denied,
   true as cross_project_task_denied,
   true as immutable_timer_context_enforced,
   true as timer_deletion_denied,
+  true as manual_entry_server_validation_enforced,
+  true as future_manual_entry_denied,
   true as archived_project_timer_denied,
   true as all_probe_changes_rolled_back;
 

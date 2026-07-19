@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatCompactDuration, formatTimerDuration, getElapsedSeconds, getTimeTrackingErrorMessage,
-  getTimeTrackingStats, getTodaySeconds, mapDatabaseTimeEntry, normalizeTimerForm, validateTimerForm,
+  formatCompactDuration, formatTimerDuration, formatWeekRange, getElapsedSeconds, getManualStartedAt,
+  getTimeTrackingErrorMessage, getTimeTrackingStats, getTodaySeconds, getWeekBounds, getWeeklyHistory,
+  mapDatabaseTimeEntry, normalizeManualTimeForm, normalizeTimerForm, validateManualTimeForm, validateTimerForm,
 } from './timeTrackingUtils';
 
 describe('Time tracking utilities', () => {
@@ -18,10 +19,21 @@ describe('Time tracking utilities', () => {
   it('maps database records with project and task context', () => {
     const mapped = mapDatabaseTimeEntry({
       id: 'e1', organization_id: 'o1', project_id: 'p1', task_id: 't1', user_id: 'u1',
-      note: null, started_at: '2026-07-19T09:00:00Z', ended_at: null, duration_seconds: null,
+      note: null, entry_type: 'timer', started_at: '2026-07-19T09:00:00Z', ended_at: null, duration_seconds: null,
       created_at: '2026-07-19T09:00:00Z',
     }, new Map([['p1', { name: 'Web Sitesi' }]]), new Map([['t1', { title: 'Ana sayfa' }]]));
-    expect(mapped).toMatchObject({ projectName: 'Web Sitesi', taskTitle: 'Ana sayfa', isActive: true, note: '' });
+    expect(mapped).toMatchObject({ projectName: 'Web Sitesi', taskTitle: 'Ana sayfa', isActive: true, note: '', entryType: 'timer' });
+  });
+
+  it('normalizes and validates a past manual entry', () => {
+    const form = {
+      projectId: ' p1 ', taskId: '', date: '2026-07-19', startTime: '09:30', durationMinutes: '90', note: '  Toplantı  ',
+    };
+    expect(normalizeManualTimeForm(form)).toMatchObject({ projectId: 'p1', durationMinutes: 90, note: 'Toplantı' });
+    expect(getManualStartedAt(form)).toBeInstanceOf(Date);
+    expect(validateManualTimeForm(form, [], new Date('2026-07-19T13:00:00'))).toBe('');
+    expect(validateManualTimeForm({ ...form, durationMinutes: 0 }, [], new Date('2026-07-19T13:00:00'))).toContain('1 ile 1440');
+    expect(validateManualTimeForm({ ...form, startTime: '12:30', durationMinutes: 60 }, [], new Date('2026-07-19T13:00:00'))).toContain('geleceğe');
   });
 
   it('calculates active and completed durations', () => {
@@ -45,6 +57,20 @@ describe('Time tracking utilities', () => {
     expect(getTimeTrackingStats(entries, now)).toMatchObject({ activeEntry: entries[1], projects: 2, sessions: 2, todaySeconds: 5400 });
   });
 
+  it('builds a filtered Monday-to-Sunday weekly history', () => {
+    const entries = [
+      { id: 'e1', projectId: 'p1', taskId: 't1', startedAt: '2026-07-13T09:00:00+03:00', endedAt: '2026-07-13T10:00:00+03:00', durationSeconds: 3600 },
+      { id: 'e2', projectId: 'p2', taskId: '', startedAt: '2026-07-19T10:00:00+03:00', endedAt: '2026-07-19T10:30:00+03:00', durationSeconds: 1800 },
+      { id: 'e3', projectId: 'p1', taskId: 't1', startedAt: '2026-07-20T09:00:00+03:00', endedAt: '2026-07-20T10:00:00+03:00', durationSeconds: 3600 },
+    ];
+    const bounds = getWeekBounds(new Date('2026-07-16T12:00:00+03:00'));
+    expect(bounds.start.getDay()).toBe(1);
+    expect(bounds.end.getDay()).toBe(1);
+    expect(getWeeklyHistory(entries, new Date('2026-07-16T12:00:00+03:00'), { projectId: 'p1' }))
+      .toMatchObject({ entries: [entries[0]], totalSeconds: 3600 });
+    expect(formatWeekRange(new Date('2026-07-16T12:00:00+03:00'))).toContain('13');
+  });
+
   it('formats timer and compact durations', () => {
     expect(formatTimerDuration(3661)).toBe('01:01:01');
     expect(formatCompactDuration(30)).toBe('30 sn');
@@ -54,6 +80,7 @@ describe('Time tracking utilities', () => {
   it('returns safe database error messages', () => {
     expect(getTimeTrackingErrorMessage({ code: '23505' })).toContain('devam eden');
     expect(getTimeTrackingErrorMessage({ code: '42501' })).toContain('yetkiniz');
+    expect(getTimeTrackingErrorMessage({ code: '23514' })).toContain('Tarih');
     expect(getTimeTrackingErrorMessage(new Error('details'))).not.toContain('details');
   });
 });

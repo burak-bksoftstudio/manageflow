@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  canManageTasks, filterTasks, getTaskErrorMessage, getTaskStats,
+  canManageTasks, canMoveTask, filterTasks, getTaskErrorMessage, getTaskStats, groupTasksByStatus,
   mapDatabaseTask, normalizeTaskForm, validateTask,
 } from './taskUtils';
 
@@ -16,6 +16,13 @@ describe('task permissions and validation', () => {
     expect(canManageTasks('admin')).toBe(true);
     expect(canManageTasks('project_manager')).toBe(true);
     expect(canManageTasks('member')).toBe(false);
+  });
+
+  it('allows moving only current tasks by manager roles', () => {
+    expect(canMoveTask({ status: 'todo' }, 'admin')).toBe(true);
+    expect(canMoveTask({ status: 'todo' }, 'member')).toBe(false);
+    expect(canMoveTask({ status: 'todo', isArchived: true }, 'owner')).toBe(false);
+    expect(canMoveTask({ status: 'todo', projectArchived: true }, 'project_manager')).toBe(false);
   });
 
   it('requires title, project, status and priority', () => {
@@ -62,5 +69,13 @@ describe('task mapping, filtering and metrics', () => {
     expect(getTaskStats([...tasks, { ...tasks[0], id: '4', isArchived: true }])).toEqual({ total: 3, todo: 1, inProgress: 1, done: 1 });
     expect(getTaskErrorMessage({ code: '23503' })).toContain('proje');
     expect(getTaskErrorMessage({ code: '42501' })).toContain('yetkiniz');
+  });
+
+  it('groups every task status for the Kanban board', () => {
+    const grouped = groupTasksByStatus(tasks);
+    expect(grouped.todo).toEqual([tasks[0]]);
+    expect(grouped.in_progress).toEqual([tasks[1]]);
+    expect(grouped.review).toEqual([]);
+    expect(grouped.done).toEqual([tasks[2]]);
   });
 });

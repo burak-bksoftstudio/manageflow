@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
-  FileText, FolderKanban, ListTodo, LoaderCircle, Pencil, Plus, RefreshCw, Search,
-  ShieldCheck, Timer, UserRound, X,
+  Columns3, FileText, FolderKanban, GripVertical, ListTodo, LoaderCircle, Pencil,
+  Plus, RefreshCw, Rows3, Search, ShieldCheck, Timer, UserRound, X,
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
 import { useProjectMembers } from '../features/projects/useProjectMembers';
 import { useProjects } from '../features/projects/useProjects';
 import {
-  canManageTasks, filterTasks, getTaskErrorMessage, getTaskStats, TASK_PRIORITY_LABELS,
-  TASK_STATUS_LABELS, validateTask,
+  canManageTasks, canMoveTask, filterTasks, getTaskErrorMessage, getTaskStats,
+  groupTasksByStatus, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, validateTask,
 } from '../features/tasks/taskUtils';
 import { useTasks } from '../features/tasks/useTasks';
 
@@ -191,6 +191,83 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
   );
 }
 
+function TaskViewToggle({ view, setView }) {
+  return (
+    <div className="task-view-toggle" aria-label="Görev görünümü">
+      <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} aria-pressed={view === 'list'}><Rows3 /> Liste</button>
+      <button className={view === 'kanban' ? 'active' : ''} onClick={() => setView('kanban')} aria-pressed={view === 'kanban'}><Columns3 /> Kanban</button>
+    </div>
+  );
+}
+
+function TaskKanban({ tasks, statusFilter, role, movingTaskId, moveTask, selectTask }) {
+  const [draggingTaskId, setDraggingTaskId] = useState('');
+  const [overStatus, setOverStatus] = useState('');
+  const groupedTasks = useMemo(() => groupTasksByStatus(tasks), [tasks]);
+  const columns = statusFilter === 'all'
+    ? statusOptions
+    : statusOptions.filter(([status]) => status === statusFilter);
+
+  const startDrag = (event, task) => {
+    if (!canMoveTask(task, role) || movingTaskId) { event.preventDefault(); return; }
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', task.id);
+    setDraggingTaskId(task.id);
+  };
+  const drop = (event, nextStatus) => {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData('text/plain') || draggingTaskId;
+    const task = tasks.find(item => item.id === taskId);
+    setDraggingTaskId('');
+    setOverStatus('');
+    if (task && task.status !== nextStatus && canMoveTask(task, role)) moveTask(task, nextStatus);
+  };
+
+  return (
+    <div className={`task-kanban ${columns.length === 1 ? 'single-column' : ''}`}>
+      {columns.map(([columnStatus, label]) => (
+        <section
+          className={`task-kanban-column ${columnStatus} ${overStatus === columnStatus ? 'is-over' : ''}`}
+          key={columnStatus}
+          onDragOver={event => { if (canManageTasks(role)) { event.preventDefault(); setOverStatus(columnStatus); } }}
+          onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOverStatus(''); }}
+          onDrop={event => drop(event, columnStatus)}
+        >
+          <header><span><i />{label}</span><b>{groupedTasks[columnStatus].length}</b></header>
+          <div className="task-kanban-stack">
+            {groupedTasks[columnStatus].map(task => {
+              const movable = canMoveTask(task, role);
+              const moving = movingTaskId === task.id;
+              return (
+                <article
+                  className={`task-kanban-card ${moving ? 'is-moving' : ''} ${!movable ? 'is-locked' : ''}`}
+                  draggable={movable && !movingTaskId}
+                  key={task.id}
+                  onDragStart={event => startDrag(event, task)}
+                  onDragEnd={() => { setDraggingTaskId(''); setOverStatus(''); }}
+                >
+                  <button className="task-kanban-main" onClick={() => selectTask(task)}>
+                    <span className="task-kanban-card-top"><span className={`task-priority ${task.priority}`}>{task.priorityLabel}</span>{movable && <GripVertical />}</span>
+                    <b>{task.title}</b>
+                    <small><FolderKanban />{task.projectName}</small>
+                    <span className="task-kanban-meta"><i>{task.assigneeInitials}</i><span>{task.assigneeName}</span><span><CalendarDays />{formatDate(task.dueDate)}</span></span>
+                    {(task.isArchived || task.projectArchived) && <em><Archive />{task.isArchived ? 'Görev arşivde' : 'Proje arşivde'}</em>}
+                  </button>
+                  <div className="task-kanban-card-actions">
+                    <label>Durum<select value={task.status} onChange={event => moveTask(task, event.target.value)} disabled={!movable || Boolean(movingTaskId)} aria-label={`${task.title} görev durumunu değiştir`}>{statusOptions.map(([value, statusLabel]) => <option value={value} key={value}>{statusLabel}</option>)}</select></label>
+                    {moving && <LoaderCircle className="spin" />}
+                  </div>
+                </article>
+              );
+            })}
+            {groupedTasks[columnStatus].length === 0 && <div className="task-kanban-empty"><CheckSquare2 /><span>Bu sütunda görev yok</span></div>}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export default function TasksPage() {
   const {
     createTask, error, loading, refresh, setTaskArchived: persistArchive, tasks, updateTask: persistTask,
@@ -201,8 +278,11 @@ export default function TasksPage() {
   const [status, setStatus] = useState('all');
   const [projectId, setProjectId] = useState('all');
   const [archive, setArchive] = useState('active');
+  const [view, setView] = useState(() => window.localStorage.getItem('manageflow-task-view') === 'kanban' ? 'kanban' : 'list');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [movingTaskId, setMovingTaskId] = useState('');
+  const [moveError, setMoveError] = useState('');
   const [toast, setToast] = useState('');
   const canManage = canManageTasks(activeOrganization?.role);
   const activeProjects = useMemo(() => projects.filter(project => !project.isArchived), [projects]);
@@ -218,6 +298,10 @@ export default function TasksPage() {
     const timeout = window.setTimeout(() => setToast(''), 3200);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    window.localStorage.setItem('manageflow-task-view', view);
+  }, [view]);
 
   const closeModal = result => {
     setModalOpen(false);
@@ -239,6 +323,16 @@ export default function TasksPage() {
     }
     return result;
   };
+  const moveTask = async (task, nextStatus) => {
+    if (task.status === nextStatus || movingTaskId || !canMoveTask(task, activeOrganization?.role)) return;
+    setMovingTaskId(task.id);
+    setMoveError('');
+    const result = await persistTask(task.id, { ...task, status: nextStatus });
+    setMovingTaskId('');
+    if (result.error) { setMoveError(getTaskErrorMessage(result.error)); return; }
+    if (selectedTask?.id === task.id) setSelectedTask(result.data);
+    setToast(`${result.data.title} · ${result.data.statusLabel}`);
+  };
   const createTitle = !canManage
     ? 'Görev oluşturmak için yönetici veya proje yöneticisi rolü gerekir'
     : creationBlocked ? 'Görev oluşturmak için önce aktif bir proje gerekir' : undefined;
@@ -255,16 +349,15 @@ export default function TasksPage() {
       </section>
 
       <section className="task-list-card">
-        <div className="task-list-head"><div><h2>Görev listesi</h2><p>{filteredTasks.length} görev görüntüleniyor</p></div></div>
+        <div className="task-list-head"><div><h2>{view === 'kanban' ? 'Görev panosu' : 'Görev listesi'}</h2><p>{filteredTasks.length} görev görüntüleniyor</p></div><TaskViewToggle view={view} setView={setView} /></div>
         <div className="task-toolbar"><label className="task-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Görev, proje, görevli veya açıklama ara" /></label><select value={status} onChange={event => setStatus(event.target.value)} aria-label="Görev durumuna göre filtrele"><option value="all">Tüm durumlar</option>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={projectId} onChange={event => setProjectId(event.target.value)} aria-label="Projeye göre filtrele"><option value="all">Tüm projeler</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select><select value={archive} onChange={event => setArchive(event.target.value)} aria-label="Arşiv durumuna göre filtrele"><option value="active">Aktif görevler</option><option value="archived">Arşivlenenler</option><option value="all">Tümü</option></select></div>
-        <div className="task-table">
-          <div className="task-table-head"><span>GÖREV</span><span>PROJE</span><span>GÖREVLİ</span><span>DURUM</span><span>ÖNCELİK</span><span>BİTİŞ</span><span>OLUŞTURULMA</span></div>
-          {loading && <div className="tasks-state" role="status"><LoaderCircle className="spin" /><span>Görevler yükleniyor…</span></div>}
-          {!loading && error && <div className="tasks-state error"><CircleAlert /><h3>Görevler yüklenemedi</h3><p>Bağlantınızı kontrol edip tekrar deneyin.</p><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}
-          {!loading && !error && filteredTasks.map(task => <button className="task-list-row" key={task.id} onClick={() => setSelectedTask(task)}><span className="task-identity"><i><CheckSquare2 /></i><span><b>{task.title}</b><small>{task.description || 'Açıklama eklenmedi'}</small></span></span><span className="task-project"><FolderKanban /><span><b>{task.projectName}</b><small>{task.projectArchived ? 'Arşivlenmiş proje' : 'Aktif proje'}</small></span></span><span className="task-assignee"><i>{task.assigneeInitials}</i><span><b>{task.assigneeName}</b><small>Görevli</small></span></span><span className={`task-status ${task.isArchived ? 'archived' : task.status}`}>{task.isArchived ? 'Arşivlendi' : task.statusLabel}</span><span className={`task-priority ${task.priority}`}>{task.priorityLabel}</span><span className="task-due"><CalendarDays />{formatDate(task.dueDate)}</span><span className="task-created">{task.createdAtLabel}</span></button>)}
-          {!loading && !error && tasks.length === 0 && <div className="tasks-state empty"><CheckSquare2 /><h3>İlk görevinizi oluşturun</h3><p>{activeProjects.length ? 'Aktif projeniz için ilk yapılacak işi tanımlayın.' : 'Görev oluşturabilmek için önce aktif bir proje oluşturun.'}</p>{canManage && activeProjects.length > 0 && <button className="soft-button" onClick={() => setModalOpen(true)}><Plus /> Görev oluştur</button>}</div>}
-          {!loading && !error && tasks.length > 0 && filteredTasks.length === 0 && <div className="tasks-state empty"><Search /><h3>Eşleşen görev bulunamadı</h3><p>Arama metnini veya filtreleri değiştirin.</p></div>}
-        </div>
+        {moveError && <div className="task-move-error form-error" role="alert"><CircleAlert />{moveError}<button onClick={() => setMoveError('')} aria-label="Hatayı kapat"><X /></button></div>}
+        {loading && <div className="tasks-state" role="status"><LoaderCircle className="spin" /><span>Görevler yükleniyor…</span></div>}
+        {!loading && error && <div className="tasks-state error"><CircleAlert /><h3>Görevler yüklenemedi</h3><p>Bağlantınızı kontrol edip tekrar deneyin.</p><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}
+        {!loading && !error && tasks.length === 0 && <div className="tasks-state empty"><CheckSquare2 /><h3>İlk görevinizi oluşturun</h3><p>{activeProjects.length ? 'Aktif projeniz için ilk yapılacak işi tanımlayın.' : 'Görev oluşturabilmek için önce aktif bir proje oluşturun.'}</p>{canManage && activeProjects.length > 0 && <button className="soft-button" onClick={() => setModalOpen(true)}><Plus /> Görev oluştur</button>}</div>}
+        {!loading && !error && tasks.length > 0 && filteredTasks.length === 0 && <div className="tasks-state empty"><Search /><h3>Eşleşen görev bulunamadı</h3><p>Arama metnini veya filtreleri değiştirin.</p></div>}
+        {!loading && !error && filteredTasks.length > 0 && view === 'list' && <div className="task-table"><div className="task-table-head"><span>GÖREV</span><span>PROJE</span><span>GÖREVLİ</span><span>DURUM</span><span>ÖNCELİK</span><span>BİTİŞ</span><span>OLUŞTURULMA</span></div>{filteredTasks.map(task => <button className="task-list-row" key={task.id} onClick={() => setSelectedTask(task)}><span className="task-identity"><i><CheckSquare2 /></i><span><b>{task.title}</b><small>{task.description || 'Açıklama eklenmedi'}</small></span></span><span className="task-project"><FolderKanban /><span><b>{task.projectName}</b><small>{task.projectArchived ? 'Arşivlenmiş proje' : 'Aktif proje'}</small></span></span><span className="task-assignee"><i>{task.assigneeInitials}</i><span><b>{task.assigneeName}</b><small>Görevli</small></span></span><span className={`task-status ${task.isArchived ? 'archived' : task.status}`}>{task.isArchived ? 'Arşivlendi' : task.statusLabel}</span><span className={`task-priority ${task.priority}`}>{task.priorityLabel}</span><span className="task-due"><CalendarDays />{formatDate(task.dueDate)}</span><span className="task-created">{task.createdAtLabel}</span></button>)}</div>}
+        {!loading && !error && filteredTasks.length > 0 && view === 'kanban' && <TaskKanban tasks={filteredTasks} statusFilter={status} role={activeOrganization?.role} movingTaskId={movingTaskId} moveTask={moveTask} selectTask={setSelectedTask} />}
       </section>
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}

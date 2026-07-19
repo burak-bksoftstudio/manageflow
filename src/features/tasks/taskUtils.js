@@ -16,6 +16,10 @@ export function canManageTasks(role) {
   return ['owner', 'admin', 'project_manager'].includes(role);
 }
 
+export function canMoveTask(task, role) {
+  return canManageTasks(role) && !task.isArchived && !task.projectArchived;
+}
+
 export function validateTask(form) {
   const title = String(form.title || '').trim();
   const description = String(form.description || '').trim();
@@ -94,6 +98,13 @@ export function getTaskStats(tasks) {
     inProgress: currentTasks.filter(task => task.status === 'in_progress').length,
     done: currentTasks.filter(task => task.status === 'done').length,
   };
+}
+
+export function groupTasksByStatus(tasks) {
+  return Object.keys(TASK_STATUS_LABELS).reduce((groups, status) => ({
+    ...groups,
+    [status]: tasks.filter(task => task.status === status),
+  }), {});
 }
 
 export function getTaskErrorMessage(error) {

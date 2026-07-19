@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.17.0-real-dashboard` |
-| Mevcut aşama | Dashboard metrikleri, haftalık görev hareketi, proje dağılımı, aktif projeler ve bugünkü gündem gerçek Supabase verisiyle çalışıyor |
-| Sonraki ana hedef | Görevler için liste yanında durum bazlı Kanban görünümü oluşturmak |
+| Mevcut sürüm | `0.18.0-task-kanban` |
+| Mevcut aşama | Görevler ortak filtreli Liste/Kanban görünümü, yetkili durum taşıma ve mobil yatay akışla çalışıyor |
+| Sonraki ana hedef | Görev detayına alt görev/checklist veri modeli ve yönetim akışı eklemek |
 
 ---
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek CRUD yaşam döngüsü, proje ekibi ataması, durum geçişleri ve güvenli arşivleme Supabase ile bağlı |
+| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme ve Liste/Kanban durum yönetimi Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
@@ -504,6 +504,14 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Arşivlenmiş projeye bağlı görevleri salt okunur tutma
 - Member için detay görünümü ve yönetici/proje yöneticisi için düzenleme/arşiv yetkisi
 - Supabase olmayan ortam için demo görev liste/oluşturma/güncelleme/arşivleme fallback'i
+- Kullanıcının tercihini tarayıcıda koruyan Liste/Kanban görünüm seçicisi
+- Yapılacak, devam ediyor, incelemede ve tamamlandı durum sütunları
+- Liste ve Kanban arasında ortak arama, proje, durum ve arşiv filtreleri
+- Yetkili roller için masaüstü sürükle-bırak ile gerçek Supabase durum güncellemesi
+- Klavye, dokunmatik ekran ve erişilebilir kullanım için kart içi durum seçicisi
+- Member rolü ile arşivlenmiş görev/proje kartlarında salt okunur Kanban davranışı
+- Durum güncellenirken kart loading durumu ve başarısız güncellemede görünümü koruyan hata bildirimi
+- Mobilde yatay kaydırılabilir, sütunları snap eden responsive Kanban panosu
 
 Görev CRUD yaşam döngüsü ve proje ekibi atama akışı tamamlanmıştır. Alt görev, yorum ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
 
@@ -1130,7 +1138,7 @@ Durum: **Devam ediyor**
 - [ ] Görev yorumları
 - [ ] Aktivite geçmişi
 - [x] Dashboard'u gerçek verilere bağla
-- [ ] Liste ve Kanban görünümü
+- [x] Liste ve Kanban görünümü
 - [ ] Arama, filtreleme ve sıralama
 
 ### Faz 4 — dosya, bildirim ve zaman
@@ -1300,27 +1308,62 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Görevler ekranına Liste/Kanban görünüm seçicisi ekle.
-2. Yapılacak, devam ediyor, incelemede ve tamamlandı sütunlarını gerçek görevlerden üret.
-3. Arama, proje ve arşiv filtrelerini iki görünümde ortak kullan.
-4. Yetkili kullanıcının kartı sütunlar arasında taşıyarak durum güncellemesini sağla.
-5. Member rolünde Kanban'ı salt okunur tut.
-6. Boş sütun, loading, hata, mobil yatay akış ve update rollback davranışlarını tamamla.
+1. Göreve bağlı ve organizasyon kapsamlı checklist öğesi veri modelini oluştur.
+2. Checklist başlığı, sıra, tamamlanma zamanı ve oluşturan kullanıcı alanlarını tanımla.
+3. Görev detay drawer'ında checklist listeleme ve ilerleme oranını göster.
+4. Yetkili roller için öğe ekleme, tamamlama, yeniden açma ve kaldırma işlemlerini bağla.
+5. Member rolünde checklist'i salt okunur göster.
+6. RLS izolasyonu, boş/loading/hata durumları ve uzak güvenlik testlerini tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Görev kullanıcı Liste ve Kanban arasında geçiş yapabilir
-→ Aynı arama ve filtre sonucu iki görünümde de korunur
-→ Yetkili kullanıcı görev durumunu Kanban üzerinden değiştirebilir
-→ Değişiklik Supabase'e yazılır ve yenilemede korunur
-→ Member kartları görür fakat taşıyamaz
-→ Mobilde sütunlar kullanılabilir yatay akışla sunulur
+Yetkili kullanıcı görev detayında checklist öğesi oluşturabilir
+→ Öğeyi tamamlayabilir ve yeniden açabilir
+→ İlerleme oranı gerçek checklist durumundan hesaplanır
+→ Sayfa yenilendiğinde tüm öğeler ve sıraları korunur
+→ Member checklist'i görür fakat değiştiremez
+→ Başka organizasyonun checklist verisi RLS ile görünmez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.18.0-task-kanban`
+
+Eklenenler:
+
+- Görevler ekranında tercihi tarayıcıda korunan Liste/Kanban görünüm seçicisi
+- Yapılacak, devam ediyor, incelemede ve tamamlandı durumları için gerçek görev sütunları
+- Yetkili kullanıcılar için HTML5 sürükle-bırak ile Supabase durum güncellemesi
+- Dokunmatik, klavye ve erişilebilir kullanım için her kartta durum seçicisi
+- Görev başlığı, proje, görevli, öncelik ve bitiş tarihini gösteren Kanban kartları
+- Tek durum filtresinde odaklı sütun ve tüm durumlarda yatay pano görünümü
+- Boş sütun, taşınıyor ve durum güncelleme hata durumları
+- Mobilde yatay kaydırma ve sütun snap davranışı
+- Kanban gruplama ve taşıma yetkileri için domain testleri
+
+Değiştirilenler:
+
+- Arama, proje, durum ve arşiv filtreleri Liste/Kanban görünümünde ortak kullanılacak şekilde düzenlendi.
+- Görev güncelleme/oluşturma/arşivleme sonrası veri yenileme, tüm ekranı loading durumuna almayan arka plan yenilemesine çevrildi.
+- Member rolü ile arşiv görev/proje kartlarının durum kontrolleri salt okunur tutuldu.
+- Liste ve Kanban görev kartları aynı gerçek detay drawer'ını açacak şekilde bağlandı.
+- Kanban durum güncellemesi tamamlanana kadar ilgili kart kilitlenerek tekrar eden istek engellendi.
+
+Doğrulama:
+
+- `npm test -- --run` — 9 test dosyasında 58 test geçti
+- `npm run build`
+- `git diff --check`
+- `http://127.0.0.1:5173/gorevler` yerel sunucu erişimi
+
+Bilinen sınırlamalar:
+
+- Masaüstü sürükle-bırak tarayıcının HTML5 API'sini kullanır; mobilde durum seçicisi kullanılır.
+- Kanban içinde kartların aynı sütundaki özel sıralaması henüz kalıcı değildir.
+- Alt görev/checklist ve yorumlar henüz yoktur.
 
 ### 19 Temmuz 2026 — `0.17.0-real-dashboard`
 

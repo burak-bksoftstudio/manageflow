@@ -41,7 +41,7 @@ export function useTasks() {
   const [loading, setLoading] = useState(!isDemoMode);
   const [error, setError] = useState(null);
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = useCallback(async (showLoading = true) => {
     if (isDemoMode) {
       setTasks(getDemoTasks());
       setLoading(false);
@@ -53,7 +53,7 @@ export function useTasks() {
       return { data: [], error: null };
     }
 
-    setLoading(true);
+    if (showLoading) setLoading(true);
     setError(null);
     const client = requireSupabase();
     const { data: taskRows, error: taskError } = await client
@@ -138,7 +138,7 @@ export function useTasks() {
       .select('id')
       .single();
     if (createError) return { data: null, error: createError };
-    const refreshed = await loadTasks();
+    const refreshed = await loadTasks(false);
     return { data: refreshed.data?.find(task => task.id === data.id) || { id: data.id, title: normalized.title }, error: refreshed.error };
   }, [activeOrganization, isDemoMode, loadTasks, user]);
 
@@ -179,7 +179,7 @@ export function useTasks() {
       .eq('id', taskId)
       .eq('organization_id', activeOrganization.id);
     if (updateError) return { data: null, error: updateError };
-    const refreshed = await loadTasks();
+    const refreshed = await loadTasks(false);
     return { data: refreshed.data?.find(task => task.id === taskId) || null, error: refreshed.error };
   }, [activeOrganization, isDemoMode, loadTasks, tasks]);
 
@@ -207,7 +207,7 @@ export function useTasks() {
       .eq('id', taskId)
       .eq('organization_id', activeOrganization.id);
     if (archiveError) return { data: null, error: archiveError };
-    const refreshed = await loadTasks();
+    const refreshed = await loadTasks(false);
     return { data: refreshed.data?.find(task => task.id === taskId) || null, error: refreshed.error };
   }, [activeOrganization, isDemoMode, loadTasks, tasks, user]);
 

@@ -40,11 +40,18 @@ const workflow = [
 
 const faqs = [
   ['ManageFlow kimler için geliştiriliyor?', 'İlk odak ajanslar, yaratıcı stüdyolar ve müşteri projeleri yöneten küçük ekiplerdir. Ürün mimarisi ileride freelancer ve farklı ekip tiplerine açılabilecek şekilde kurulmuştur.'],
-  ['Ücretsiz denemek için kart gerekiyor mu?', 'Hayır. Hesap ve çalışma alanı oluşturma akışında kart bilgisi istenmez. Fiyatlandırma ve ücretli planlar henüz ürün yol haritasındadır.'],
+  ['Fiyat teklifini nasıl alabilirim?', 'Fiyat teklifi al butonu hazır bir e-posta talebi açar. Ekip büyüklüğünüzü ve ihtiyaç duyduğunuz modülleri paylaşmanızın ardından size uygun kapsam ve fiyatlandırma ile dönüş yapılır.'],
   ['Veriler ekipler arasında nasıl ayrılıyor?', 'Her iş kaydı organizasyon bağlamına bağlıdır. PostgreSQL Row Level Security politikaları, üyelik ve rol kontrolleriyle farklı organizasyonların verilerini birbirinden ayırır.'],
   ['Şu anda hangi modüller gerçekten çalışıyor?', 'Auth, ekip, müşteri, proje, görev, dashboard, profil/organizasyon ayarları, zaman takibi ve proje notları gerçek Supabase verisiyle çalışır. Dosyalar, bildirimler, takvim, mesajlaşma ve Flow AI yol haritasındadır.'],
   ['Başka bir araçtan geçiş yapılabilir mi?', 'Manuel ve CSV tabanlı içe aktarma henüz yayınlanmadı. Veri taşıma araçları müşteri doğrulamasından sonra geliştirilecek entegrasyon paketinin parçasıdır.'],
 ];
+
+const quoteHref = `mailto:burak@bksoftstudio.com?subject=${encodeURIComponent('ManageFlow fiyat teklifi')}&body=${encodeURIComponent('Merhaba,\n\nAjansımız için ManageFlow hakkında fiyat teklifi almak istiyorum.\n\nAjans / şirket adı:\nEkip büyüklüğü:\nİhtiyaç duyduğumuz modüller:\n\nTeşekkürler.')}`;
+
+function LandingPrimaryAction({ className = '', session, appLabel = 'Uygulamayı aç' }) {
+  if (session) return <Link className={className} to="/dashboard">{appLabel} <ArrowRight /></Link>;
+  return <a className={className} href={quoteHref}>Fiyat teklifi al <ArrowRight /></a>;
+}
 
 function LandingDashboardPreview() {
   return (
@@ -122,7 +129,6 @@ function NoteShowcase() {
 
 export default function LandingPage() {
   const { session } = useAuth();
-  const appTarget = session ? '/dashboard' : '/kayit';
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -136,7 +142,7 @@ export default function LandingPage() {
         <nav className="landing-nav" aria-label="Ana navigasyon">
           <Logo to="/" ariaLabel="ManageFlow landing ana sayfası" />
           <div className="landing-nav-links"><a href="#urun">Ürün</a><a href="#ozellikler">Özellikler</a><a href="#akis">Nasıl çalışır?</a><a href="#guvenlik">Güvenlik</a><a href="#sss">SSS</a></div>
-          <div className="landing-nav-actions"><Link to="/giris">Giriş yap</Link><Link className="landing-button dark small" to={appTarget}>{session ? 'Uygulamayı aç' : 'Ücretsiz başla'} <ArrowRight /></Link></div>
+          <div className="landing-nav-actions"><Link to="/giris">Giriş yap</Link><LandingPrimaryAction className="landing-button dark small" session={session} /></div>
         </nav>
       </header>
 
@@ -147,8 +153,8 @@ export default function LandingPage() {
             <div className="landing-kicker"><span><Sparkles /> AJANSLAR İÇİN OPERASYON SİSTEMİ</span><em>Beta · Canlı ürün</em></div>
             <h1>Müşteriden teslimata.<br /><span>Tek akışta.</span></h1>
             <p>Müşterileri, projeleri, görevleri, ekip bilgisini ve zamanı aynı çalışma bağlamında birleştirin. Ajansınız araçlar arasında değil, işin üzerinde çalışsın.</p>
-            <div className="landing-hero-actions"><Link className="landing-button dark" to={appTarget}>{session ? 'Çalışma alanına git' : 'Ücretsiz çalışma alanı oluştur'} <ArrowRight /></Link><a className="landing-button light" href="#urun"><Play /> Ürünü keşfet</a></div>
-            <div className="landing-hero-proof"><span><CheckCircle2 /> Kart bilgisi gerekmez</span><span><CheckCircle2 /> Dakikalar içinde kurulum</span><span><ShieldCheck /> Organizasyon bazlı güvenlik</span></div>
+            <div className="landing-hero-actions"><LandingPrimaryAction className="landing-button dark" session={session} appLabel="Çalışma alanına git" /><a className="landing-button light" href="#urun"><Play /> Ürünü keşfet</a></div>
+            <div className="landing-hero-proof"><span><CheckCircle2 /> İhtiyaca özel teklif</span><span><CheckCircle2 /> Canlı ürün demosu</span><span><ShieldCheck /> Organizasyon bazlı güvenlik</span></div>
           </div>
           <div className="landing-container landing-preview-wrap"><div className="landing-preview-label"><span><i /> GERÇEK ÜRÜN DENEYİMİ</span><em>React · Supabase · Canlı veri</em></div><LandingDashboardPreview /></div>
         </section>
@@ -164,7 +170,7 @@ export default function LandingPage() {
 
         <section className="landing-section landing-workflow" id="akis">
           <div className="landing-container">
-            <div className="landing-workflow-copy"><span>02 · TEK AKIŞ</span><h2>Her işin nereden geldiği ve nereye gittiği belli.</h2><p>Müşteri bilgisini projeden, projeyi görevden, görevi ekip emeğinden koparmayın.</p><Link className="landing-text-link" to={appTarget}>ManageFlow ile başlayın <ArrowRight /></Link></div>
+            <div className="landing-workflow-copy"><span>02 · TEK AKIŞ</span><h2>Her işin nereden geldiği ve nereye gittiği belli.</h2><p>Müşteri bilgisini projeden, projeyi görevden, görevi ekip emeğinden koparmayın.</p><LandingPrimaryAction className="landing-text-link" session={session} appLabel="ManageFlow'u aç" /></div>
             <div className="landing-workflow-steps">{workflow.map(([number, title, copy], index) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{copy}</p></div>{index < workflow.length - 1 && <ChevronRight />}</article>)}</div>
           </div>
         </section>
@@ -180,7 +186,7 @@ export default function LandingPage() {
 
         <section className="landing-security" id="guvenlik">
           <div className="landing-container">
-            <div className="landing-security-copy"><span>04 · GÜVENLİ TEMEL</span><h2>Yetki, sonradan eklenen bir ayar değil. Sistemin temeli.</h2><p>ManageFlow çok kiracılı veri sınırını arayüzde değil, veritabanında uygular. Her organizasyon yalnız kendi çalışma alanına erişir.</p><Link className="landing-button light-on-dark" to={appTarget}>Güvenli çalışma alanı oluştur <ArrowRight /></Link></div>
+            <div className="landing-security-copy"><span>04 · GÜVENLİ TEMEL</span><h2>Yetki, sonradan eklenen bir ayar değil. Sistemin temeli.</h2><p>ManageFlow çok kiracılı veri sınırını arayüzde değil, veritabanında uygular. Her organizasyon yalnız kendi çalışma alanına erişir.</p><LandingPrimaryAction className="landing-button light-on-dark" session={session} /></div>
             <div className="landing-security-grid"><article><ShieldCheck /><h3>Tenant izolasyonu</h3><p>Her kayıt organizasyon bağlamında korunur ve çapraz erişim RLS ile engellenir.</p></article><article><LockKeyhole /><h3>Rol bazlı erişim</h3><p>Owner, admin, proje yöneticisi ve üye yetkileri sunucu tarafında doğrulanır.</p></article><article><Activity /><h3>Değişiklik bütünlüğü</h3><p>Zaman, arşiv aktörü ve sistem geçmişi gibi kritik alanlar istemciye bırakılmaz.</p></article><article><Gauge /><h3>Test edilen politikalar</h3><p>Yetki matrisi rollback kullanan uzak güvenlik testleriyle sürekli doğrulanır.</p></article></div>
           </div>
         </section>
@@ -198,7 +204,7 @@ export default function LandingPage() {
         </section>
 
         <section className="landing-final-cta">
-          <div className="landing-container"><div className="landing-final-card"><span><Sparkles /> AJANSINIZIN YENİ ÇALIŞMA AKIŞI</span><h2>Araç yönetmeyi bırakın.<br />İşi birlikte ilerletin.</h2><p>Müşterinizden ekibinize, görevlerden harcanan zamana kadar bütün çalışma bağlamınız tek yerde.</p><div><Link className="landing-button light-on-dark" to={appTarget}>{session ? 'Uygulamayı aç' : 'Ücretsiz başlayın'} <ArrowRight /></Link><Link className="landing-button outline-on-dark" to="/giris">Mevcut hesabımla giriş yap</Link></div></div></div>
+          <div className="landing-container"><div className="landing-final-card"><span><Sparkles /> AJANSINIZIN YENİ ÇALIŞMA AKIŞI</span><h2>Araç yönetmeyi bırakın.<br />İşi birlikte ilerletin.</h2><p>Müşterinizden ekibinize, görevlerden harcanan zamana kadar bütün çalışma bağlamınız tek yerde.</p><div><LandingPrimaryAction className="landing-button light-on-dark" session={session} /><Link className="landing-button outline-on-dark" to="/giris">Mevcut hesabımla giriş yap</Link></div></div></div>
         </section>
       </main>
 

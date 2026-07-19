@@ -10,8 +10,8 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.29.0-public-landing` |
-| Mevcut aşama | Herkese açık SaaS landing page production'a alındı; teknik smoke kontrolleri başarılı, kullanıcı görsel kabulü bekleniyor |
+| Mevcut sürüm | `0.29.1-quote-cta` |
+| Mevcut aşama | Landing satış aksiyonları ihtiyaca özel “Fiyat teklifi al” akışına geçirildi; production kullanıcı kabulü bekleniyor |
 | Sonraki ana hedef | Landing page kullanıcı kabulü; ardından zaman kayıtlarını güvenli düzeltme/arşivleme paketine geçmek |
 
 ---
@@ -1505,7 +1505,7 @@ Her özellik tamamlanmış sayılmadan önce:
 Önerilen bir sonraki çalışma sırası:
 
 1. Production landing sayfasını masaüstü ve mobilde aç; navigasyon, anchor ve CTA akışlarını doğrula.
-2. Oturumsuz CTA'nın `/kayit`, giriş bağlantısının `/giris`, oturumlu CTA'nın `/dashboard` rotasına gittiğini doğrula.
+2. Oturumsuz CTA'nın teklif talebi e-postasını, giriş bağlantısının `/giris`, oturumlu CTA'nın `/dashboard` rotasını açtığını doğrula.
 3. Zaman Takibi v1.1 ve Çalışma Alanı v1 production kabul kontrollerini tamamla.
 4. Hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla ve uygula.
 5. Sonraki pakette owner/admin ekip timesheet ekranına geç.
@@ -1523,6 +1523,26 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.29.1-quote-cta`
+
+Değiştirilenler:
+
+- Landing navigasyon, hero, çalışma akışı, güvenlik ve final CTA metinleri “Fiyat teklifi al” olarak birleştirildi
+- Oturumsuz satış CTA'ları; ajans adı, ekip büyüklüğü ve modül ihtiyacını isteyen hazır e-posta talebine bağlandı
+- Oturum açmış kullanıcılar için çalışma alanına gitme davranışı korundu
+- Ücretsiz/kart söylemi, ihtiyaca özel teklif ve canlı ürün demosu anlatımıyla değiştirildi
+- Fiyat teklifi SSS içeriği yeni satış akışına göre güncellendi
+
+Doğrulama:
+
+- `npm test`
+- `npm run build`
+- Teklif bağlantısı ve oturum duyarlı CTA kontrolü
+
+Bilinen sınırlamalar:
+
+- Teklif talebi şimdilik kullanıcının varsayılan e-posta uygulamasını açar; uygulama içi teklif formu ve CRM kaydı henüz yoktur.
 
 ### 20 Temmuz 2026 — `0.29.0-public-landing`
 

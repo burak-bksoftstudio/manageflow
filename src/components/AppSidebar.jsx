@@ -14,7 +14,7 @@ const navGroups = [
     icon: BriefcaseBusiness,
     items: [
       { label: 'Projeler', to: '/projeler', icon: FolderKanban },
-      { label: 'Görevler', to: '/gorevler', icon: CheckSquare2, badge: 'Yakında' },
+      { label: 'Görevler', to: '/gorevler', icon: CheckSquare2 },
       { label: 'Çalışma Alanı', to: '/calisma-alani', icon: Files, badge: 'Yakında' },
       { label: 'Dosyalar', to: '/dosyalar', icon: Files, badge: 'Yakında' },
       { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock, badge: 'Yakında' },

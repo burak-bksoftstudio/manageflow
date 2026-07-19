@@ -4,6 +4,12 @@ export const initialProjects = [
   { id: 'project-brand', name: 'Marka yenileme', clientId: 'client-mono', client: 'Mono Coffee', progress: 91, status: 'Beklemede', statusValue: 'on_hold', description: 'Marka kimliği ve ambalaj tasarımı', createdAt: '2026-07-08T13:15:00.000Z' },
 ];
 
+export const initialTasks = [
+  { id: 'task-home', title: 'Ana sayfa tasarımını tamamla', projectId: 'project-web', assigneeId: 'member-burak', description: 'Masaüstü ve mobil ana sayfa ekranlarını tamamla.', status: 'in_progress', priority: 'high', dueDate: '2026-07-24', createdAt: '2026-07-15T09:00:00.000Z' },
+  { id: 'task-content', title: 'İçerik metinlerini hazırla', projectId: 'project-web', assigneeId: '', description: '', status: 'todo', priority: 'normal', dueDate: '2026-07-26', createdAt: '2026-07-16T10:30:00.000Z' },
+  { id: 'task-presentation', title: 'Marka sunumunu paylaş', projectId: 'project-brand', assigneeId: 'member-burak', description: '', status: 'done', priority: 'normal', dueDate: '2026-07-18', createdAt: '2026-07-10T13:00:00.000Z' },
+];
+
 export const initialClients = [
   {
     id: 'client-atlas', name: 'Atlas Labs', initials: 'AL', contactName: 'Ayşe Kaya',

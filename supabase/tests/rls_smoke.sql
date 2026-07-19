@@ -151,6 +151,46 @@ select set_config(
   true
 );
 
+with main_probe_task as (
+  insert into public.tasks (
+    organization_id, project_id, assignee_id, title, status, priority, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.owner_id')::uuid,
+    'Main RLS Task Probe',
+    'todo',
+    'normal',
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.main_task_id',
+  (select id::text from main_probe_task),
+  true
+);
+
+with other_probe_task as (
+  insert into public.tasks (
+    organization_id, project_id, assignee_id, title, status, priority, created_by
+  ) values (
+    current_setting('manageflow_test.other_organization_id')::uuid,
+    current_setting('manageflow_test.other_project_id')::uuid,
+    current_setting('manageflow_test.owner_id')::uuid,
+    'Other RLS Task Probe',
+    'in_progress',
+    'high',
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.other_task_id',
+  (select id::text from other_probe_task),
+  true
+);
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -249,6 +289,22 @@ begin
     where project_member.project_id = current_setting('manageflow_test.other_project_id')::uuid
   ) then
     raise exception 'RLS probe failed: member can read another organization project team.';
+  end if;
+
+  if (
+    select count(*)
+    from public.tasks task
+    where task.id = current_setting('manageflow_test.main_task_id')::uuid
+  ) <> 1 then
+    raise exception 'RLS probe failed: member cannot read their organization task.';
+  end if;
+
+  if exists (
+    select 1
+    from public.tasks task
+    where task.id = current_setting('manageflow_test.other_task_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member can read another organization task.';
   end if;
 
   begin
@@ -356,6 +412,34 @@ begin
   if affected_rows <> 0 then
     raise exception 'RLS probe failed: member can remove a project member.';
   end if;
+
+  begin
+    update public.tasks
+    set status = status
+    where id = current_setting('manageflow_test.main_task_id')::uuid;
+    get diagnostics affected_rows = row_count;
+    if affected_rows <> 0 then
+      raise exception 'RLS probe failed: member can update a task.';
+    end if;
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    insert into public.tasks (
+      organization_id, project_id, title, status, priority, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      'Member Task Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      'todo',
+      'normal',
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: member can create a task.';
+  exception
+    when insufficient_privilege then null;
+  end;
 end;
 $$;
 
@@ -469,6 +553,43 @@ begin
     current_setting('manageflow_test.member_id')::uuid
   );
 
+  update public.tasks
+  set status = 'done'
+  where id = current_setting('manageflow_test.main_task_id')::uuid;
+  if not exists (
+    select 1
+    from public.tasks
+    where id = current_setting('manageflow_test.main_task_id')::uuid
+      and status = 'done'
+      and completed_at is not null
+  ) then
+    raise exception 'RLS probe failed: completed task timestamp was not set.';
+  end if;
+
+  update public.tasks
+  set status = 'in_progress'
+  where id = current_setting('manageflow_test.main_task_id')::uuid;
+  if exists (
+    select 1
+    from public.tasks
+    where id = current_setting('manageflow_test.main_task_id')::uuid
+      and completed_at is not null
+  ) then
+    raise exception 'RLS probe failed: reopened task kept its completion timestamp.';
+  end if;
+
+  insert into public.tasks (
+    organization_id, project_id, assignee_id, title, status, priority, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid,
+    'Admin Task Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    'todo',
+    'high',
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
   begin
     insert into public.project_members (
       organization_id, project_id, user_id, assigned_by
@@ -518,6 +639,22 @@ begin
     when insufficient_privilege or check_violation then null;
   end;
 
+  begin
+    insert into public.tasks (
+      organization_id, project_id, title, status, priority, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      'Archived Project Task Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      'todo',
+      'normal',
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: archived project accepts tasks.';
+  exception
+    when insufficient_privilege or check_violation then null;
+  end;
+
   update public.projects
   set archived_at = null, archived_by = null
   where id = current_setting('manageflow_test.main_project_id')::uuid;
@@ -549,12 +686,34 @@ begin
     raise exception 'RLS probe failed: project manager cannot remove a project member.';
   end if;
 
+  if exists (
+    select 1
+    from public.tasks
+    where organization_id = current_setting('manageflow_test.main_organization_id')::uuid
+      and project_id = current_setting('manageflow_test.main_project_id')::uuid
+      and assignee_id = current_setting('manageflow_test.member_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: removed project member remained assigned to a task.';
+  end if;
+
   insert into public.project_members (
     organization_id, project_id, user_id, assigned_by
   ) values (
     current_setting('manageflow_test.main_organization_id')::uuid,
     current_setting('manageflow_test.main_project_id')::uuid,
     current_setting('manageflow_test.member_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
+  insert into public.tasks (
+    organization_id, project_id, assignee_id, title, status, priority, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.member_id')::uuid,
+    'Project Manager Task Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    'review',
+    'urgent',
     current_setting('manageflow_test.member_id')::uuid
   );
 
@@ -717,6 +876,22 @@ begin
     when foreign_key_violation or insufficient_privilege or check_violation then null;
   end;
 
+  begin
+    insert into public.tasks (
+      organization_id, project_id, title, status, priority, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.other_project_id')::uuid,
+      'Cross Organization Task Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      'todo',
+      'normal',
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: another organization project accepted a task.';
+  exception
+    when foreign_key_violation or insufficient_privilege or check_violation then null;
+  end;
+
   delete from public.project_members
   where project_id = current_setting('manageflow_test.main_project_id')::uuid
     and user_id = current_setting('manageflow_test.member_id')::uuid;
@@ -738,6 +913,23 @@ begin
     raise exception 'RLS probe failed: inactive organization member was assigned to a project.';
   exception
     when check_violation then null;
+  end;
+
+  begin
+    insert into public.tasks (
+      organization_id, project_id, assignee_id, title, status, priority, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_project_id')::uuid,
+      current_setting('manageflow_test.member_id')::uuid,
+      'Non Project Member Task Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      'todo',
+      'normal',
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: non-project member was assigned to a task.';
+  exception
+    when foreign_key_violation then null;
   end;
 
   insert into public.projects (
@@ -780,18 +972,26 @@ select
   true as member_project_write_denied,
   true as member_project_team_read_allowed,
   true as member_project_team_write_denied,
+  true as member_task_read_allowed,
+  true as member_task_write_denied,
   true as admin_write_allowed,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
   true as admin_project_archive_allowed,
   true as admin_project_team_write_allowed,
+  true as admin_task_write_allowed,
+  true as task_completion_timestamp_enforced,
+  true as reopened_task_completion_cleared,
   true as duplicate_project_assignment_denied,
   true as archived_project_assignment_denied,
+  true as archived_project_task_denied,
   true as completed_project_progress_enforced,
   true as completed_project_reopen_progress_safe,
   true as project_manager_client_write_allowed,
   true as project_manager_project_write_allowed,
   true as project_manager_project_team_write_allowed,
+  true as project_manager_task_write_allowed,
+  true as removed_project_member_task_unassigned,
   true as owner_client_write_allowed,
   true as owner_project_write_allowed,
   true as project_archive_actor_protected,
@@ -803,7 +1003,10 @@ select
   true as cross_organization_projects_hidden,
   true as cross_organization_project_teams_hidden,
   true as cross_organization_project_assignment_denied,
+  true as cross_organization_tasks_hidden,
+  true as cross_organization_task_project_denied,
   true as inactive_project_assignment_denied,
+  true as non_project_member_task_assignment_denied,
   true as cross_organization_project_client_denied,
   true as all_probe_changes_rolled_back;
 

@@ -11,6 +11,7 @@ import { getUserIdentity } from './features/auth/authUtils';
 import { useOrganization } from './features/organizations/OrganizationContext';
 import OrganizationRouteGuard from './features/organizations/OrganizationRouteGuard';
 import { getOrganizationRoleLabel } from './features/organizations/organizationUtils';
+import { getSettingsInitials } from './features/settings/settingsUtils';
 import {
   ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage,
 } from './pages/AuthPages';
@@ -23,6 +24,7 @@ const TeamPage = lazy(() => import('./pages/TeamPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function LazyPage({ children }) {
   return <Suspense fallback={<div className="page-inline-loading">Sayfa hazırlanıyor…</div>}>{children}</Suspense>;
@@ -33,7 +35,6 @@ const placeholderRoutes = [
   ['/calisma-alani', 'Çalışma Alanı'],
   ['/dosyalar', 'Dosyalar'],
   ['/zaman-takibi', 'Zaman Takibi'],
-  ['/ozellestirme', 'Özelleştirme'],
   ['/kanallar', 'Kanallar'],
   ['/gelen-kutusu', 'Gelen Kutusu'],
   ['/takvim', 'Takvim'],
@@ -47,12 +48,14 @@ function AppLayout({ shellState }) {
     setModal, setAgendaOpen, notificationOpen, setNotificationOpen,
   } = shellState;
   const account = user ? getUserIdentity(user) : {
-    email: 'burak@manageflow.co', fullName: 'Burak Enes', initials: 'BE',
+    avatarUrl: '', email: 'burak@manageflow.co', fullName: 'Burak Enes', initials: 'BE',
   };
   const organization = activeOrganization ? {
+    initials: getSettingsInitials(activeOrganization.name),
+    logoUrl: activeOrganization.logoUrl,
     name: activeOrganization.name,
     roleLabel: getOrganizationRoleLabel(activeOrganization.role),
-  } : { name: "Burak'ın Çalışma Alanı", roleLabel: 'Yönetici' };
+  } : { initials: 'BE', logoUrl: '', name: "Burak'ın Çalışma Alanı", roleLabel: 'Yönetici' };
 
   return (
     <>
@@ -111,6 +114,7 @@ export default function App() {
               <Route path="/musteriler" element={<LazyPage><ClientsPage /></LazyPage>} />
               <Route path="/projeler" element={<LazyPage><ProjectsPage /></LazyPage>} />
               <Route path="/gorevler" element={<LazyPage><TasksPage /></LazyPage>} />
+              <Route path="/ozellestirme" element={<LazyPage><SettingsPage /></LazyPage>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />
             </Route>

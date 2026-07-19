@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.23.0-task-filters` |
-| Mevcut aşama | Müşteri → proje → görev çekirdeği; kalıcı gelişmiş filtreleme ve sıralama dahil tamamlandı |
-| Sonraki ana hedef | Profil ve organizasyon ayarlarını gerçek veriye bağlamak |
+| Mevcut sürüm | `0.24.0-settings` |
+| Mevcut aşama | Kişisel profil ve rol korumalı organizasyon ayarları gerçek Supabase verisiyle çalışıyor |
+| Sonraki ana hedef | Şifre yenileme teslim testini ve Vercel production hazırlığını tamamlamak |
 
 ---
 
@@ -59,7 +59,7 @@ Mevcut sürümde:
 - Dashboard aktif organizasyonun gerçek müşteri, proje, görev ve ekip verileriyle görüntülenmektedir.
 - Bazı arayüz etkileşimleri gerçekten çalışmaktadır.
 - Supabase istemcisi uzak projeye bağlıdır; Auth, organizasyon ve ekip ekranları gerçek veriyi kullanmaktadır.
-- Dashboard, `/musteriler`, `/projeler`, `/gorevler` ve `/ekipler` gerçek Supabase verisini kullanmaktadır; tamamlanmamış modüller demo/placeholder durumundadır.
+- Dashboard, `/musteriler`, `/projeler`, `/gorevler`, `/ekipler` ve `/ozellestirme` gerçek Supabase verisini kullanmaktadır; tamamlanmamış modüller demo/placeholder durumundadır.
 - Supabase Auth kayıt, giriş, çıkış, doğrulama ve şifre yenileme arayüzleri bulunmaktadır.
 - Uygulama rotaları oturumsuz erişime karşı korunmaktadır; kayıt, e-posta doğrulama, çıkış ve yeniden giriş gerçek hesapla doğrulanmıştır.
 - İlk organizasyon onboarding akışı, aktif organizasyon context'i ve owner üyeliği gerçek Supabase verisiyle çalışmaktadır.
@@ -70,6 +70,7 @@ Mevcut sürümde:
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
+- Kullanıcı kendi profil adını, telefonunu ve HTTPS avatar adresini güncelleyebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -90,7 +91,8 @@ Mevcut sürümde:
 | Dosyalar ve Zaman Takibi | Yakında |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
-| Özelleştirme ve organizasyon değiştirme | Yakında |
+| Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
+| Organizasyon değiştirme | Yakında |
 
 ### Mevcut teknik seviye
 
@@ -100,13 +102,13 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev hiyerarşisi, checklist, yorum ve aktivite temeli bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev hiyerarşisi, checklist, yorum ve aktivite şemaları RLS ile uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, profil/organizasyon ayarları, ekip, müşteri, proje, görev hiyerarşisi, checklist, yorum ve aktivite temeli bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Profil/organizasyon ayarları, üyelik, davet, müşteri, proje, görev hiyerarşisi, checklist, yorum ve aktivite şemaları RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
-| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev/checklist/yorum/aktivite domain testleri bulunuyor; UI/E2E testleri henüz yok |
+| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ayarlar/ekip/müşteri/proje/görev/checklist/yorum/aktivite domain testleri bulunuyor; UI/E2E testleri henüz yok |
 | Deployment | Başlanmadı | Production ortamı ve domain bağlantısı yok |
 
 ---
@@ -560,6 +562,25 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Masaüstü, tablet ve mobil için taşmayan iki katmanlı responsive görev toolbar'ı
 
 Görev CRUD yaşam döngüsü, hiyerarşi, proje ekibi atama, Liste/Kanban, checklist, yorum, aktivite geçmişi ve gelişmiş filtre/sıralama akışları tamamlanmıştır.
+
+### 4.17 Profil ve organizasyon ayarları
+
+- Sidebar'da aktif, lazy-loaded gerçek `/ozellestirme` rotası
+- Oturum sahibinin gerçek `profiles` kaydından ad-soyad, doğrulanmış e-posta, telefon ve avatar adresini görüntüleme
+- Ad-soyad, telefon ve HTTPS avatar adresi için istemci doğrulaması ve normalize edilmiş kayıt
+- Profil e-postasını salt okunur tutma; e-posta değişikliğini Supabase Auth kapsamına bırakma
+- Profil adı ve avatar değişikliklerini Auth kullanıcı metadata'sına yansıtarak sidebar ve dashboard'u anında güncelleme
+- Owner/admin için organizasyon adı ve HTTPS logo adresi düzenleme
+- Member ve proje yöneticisi rolleri için salt okunur organizasyon ayarları
+- Organizasyon slug ve kurucu alanlarını arayüzde salt okunur, veritabanı sütun yetkilerinde değiştirilemez tutma
+- Organizasyon context'ini kayıt sonrasında doğrudan güncelleyerek sidebar adını ve logosunu yenileme
+- Avatar ve logo için URL önizlemesi, görsel hatasında güvenli baş harf fallback'i
+- Profil/organizasyon loading, hata, yeniden deneme, doğrulama ve başarı durumları
+- Masaüstü, tablet, mobil ve koyu tema uyumlu ayarlar kartları
+- Profil telefon/avatar ve organizasyon logo alanları için veritabanı uzunluk bütünlüğü
+- Profil self-update, başka profil reddi, member organizasyon reddi, admin organizasyon izni ve slug koruması için uzak RLS smoke kontrolleri
+
+Profil ve organizasyon ayarlarının ilk güvenli yaşam döngüsü tamamlanmıştır. Dosya yükleme gelene kadar avatar ve logo için yalnızca HTTPS görsel adresi kullanılmaktadır.
 
 ---
 
@@ -1132,8 +1153,9 @@ Durum: **Devam ediyor**
 - [x] Marka tokenlarını tanımla
 - [x] Ekip sayfasının gerçek frontend arayüzünü oluştur
 - [x] Ekip üyesi ekleme/düzenleme/devre dışı bırakma akışlarını demo veriyle doğrula
-- [ ] Organizasyon seçici ve çalışma alanı bilgilerini düzenle
-- [ ] Ekip modülünün mobil, boş, yükleniyor ve hata durumlarını tasarla
+- [ ] Birden fazla organizasyon arasında çalışma alanı seçici oluştur
+- [x] Çalışma alanı bilgilerini düzenle
+- [x] Ekip modülünün mobil, boş, yükleniyor ve hata durumlarını tasarla
 
 ### Faz 2 — gerçek SaaS altyapısı
 
@@ -1165,7 +1187,7 @@ Durum: **Devam ediyor**
 - [x] Bekleyen davet listeleme ve iptal akışını ekle
 - [x] İkinci e-posta hesabıyla davet teslimi ve kabulünü uçtan uca test et
 - [x] Admin/member ve çapraz organizasyon RLS matrisini ikinci kullanıcıyla test et
-- [ ] Profil ve organizasyon ayarlarını oluştur
+- [x] Profil ve organizasyon ayarlarını oluştur
 - [x] İlk RLS politikalarını yaz ve uzak şema linter'ıyla doğrula
 
 ### Faz 3 — müşteri, proje ve görev çekirdeği
@@ -1355,27 +1377,64 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Oturumdaki kullanıcının ad-soyad ve temel profil bilgilerini gerçek `profiles` verisinden düzenleyebilmesini sağla.
-2. Profil ve çalışma alanı ayarlarını ayrı, gerçek ve korumalı bir ayarlar rotasında topla.
-3. Owner/admin için organizasyon adını ve görsel kimlik alanlarını düzenleme yetkisi tanımla.
-4. Member rolünü organizasyon değişikliklerinde salt okunur tut; profil düzenlemesini yalnızca kendi kaydıyla sınırla.
-5. Sidebar kullanıcı/organizasyon özetlerini kaydetme sonrasında context yenilemeden güncelle.
-6. RLS, doğrulama, loading/hata/başarı durumları, domain testleri ve production build kontrolünü tamamla.
+1. Gerçek şifre sıfırlama e-postası teslimini ve `/sifre-yenile` dönüş akışını uçtan uca doğrula.
+2. Vercel için production build, SPA route rewrite ve güvenli environment değişkenlerini tanımla.
+3. Supabase Auth `Site URL` ve kesin production redirect adreslerini canlı adrese göre yapılandır.
+4. Davet Edge Function'ındaki `MANAGEFLOW_APP_URL` secret'ını production domain ile ayarla.
+5. GitHub main dalına bağlı otomatik preview/production deployment akışını kur.
+6. Canlı ortamda kayıt, giriş, davet, müşteri → proje → görev ve ayarlar smoke testini tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Kullanıcı kendi profil bilgilerini güvenli biçimde güncelleyebilir
-→ Owner/admin organizasyon adını ve izin verilen marka alanlarını değiştirebilir
-→ Member organizasyon ayarlarını yalnızca görüntüler
-→ Ayarlar kaydedildiğinde sidebar ve uygulama bağlamı anında güncellenir
-→ Başka kullanıcıya veya organizasyona ait kayıt değiştirilemez
-→ Mobil ayarlar ekranı, hata ve loading durumlarıyla birlikte çalışır
+Kullanıcı gerçek e-posta bağlantısıyla şifresini yenileyebilir
+→ Uygulama Vercel production adresinde doğrudan ve yenilenen rotalarla açılır
+→ Supabase Auth yalnızca izinli yerel ve production yönlendirmelerine döner
+→ Davet bağlantıları doğru production domain'ini kullanır
+→ GitHub main güncellemesi kontrollü production build üretir
+→ Canlı temel SaaS akışı güvenlik ve veri kalıcılığıyla doğrulanır
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.24.0-settings`
+
+Eklenenler:
+
+- Gerçek `/ozellestirme` profil ve çalışma alanı ayarları ekranı
+- Kullanıcının kendi ad-soyad, telefon ve HTTPS avatar adresini güncelleme akışı
+- Owner/admin için organizasyon adı ve HTTPS logo adresi güncelleme akışı
+- Member/proje yöneticisi için salt okunur organizasyon ayarı görünümü
+- Avatar ve logo önizlemesi ile güvenli baş harf fallback'i
+- Profil/organizasyon doğrulama, normalize etme, permission ve hata yardımcıları
+- 5 yeni ayarlar domain testi
+- Profil ve organizasyon görsel alanları için uzunluk constraint'leri
+- Organizasyon güncellemelerini yalnızca `name` ve `logo_url` sütunlarıyla sınırlayan yetki migration'ı
+- RLS smoke testine profil self-update, başka profil reddi, member/admin organizasyon matrisi ve slug koruması
+
+Değiştirilenler:
+
+- Sidebar'daki `Özelleştirme` modülünün `Yakında` işareti kaldırıldı.
+- Profil adı/avatarı Auth metadata ile eşlenerek sidebar ve dashboard kimliği anında yenilenir.
+- Organizasyon context'i ayar kaydından sonra ad ve logoyu yeniden sorgu beklemeden günceller.
+- Sidebar avatarları profil görselini, organizasyon alanı ise kaydedilen logoyu gösterebilir.
+- Uzak Supabase migration sayısı 15'e yükseldi.
+
+Doğrulama:
+
+- `npm test` — 13 dosyada 79/79 test başarılı
+- `npm run build`
+- `npx supabase db push --linked`
+- Uzak RLS smoke testi — `result: passed`, bütün ayarlar ve önceki güvenlik kontrolleri `true`
+- Uzak schema lint — hata/uyarı yok
+
+Bilinen sınırlamalar:
+
+- Avatar ve logo dosyası henüz Supabase Storage'a yüklenmez; HTTPS URL kullanılır.
+- E-posta değişikliği arayüzü bu pakete dahil değildir.
+- UI entegrasyon ve uçtan uca tarayıcı testleri henüz bulunmuyor.
 
 ### 19 Temmuz 2026 — `0.23.0-task-filters`
 

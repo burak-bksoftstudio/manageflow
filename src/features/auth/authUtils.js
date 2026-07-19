@@ -33,6 +33,7 @@ export function getUserIdentity(user) {
   const initials = parts.slice(0, 2).map(part => part[0]?.toLocaleUpperCase('tr-TR')).join('') || 'MF';
 
   return {
+    avatarUrl: user?.user_metadata?.avatar_url || '',
     email,
     fullName,
     firstName: parts[0] || 'Kullanıcı',

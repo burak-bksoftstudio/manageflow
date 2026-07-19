@@ -351,6 +351,30 @@ begin
     raise exception 'RLS probe failed: member can read another organization invitation.';
   end if;
 
+  update public.profiles
+  set full_name = full_name, phone = phone
+  where id = current_setting('manageflow_test.member_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: member cannot update their own profile.';
+  end if;
+
+  update public.profiles
+  set full_name = full_name
+  where id = current_setting('manageflow_test.owner_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: member can update another profile.';
+  end if;
+
+  update public.organizations
+  set name = name
+  where id = current_setting('manageflow_test.main_organization_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: member can update organization settings.';
+  end if;
+
   if (
     select count(*)
     from public.clients client
@@ -742,6 +766,39 @@ declare
   checklist_probe_id uuid;
   comment_probe_id uuid;
 begin
+  update public.profiles
+  set full_name = full_name, avatar_url = avatar_url, phone = phone
+  where id = current_setting('manageflow_test.member_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot update their own profile.';
+  end if;
+
+  update public.profiles
+  set full_name = full_name
+  where id = current_setting('manageflow_test.owner_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: admin can update another profile.';
+  end if;
+
+  update public.organizations
+  set name = name, logo_url = logo_url
+  where id = current_setting('manageflow_test.main_organization_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot update organization settings.';
+  end if;
+
+  begin
+    update public.organizations
+    set slug = slug
+    where id = current_setting('manageflow_test.main_organization_id')::uuid;
+    raise exception 'RLS probe failed: admin can update the protected organization slug.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
   update public.organization_members
   set title = title
   where organization_id = current_setting('manageflow_test.main_organization_id')::uuid
@@ -1520,6 +1577,9 @@ reset role;
 select
   'passed' as result,
   true as member_read_own_organization,
+  true as member_profile_self_update_allowed,
+  true as member_other_profile_update_denied,
+  true as member_organization_settings_denied,
   true as member_write_denied,
   true as member_invitation_denied,
   true as member_client_read_allowed,
@@ -1539,6 +1599,10 @@ select
   true as member_activity_read_allowed,
   true as task_activity_direct_write_denied,
   true as admin_write_allowed,
+  true as admin_profile_self_update_allowed,
+  true as admin_other_profile_update_denied,
+  true as admin_organization_settings_allowed,
+  true as organization_slug_update_denied,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
   true as admin_project_archive_allowed,

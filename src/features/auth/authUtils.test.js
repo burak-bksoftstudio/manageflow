@@ -12,10 +12,10 @@ describe('Auth utilities', () => {
   it('derives display identity from user metadata', () => {
     expect(getUserIdentity({
       email: 'burak@example.com',
-      user_metadata: { full_name: 'Burak Enes Kiriş' },
+      user_metadata: { full_name: 'Burak Enes Kiriş', avatar_url: 'https://example.com/avatar.png' },
     })).toEqual({
       email: 'burak@example.com',
-      fullName: 'Burak Enes Kiriş',
+      avatarUrl: 'https://example.com/avatar.png', fullName: 'Burak Enes Kiriş',
       firstName: 'Burak',
       initials: 'BE',
     });

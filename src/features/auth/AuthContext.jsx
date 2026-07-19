@@ -58,6 +58,7 @@ export function AuthProvider({ children }) {
     sendPasswordReset: email => supabase.auth.resetPasswordForEmail(email, {
       redirectTo: getAuthRedirectUrl('/sifre-yenile'),
     }),
+    updateUserMetadata: data => supabase.auth.updateUser({ data }),
     updatePassword: password => supabase.auth.updateUser({ password }),
   }), [event, initializationError, loading, session]);
 

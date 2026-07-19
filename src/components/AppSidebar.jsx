@@ -19,7 +19,7 @@ const navGroups = [
       { label: 'Dosyalar', to: '/dosyalar', icon: Files, badge: 'Yakında' },
       { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock, badge: 'Yakında' },
       { label: 'Ekipler', to: '/ekipler', icon: Users },
-      { label: 'Özelleştirme', to: '/ozellestirme', icon: Settings2, badge: 'Yakında' },
+      { label: 'Özelleştirme', to: '/ozellestirme', icon: Settings2 },
     ],
   },
   {
@@ -65,7 +65,7 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
         </div>
 
         <button className="organization">
-          <Avatar />
+          <Avatar initials={organization.initials} imageUrl={organization.logoUrl} />
           <span className="organization-copy"><b>{organization.name}</b><small>{organization.roleLabel} · Değiştirme yakında</small></span>
           <ChevronDown />
         </button>
@@ -94,7 +94,7 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
         </nav>
 
         <div className="account">
-          <Avatar initials={account.initials} />
+          <Avatar initials={account.initials} imageUrl={account.avatarUrl} />
           <span className="account-copy"><b>{account.fullName}</b><small>{account.email}</small></span>
           {onSignOut ? (
             <button className="account-logout" onClick={onSignOut} aria-label="Çıkış yap" title="Çıkış yap"><LogOut /></button>

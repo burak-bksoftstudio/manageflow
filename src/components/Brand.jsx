@@ -13,6 +13,6 @@ export function Logo() {
   );
 }
 
-export function Avatar({ small = false, initials = 'BE' }) {
-  return <span className={`avatar ${small ? 'small' : ''}`}>{initials}</span>;
+export function Avatar({ small = false, initials = 'BE', imageUrl = '' }) {
+  return <span className={`avatar ${small ? 'small' : ''}`}>{initials}{imageUrl && <img src={imageUrl} alt="" onError={event => event.currentTarget.remove()} />}</span>;
 }

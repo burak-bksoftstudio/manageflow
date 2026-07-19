@@ -85,7 +85,7 @@ export default function DashboardPage() {
   const { members, error: membersError, loading: membersLoading, refresh: refreshMembers } = useTeamMembers();
   const { projects, error: projectsError, loading: projectsLoading, refresh: refreshProjects } = useProjects();
   const { tasks, error: tasksError, loading: tasksLoading, refresh: refreshTasks } = useTasks();
-  const identity = user ? getUserIdentity(user) : { firstName: 'Burak', fullName: 'Burak Enes', initials: 'BE' };
+  const identity = user ? getUserIdentity(user) : { avatarUrl: '', firstName: 'Burak', fullName: 'Burak Enes', initials: 'BE' };
   const loading = clientsLoading || membersLoading || projectsLoading || tasksLoading;
   const error = clientsError || membersError || projectsError || tasksError;
   const metrics = getDashboardMetrics({ clients, members, projects, tasks });
@@ -99,7 +99,7 @@ export default function DashboardPage() {
       <section className="hero">
         <div className="eyebrow"><i /> DASHBOARD</div>
         <h1>Hoş geldiniz, {identity.firstName}</h1>
-        <div className="presence"><Avatar small initials={identity.initials} /><span>{identity.fullName}</span><i /><Activity /><span>Canlı veri</span></div>
+        <div className="presence"><Avatar small initials={identity.initials} imageUrl={identity.avatarUrl} /><span>{identity.fullName}</span><i /><Activity /><span>Canlı veri</span></div>
       </section>
 
       {loading && <section className="dashboard-state" role="status"><LoaderCircle className="spin" /><span>Çalışma alanı özeti hazırlanıyor…</span></section>}

@@ -94,6 +94,29 @@ export function OrganizationProvider({ children }) {
     return { data, error: null };
   }, [loadOrganizations, user]);
 
+  const updateOrganization = useCallback(async ({ name, logoUrl }) => {
+    if (!activeOrganizationId) return { data: null, error: new Error('Aktif çalışma alanı bulunamadı.') };
+    const currentOrganization = organizations.find(organization => organization.id === activeOrganizationId);
+    if (isDemoMode) {
+      const updatedOrganization = { ...currentOrganization, name: name.trim(), logoUrl: logoUrl || null };
+      setOrganizations(current => current.map(organization => organization.id === activeOrganizationId ? updatedOrganization : organization));
+      return { data: updatedOrganization, error: null };
+    }
+
+    const client = requireSupabase();
+    const { data, error: updateError } = await client
+      .from('organizations')
+      .update({ name: name.trim(), logo_url: logoUrl || null })
+      .eq('id', activeOrganizationId)
+      .select('id, name, slug, logo_url')
+      .single();
+
+    if (updateError) return { data: null, error: updateError };
+    const updatedOrganization = { ...currentOrganization, name: data.name, slug: data.slug, logoUrl: data.logo_url };
+    setOrganizations(current => current.map(organization => organization.id === activeOrganizationId ? updatedOrganization : organization));
+    return { data: updatedOrganization, error: null };
+  }, [activeOrganizationId, isDemoMode, organizations]);
+
   const value = useMemo(() => ({
     activeOrganization: organizations.find(organization => organization.id === activeOrganizationId) ?? null,
     createOrganization,
@@ -102,7 +125,8 @@ export function OrganizationProvider({ children }) {
     organizations,
     refreshOrganizations: loadOrganizations,
     selectOrganization: setActiveOrganizationId,
-  }), [activeOrganizationId, createOrganization, error, loadOrganizations, loading, organizations]);
+    updateOrganization,
+  }), [activeOrganizationId, createOrganization, error, loadOrganizations, loading, organizations, updateOrganization]);
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
 }

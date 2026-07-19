@@ -41,6 +41,14 @@ describe('task mapping, filtering and metrics', () => {
     expect(mapped.projectName).toBe('Web sitesi');
     expect(mapped.assigneeName).toBe('Ayşe Kaya');
     expect(mapped.priorityLabel).toBe('Yüksek');
+    expect(mapped.isArchived).toBe(false);
+  });
+
+  it('filters current and archived tasks independently', () => {
+    const withArchive = [...tasks, { ...tasks[0], id: '4', isArchived: true }];
+    expect(filterTasks(withArchive, { query: '', status: 'all', projectId: 'all', archive: 'active' })).toHaveLength(3);
+    expect(filterTasks(withArchive, { query: '', status: 'all', projectId: 'all', archive: 'archived' })).toHaveLength(1);
+    expect(filterTasks(withArchive, { query: '', status: 'all', projectId: 'all', archive: 'all' })).toHaveLength(4);
   });
 
   it('filters by search, status and project', () => {
@@ -51,6 +59,7 @@ describe('task mapping, filtering and metrics', () => {
 
   it('calculates task stats and maps errors', () => {
     expect(getTaskStats(tasks)).toEqual({ total: 3, todo: 1, inProgress: 1, done: 1 });
+    expect(getTaskStats([...tasks, { ...tasks[0], id: '4', isArchived: true }])).toEqual({ total: 3, todo: 1, inProgress: 1, done: 1 });
     expect(getTaskErrorMessage({ code: '23503' })).toContain('proje');
     expect(getTaskErrorMessage({ code: '42501' })).toContain('yetkiniz');
   });

@@ -65,6 +65,9 @@ export function mapDatabaseTask(task, projectsById, profilesById) {
     assigneeInitials: getInitials(assigneeName),
     dueDate: task.due_date || '',
     completedAt: task.completed_at || '',
+    archivedAt: task.archived_at || '',
+    archivedBy: task.archived_by || '',
+    isArchived: Boolean(task.archived_at),
     createdAt: task.created_at,
     createdAtLabel: new Intl.DateTimeFormat('tr-TR', {
       day: '2-digit', month: 'short', year: 'numeric',
@@ -72,28 +75,30 @@ export function mapDatabaseTask(task, projectsById, profilesById) {
   };
 }
 
-export function filterTasks(tasks, { query, status, projectId }) {
+export function filterTasks(tasks, { query, status, projectId, archive = 'active' }) {
   const normalizedQuery = query.trim().toLocaleLowerCase('tr-TR');
   return tasks.filter(task => {
     const searchText = `${task.title} ${task.projectName} ${task.assigneeName} ${task.description}`.toLocaleLowerCase('tr-TR');
     return searchText.includes(normalizedQuery)
       && (status === 'all' || task.status === status)
-      && (projectId === 'all' || task.projectId === projectId);
+      && (projectId === 'all' || task.projectId === projectId)
+      && (archive === 'all' || (archive === 'archived' ? task.isArchived : !task.isArchived));
   });
 }
 
 export function getTaskStats(tasks) {
+  const currentTasks = tasks.filter(task => !task.isArchived);
   return {
-    total: tasks.length,
-    todo: tasks.filter(task => task.status === 'todo').length,
-    inProgress: tasks.filter(task => task.status === 'in_progress').length,
-    done: tasks.filter(task => task.status === 'done').length,
+    total: currentTasks.length,
+    todo: currentTasks.filter(task => task.status === 'todo').length,
+    inProgress: currentTasks.filter(task => task.status === 'in_progress').length,
+    done: currentTasks.filter(task => task.status === 'done').length,
   };
 }
 
 export function getTaskErrorMessage(error) {
   if (error?.code === '23503') return 'Seçilen proje veya görevli bu görev için kullanılamıyor.';
   if (error?.code === '23514') return 'Görev bilgilerinden biri geçerli değil.';
-  if (error?.code === '42501') return 'Bu çalışma alanında görev oluşturma yetkiniz yok.';
+  if (error?.code === '42501') return 'Bu çalışma alanında görev oluşturma veya düzenleme yetkiniz yok.';
   return 'Görev kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }

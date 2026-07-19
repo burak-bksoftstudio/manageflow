@@ -578,6 +578,31 @@ begin
     raise exception 'RLS probe failed: reopened task kept its completion timestamp.';
   end if;
 
+  update public.tasks
+  set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
+  where id = current_setting('manageflow_test.main_task_id')::uuid;
+  if not exists (
+    select 1
+    from public.tasks
+    where id = current_setting('manageflow_test.main_task_id')::uuid
+      and archived_at is not null
+      and archived_by = current_setting('manageflow_test.member_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: admin cannot archive a task as self.';
+  end if;
+
+  update public.tasks
+  set archived_at = null, archived_by = null
+  where id = current_setting('manageflow_test.main_task_id')::uuid;
+  if exists (
+    select 1
+    from public.tasks
+    where id = current_setting('manageflow_test.main_task_id')::uuid
+      and (archived_at is not null or archived_by is not null)
+  ) then
+    raise exception 'RLS probe failed: restored task kept archive metadata.';
+  end if;
+
   insert into public.tasks (
     organization_id, project_id, assignee_id, title, status, priority, created_by
   ) values (
@@ -863,6 +888,15 @@ begin
   end;
 
   begin
+    update public.tasks
+    set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
+    where id = current_setting('manageflow_test.main_task_id')::uuid;
+    raise exception 'RLS probe failed: owner can falsify the task archive actor.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
     insert into public.project_members (
       organization_id, project_id, user_id, assigned_by
     ) values (
@@ -980,6 +1014,7 @@ select
   true as admin_project_archive_allowed,
   true as admin_project_team_write_allowed,
   true as admin_task_write_allowed,
+  true as admin_task_archive_allowed,
   true as task_completion_timestamp_enforced,
   true as reopened_task_completion_cleared,
   true as duplicate_project_assignment_denied,
@@ -995,6 +1030,7 @@ select
   true as owner_client_write_allowed,
   true as owner_project_write_allowed,
   true as project_archive_actor_protected,
+  true as task_archive_actor_protected,
   true as owner_membership_protected_from_admin,
   true as admin_owner_assignment_denied,
   true as owner_invitation_assignment_denied,

@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.15.0-task-foundation` |
-| Mevcut aşama | Projeye bağlı gerçek görev veri modeli, listeleme ve oluşturma akışı Supabase ile çalışıyor |
-| Sonraki ana hedef | Görev detay, düzenleme, durum geçişi ve güvenli arşivleme yaşam döngüsü |
+| Mevcut sürüm | `0.16.0-task-lifecycle` |
+| Mevcut aşama | Görev detay, düzenleme, yeniden atama, durum geçişi ve güvenli arşivleme yaşam döngüsü Supabase ile çalışıyor |
+| Sonraki ana hedef | Dashboard metriklerini, aktif projeleri ve güncel görevleri gerçek Supabase verisine bağlamak |
 
 ---
 
@@ -69,7 +69,7 @@ Mevcut sürümde:
 - Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
-- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle listelenip oluşturulabilmektedir.
+- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek proje bağlantılı liste, arama, filtreleme ve oluşturma Supabase ile bağlı |
+| Görevler | Gerçek CRUD yaşam döngüsü, proje ekibi ataması, durum geçişleri ve güvenli arşivleme Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Demo state ile kullanılabilir |
 | Gündem ve bildirimler | Demo içerikle önizlenebilir |
 | Çalışma Alanı | Yakında |
@@ -481,7 +481,7 @@ Müşteri çekirdeğinin listeleme, oluşturma, detay, düzenleme ve pasife alma
 
 Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 
-### 4.16 Görev yönetimi temeli
+### 4.16 Görev yönetimi ve yaşam döngüsü
 
 - Sidebar'da aktif `Görevler` menüsü ve lazy-loaded `/gorevler` rotası
 - Aktif organizasyona ve zorunlu projeye bağlı Supabase `tasks` tablosu
@@ -501,9 +501,17 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Loading, backend hata, yeniden deneme, boş liste ve filtre boş durumu
 - Gerçek proje ve proje ekibi seçimli görev oluşturma modalı
 - Member rolünde yeni görev düğmesini devre dışı bırakma
-- Supabase olmayan ortam için demo görev listesi ve oluşturma fallback'i
+- Görev satırından açılan gerçek detay drawer'ı
+- Başlık, açıklama, proje, durum, öncelik, bitiş tarihi ve görevli güncelleme
+- Proje değiştiğinde görevliyi sıfırlama ve yalnızca yeni projenin ekibini listeleme
+- Tamamlama ve yeniden açma sırasında veritabanı tarafından yönetilen `completed_at`
+- Fiziksel silme yerine `archived_at` ve doğrulanmış `archived_by` kullanan geri alınabilir arşivleme
+- Aktif, arşivlenen ve tüm görevler filtreleri; metriklerden arşiv görevlerini hariç tutma
+- Arşivlenmiş projeye bağlı görevleri salt okunur tutma
+- Member için detay görünümü ve yönetici/proje yöneticisi için düzenleme/arşiv yetkisi
+- Supabase olmayan ortam için demo görev liste/oluşturma/güncelleme/arşivleme fallback'i
 
-Görev veri modeli, listeleme ve ilk oluşturma/atama akışı tamamlanmıştır. Görev detay ve güncelleme yaşam döngüsü sıradaki pakettedir.
+Görev CRUD yaşam döngüsü ve proje ekibi atama akışı tamamlanmıştır. Alt görev, yorum ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
 
 ---
 
@@ -511,14 +519,13 @@ Görev veri modeli, listeleme ve ilk oluşturma/atama akışı tamamlanmıştır
 
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
-- Dashboard, proje, görev ve diğer iş modüllerinin Supabase sorguları
+- Dashboard ve diğer iş modüllerinin Supabase sorguları
 - Supabase Auth production Site URL ve yönlendirme adresleri
 - Gerçek şifre yenileme e-posta teslim testi
 - Production canlı domain için `MANAGEFLOW_APP_URL` Edge Function secret'ı
 - Google ile giriş
 - Birden fazla organizasyon arasında çalışma alanı değiştirme akışı
-- Rol ve izinlerin müşteri dışındaki iş modüllerinde uygulanması
-- Görev detay, düzenleme, yeniden atama ve güvenli arşivleme
+- Rol ve izinlerin kalan iş modüllerinde uygulanması
 - Dosya yükleme ve depolama
 - Gerçek mesajlaşma
 - Gerçek bildirimler
@@ -1123,8 +1130,8 @@ Durum: **Devam ediyor**
 - [x] Proje CRUD
 - [x] Proje üyeleri
 - [x] Görev veri modeli, listeleme ve oluşturma
-- [ ] Görev CRUD
-- [ ] Görev atamaları
+- [x] Görev CRUD
+- [x] Görev atamaları
 - [ ] Alt görevler ve checklist
 - [ ] Görev yorumları
 - [ ] Aktivite geçmişi
@@ -1302,27 +1309,65 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Görev satırından açılan gerçek detay drawer'ını oluştur.
-2. Başlık, açıklama, proje, durum, öncelik ve bitiş tarihi güncellemesini bağla.
-3. Görevli değişikliğinde yalnızca seçili projenin ekip üyelerini listele.
-4. Yapılacak → devam ediyor → incelemede → tamamlandı geçişlerini ve tamamlanma zamanını doğrula.
-5. Fiziksel silme yerine geri alınabilir görev arşivleme modelini ekle.
-6. Member salt okunur görünümünü ve yetkili rollerin update/arşiv yetkisini tarayıcıda doğrula.
+1. Dashboard sayaçlarını gerçek müşteri, proje, görev ve ekip sorgularından üret.
+2. Haftalık ilerleme grafiğini görev oluşturma/tamamlama verileriyle besle.
+3. Proje durum dağılımını arşiv dışındaki gerçek projelerden hesapla.
+4. Aktif proje özetini gerçek proje ilerlemesi ve teslim tarihleriyle göster.
+5. Bugünkü gündemi bitiş tarihi bugün olan görevlerle bağla.
+6. Dashboard loading, hata, boş organizasyon ve yetkisiz erişim durumlarını tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Yetkili kullanıcı görev satırından detay panelini açabilir
-→ Görev alanlarını ve atanan kişiyi güncelleyebilir
-→ Tamamlama ve yeniden açma zamanları doğru tutulur
-→ Sayfa yenilendiğinde değişiklikler korunur
-→ Member görevi görür fakat değiştiremez
-→ Arşivlenen görev fiziksel olarak silinmeden geçmiş bağlamını korur
+Dashboard aktif organizasyonun gerçek verilerini gösterir
+→ Müşteri, proje, görev ve ekip metrikleri Supabase ile eşleşir
+→ Grafikler ve aktif proje özeti demo veriden arındırılır
+→ Bugünkü gündem gerçek bitiş tarihli görevleri listeler
+→ Veri yoksa anlamlı boş durum gösterilir
+→ Yenileme sonrasında tüm değerler kalıcı kaynakla tutarlı kalır
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.16.0-task-lifecycle`
+
+Eklenenler:
+
+- Görev satırından açılan responsive görev detay drawer'ı
+- Başlık, açıklama, bağlı proje, durum, öncelik, bitiş tarihi ve görevli düzenleme akışı
+- Proje değişiminde yalnızca yeni projenin atanmış ekip üyelerini sunan görevli seçimi
+- Aktif/arşivlenen/tüm görevler filtreleri
+- `archived_at` ve `archived_by` alanlarıyla geri alınabilir görev arşivleme migration'ı
+- Arşiv aktörünü oturum açmış kullanıcıyla eşleştiren veritabanı trigger'ı
+- Admin görev arşivleme ve sahte arşiv aktörü reddi için uzak RLS smoke kontrolleri
+- Görev arşiv filtresi ve metrik davranışı için domain testleri
+
+Değiştirilenler:
+
+- Görev veri hook'u gerçek güncelleme, yeniden atama, durum geçişi, arşivleme ve geri açmayı destekleyecek şekilde genişletildi.
+- Arşiv görevleri aktif dashboard sayaçlarından çıkarıldı.
+- Arşivlenmiş projeye bağlı görevler veri bütünlüğü için salt okunur tutuldu.
+- Member rolüne detay görüntüleme sunulurken düzenleme ve arşiv işlemleri kapalı tutuldu.
+- Görev liste satırları erişilebilir detay açma düğmelerine dönüştürüldü.
+- Supabase migration zinciri uzak projede `20260719090000` sürümüne çıkarıldı.
+
+Doğrulama:
+
+- `npm test -- --run` — 8 test dosyasında 51 test geçti
+- `npm run build`
+- `git diff --check`
+- `npx supabase db lint --linked --level error` — şema hatası yok
+- `npx supabase db query --linked --file supabase/tests/rls_smoke.sql` — `result: passed`
+- `npx supabase migration list` — 10 yerel/uzak migration eşleşiyor
+- Kullanıcı gerçek görev oluşturma ve sayfa yenileme sonrasında kalıcılığı tarayıcıda doğruladı
+
+Bilinen sınırlamalar:
+
+- Alt görevler, checklist, yorumlar ve aktivite geçmişi henüz yok.
+- UI entegrasyon ve E2E testleri henüz bulunmuyor.
+- Dashboard görev/proje özetleri hâlâ demo verileri kullanıyor.
 
 ### 19 Temmuz 2026 — `0.15.0-task-foundation`
 

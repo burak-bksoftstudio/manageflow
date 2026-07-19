@@ -41,6 +41,8 @@ https://manageflow-seven.vercel.app/davet-kabul
 
 Yerel üç adres de geliştirme için listede tutulmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır. Vercel Preview ortamı e-posta callback'leri için `VITE_APP_URL` üzerinden aynı kararlı production origin'ini kullanır.
 
+Bu `Site URL` ve redirect listesi production projesinde tanımlanmış; gerçek şifre sıfırlama e-postası, `/sifre-yenile` callback'i ve yeni şifre kaydı canlı hesapla doğrulanmıştır.
+
 ## Ekip daveti Edge Function
 
 `invite-member` fonksiyonu oturum açmış owner/admin kullanıcının isteğini doğrular, davet kaydını RLS altında oluşturur ve e-postayı Supabase Auth üzerinden gönderir. Fonksiyon uzak ortama şu komutla dağıtılır:

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
-  Columns3, FileText, FolderKanban, GripVertical, ListChecks, ListTodo, LoaderCircle,
-  MessageSquare, Pencil, Plus, RefreshCw, Rows3, Search, Send, ShieldCheck, Timer,
+  Columns3, FileText, FolderKanban, GripVertical, History, ListChecks, ListTodo,
+  LoaderCircle, MessageSquare, Pencil, Plus, RefreshCw, Rows3, Search, Send, ShieldCheck, Timer,
   Trash2, UserRound, X,
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
@@ -21,6 +21,7 @@ import {
   getTaskCommentErrorMessage, getTaskCommentPermissions, validateTaskComment,
 } from '../features/tasks/commentUtils';
 import { useTaskComments } from '../features/tasks/useTaskComments';
+import { useTaskActivities } from '../features/tasks/useTaskActivities';
 
 const statusOptions = Object.entries(TASK_STATUS_LABELS);
 const priorityOptions = Object.entries(TASK_PRIORITY_LABELS);
@@ -241,6 +242,20 @@ function TaskCommentsSection({ taskId, canComment }) {
   );
 }
 
+function TaskActivitySection({ taskId }) {
+  const { activities, error, loading, refresh } = useTaskActivities(taskId);
+  return (
+    <section className="task-activity-section">
+      <header><span><History /></span><div><small>AKTİVİTE</small><b>{activities.length ? `Son ${activities.length} hareket` : 'Görev geçmişi'}</b></div></header>
+      {loading && <div className="task-activity-state"><LoaderCircle className="spin" /> Aktivite geçmişi yükleniyor…</div>}
+      {!loading && error && <div className="task-activity-state error"><CircleAlert /> Aktivite geçmişi yüklenemedi.<button type="button" onClick={refresh}>Tekrar dene</button></div>}
+      {!loading && !error && activities.length === 0 && <div className="task-activity-empty"><History /><span><b>Henüz aktivite yok</b><small>Görev değişiklikleri burada otomatik olarak görünecek.</small></span></div>}
+      {!loading && !error && activities.length > 0 && <div className="task-activity-list">{activities.map(activity => <article className={`task-activity-item ${activity.eventType}`} key={activity.id}><i>{activity.actorInitials}</i><div><p><b>{activity.actorName}</b> {activity.description}</p><time>{formatDateTime(activity.createdAt)}</time></div></article>)}</div>}
+      {!loading && !error && activities.length >= 60 && <p className="task-activity-limit">En güncel 60 hareket gösteriliyor.</p>}
+    </section>
+  );
+}
+
 function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canManage }) {
   const [draft, setDraft] = useState(task);
   const [editing, setEditing] = useState(false);
@@ -327,6 +342,7 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
 
         {!editing && <TaskChecklistSection taskId={draft.id} canChange={canChange && !draft.isArchived} />}
         {!editing && <TaskCommentsSection taskId={draft.id} canComment={!projectLocked && !draft.isArchived} />}
+        {!editing && <TaskActivitySection key={`${draft.id}-${draft.archivedAt}`} taskId={draft.id} />}
 
         {confirmingArchive && <div className="deactivate-confirm" role="alert"><b>Görev arşivlensin mi?</b><p>Görev silinmeyecek; proje bağlantısı, sorumlusu ve tamamlanma geçmişi korunacak.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingArchive(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={() => changeArchive(true)} disabled={saving}>{saving ? 'Arşivleniyor…' : 'Arşivle'}</button></div></div>}
         {!confirmingArchive && canChange && <div className="drawer-actions task-drawer-actions">

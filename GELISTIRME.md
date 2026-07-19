@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.20.0-task-comments` |
-| Mevcut aşama | Görev detayında kalıcı yorum akışı, yazar işlemleri ve admin moderasyonu çalışıyor |
-| Sonraki ana hedef | Görev aktivite geçmişini veritabanı olaylarıyla otomatik kaydetmek |
+| Mevcut sürüm | `0.21.0-task-activity` |
+| Mevcut aşama | Görev değişiklikleri append-only aktivite geçmişine otomatik kaydedilip drawer'da gösteriliyor |
+| Sonraki ana hedef | Aynı proje içindeki görevler arasında güvenli alt görev ilişkileri kurmak |
 
 ---
 
@@ -69,7 +69,7 @@ Mevcut sürümde:
 - Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
-- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; görev detayındaki checklist ve yorumlar kalıcı veriden yönetilmektedir.
+- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; görev detayındaki checklist, yorumlar ve otomatik aktivite geçmişi kalıcı veriden yönetilmektedir.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist ve yorumlar Supabase ile bağlı |
+| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar ve aktivite geçmişi Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
@@ -100,13 +100,13 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev, checklist ve yorum temeli bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev, checklist ve yorum şemaları RLS ile uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev, checklist, yorum ve aktivite temeli bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev, checklist, yorum ve aktivite şemaları RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
-| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev/checklist/yorum domain testleri bulunuyor; UI/E2E testleri henüz yok |
+| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev/checklist/yorum/aktivite domain testleri bulunuyor; UI/E2E testleri henüz yok |
 | Deployment | Başlanmadı | Production ortamı ve domain bağlantısı yok |
 
 ---
@@ -532,8 +532,17 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Yorumun organizasyon, görev, yazar ve oluşturulma kimliğini değişmez tutan bütünlük koruması
 - Yorum loading, hata, yeniden deneme, boş liste, gönderim ve salt okunur durumları
 - Supabase olmayan ortam için görev bazlı oturum içi demo yorum fallback'i
+- Göreve ve organizasyona bileşik foreign key ile bağlı append-only `task_activities` tablosu
+- Mevcut görevler için oluşturulma aktivitelerini güvenli biçimde üreten migration backfill'i
+- Görev oluşturma, başlık, açıklama, proje, durum, öncelik, görevli ve tarih değişikliklerini otomatik kaydetme
+- Görev arşivleme ve geri açma olaylarını gerçek aktörle otomatik kaydetme
+- Olayları kullanıcı isteğine güvenmeden `SECURITY DEFINER` veritabanı trigger'ıyla üretme
+- Eski/yeni değerleri olay tipine göre JSON metadata içinde saklama
+- Aktivite kayıtlarında frontend insert/update/delete yetkisini tamamen kapatan append-only güvenlik
+- Görev drawer'ında gerçek aktör, zaman, değişiklik açıklaması ve son 60 hareketi gösteren zaman çizelgesi
+- Aktivite loading, hata, yeniden deneme, boş liste ve limit durumları
 
-Görev CRUD yaşam döngüsü, proje ekibi atama, Liste/Kanban, checklist ve yorum akışları tamamlanmıştır. Alt görev ilişkileri ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
+Görev CRUD yaşam döngüsü, proje ekibi atama, Liste/Kanban, checklist, yorum ve aktivite geçmişi akışları tamamlanmıştır. Alt görev ilişkileri sonraki görev geliştirme katmanıdır.
 
 ---
 
@@ -1157,7 +1166,7 @@ Durum: **Devam ediyor**
 - [x] Görev checklist'i
 - [ ] Alt görev ilişkileri
 - [x] Görev yorumları
-- [ ] Aktivite geçmişi
+- [x] Aktivite geçmişi
 - [x] Dashboard'u gerçek verilere bağla
 - [x] Liste ve Kanban görünümü
 - [ ] Arama, filtreleme ve sıralama
@@ -1329,27 +1338,66 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Göreve bağlı, organizasyon kapsamlı ve sonradan değiştirilemeyen `task_activities` veri modelini oluştur.
-2. Görev oluşturma, alan güncelleme, durum değişikliği, atama, arşivleme ve geri açma olaylarını tanımla.
-3. Olayları kullanıcı isteğine güvenmeden veritabanı trigger'larıyla otomatik kaydet.
-4. Eski/yeni değerleri güvenli JSON metadata içinde sakla ve olayı gerçekleştiren kullanıcıyı kaydet.
-5. Görev detay drawer'ında en yeniden eskiye okunabilir aktivite zaman çizelgesi göster.
-6. Append-only bütünlüğü, RLS izolasyonu, loading/hata/boş durumları ve uzak güvenlik testlerini tamamla.
+1. `tasks` tablosuna isteğe bağlı ve organizasyon/proje kapsamlı `parent_task_id` ilişkisi ekle.
+2. Görevin kendisini üst görev seçmesini, farklı projeye bağlanmasını ve döngüsel hiyerarşi oluşmasını veritabanında engelle.
+3. Görev oluşturma ve düzenleme ekranlarına aynı projeden üst görev seçimi ekle.
+4. Görev detayında alt görev sayısı, tamamlanma oranı ve açılabilir alt görev listesini göster.
+5. Liste görünümünde üst/alt görev bağlamını kaybetmeden okunabilir ilişki göstergeleri ekle.
+6. RLS izolasyonu, arşiv davranışı, filtreleme ve uzak bütünlük testlerini tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Görev oluşturulduğunda ilk aktivite otomatik kaydedilir
-→ Durum, görevli, öncelik ve tarih değişiklikleri ayrı olaylar olarak görünür
-→ Arşivleme ve geri açma geçmişi korunur
-→ Aktivite kayıtları frontend tarafından değiştirilemez veya silinemez
-→ Olaylar gerçek aktör ve zaman bilgisiyle listelenir
-→ Başka organizasyonun aktiviteleri RLS ile görünmez
+Yetkili kullanıcı aynı projedeki bir görevi üst görev olarak seçebilir
+→ Alt görev ilişkisi sayfa yenilendiğinde korunur
+→ Görev kendisine veya kendi altına bağlanamaz
+→ Farklı proje ve organizasyon görevleri üst görev seçilemez
+→ Üst görev detayında alt görev ilerlemesi gerçek durumlardan hesaplanır
+→ Member ilişkileri görür fakat görev yapısını değiştiremez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.21.0-task-activity`
+
+Eklenenler:
+
+- Göreve ve organizasyona bağlı append-only `task_activities` tablosu
+- Oluşturma, başlık, açıklama, proje, durum, öncelik, görevli, tarih, arşivleme ve geri açma olay tipleri
+- Mevcut görevlerin ilk oluşturulma aktivitelerini gerçek oluşturucu ve tarihle ekleyen backfill
+- Görev değişikliklerini frontend payload'ına güvenmeden otomatik kaydeden veritabanı trigger'ı
+- Olay aktörü, güvenli eski/yeni değer metadata'sı ve değişmez oluşturulma zamanı
+- Görev drawer'ında son 60 hareketi gösteren kronolojik aktivite zaman çizelgesi
+- Aktör adı/baş harfleri, okunabilir Türkçe olay açıklaması ve zaman bilgisi
+- Loading, hata, yeniden deneme, boş geçmiş ve liste limiti durumları
+- Aktivite bağlam kimlikleri, açıklama, eşleme ve hata yardımcıları için 4 otomatik test
+
+Yetkilendirme ve güvenlik:
+
+- Aktif organizasyon üyeleri kendi organizasyonlarındaki görev aktivitelerini okuyabilir.
+- Authenticated frontend rolünden aktivite insert, update, delete ve truncate yetkileri kaldırıldı.
+- Aktivite kayıtları yalnızca güvenilir `SECURITY DEFINER` görev trigger'ı tarafından oluşturulur.
+- Aktivite ile görevin aynı organizasyonda bulunması bileşik foreign key ile zorunludur.
+- Başka organizasyon aktiviteleri RLS ile gizlenir.
+- Uzak RLS smoke testine otomatik durum/arşiv olayları, doğrudan yazma reddi ve çapraz organizasyon görünürlüğü eklendi.
+
+Doğrulama:
+
+- `npm test -- --run` — 12 test dosyasında 70 test geçti
+- `npm run build`
+- `git diff --check`
+- `npx supabase db lint --linked --level error` — şema hatası bulunmadı
+- `npx supabase db query --linked --file supabase/tests/rls_smoke.sql` — `result: passed`
+- `npx supabase migration list --linked` — 13 yerel/uzak migration eşleşiyor
+
+Bilinen sınırlamalar:
+
+- Drawer yalnızca en güncel 60 hareketi gösterir; sayfalama henüz yoktur.
+- Checklist ve yorum olayları aktivite akışına henüz eklenmemiştir.
+- Aktivite geçmişi gerçek zamanlı abonelik kullanmaz; drawer yeniden açıldığında yenilenir.
+- UI entegrasyon ve E2E testleri henüz bulunmuyor.
 
 ### 19 Temmuz 2026 — `0.20.0-task-comments`
 

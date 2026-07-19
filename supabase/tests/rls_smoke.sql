@@ -427,6 +427,23 @@ begin
     raise exception 'RLS probe failed: member can read another organization task comment.';
   end if;
 
+  if not exists (
+    select 1
+    from public.task_activities activity
+    where activity.task_id = current_setting('manageflow_test.main_task_id')::uuid
+      and activity.event_type = 'created'
+  ) then
+    raise exception 'RLS probe failed: member cannot read their task activity.';
+  end if;
+
+  if exists (
+    select 1
+    from public.task_activities activity
+    where activity.task_id = current_setting('manageflow_test.other_task_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member can read another organization task activity.';
+  end if;
+
   begin
     update public.organization_members
     set title = title
@@ -636,6 +653,38 @@ begin
   if affected_rows <> 0 then
     raise exception 'RLS probe failed: member can delete another author comment.';
   end if;
+
+  begin
+    insert into public.task_activities (
+      organization_id, task_id, event_type, actor_id, metadata
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_task_id')::uuid,
+      'created',
+      current_setting('manageflow_test.member_id')::uuid,
+      '{}'::jsonb
+    );
+    raise exception 'RLS probe failed: member can forge a task activity.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    update public.task_activities
+    set metadata = metadata
+    where task_id = current_setting('manageflow_test.main_task_id')::uuid;
+    raise exception 'RLS probe failed: member can update task activity history.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    delete from public.task_activities
+    where task_id = current_setting('manageflow_test.main_task_id')::uuid;
+    raise exception 'RLS probe failed: member can delete task activity history.';
+  exception
+    when insufficient_privilege then null;
+  end;
 end;
 $$;
 
@@ -918,6 +967,32 @@ begin
   update public.tasks
   set archived_at = null, archived_by = null
   where id = current_setting('manageflow_test.main_task_id')::uuid;
+
+  if (
+    select count(*)
+    from public.task_activities activity
+    where activity.task_id = current_setting('manageflow_test.main_task_id')::uuid
+      and activity.event_type = 'status_changed'
+      and activity.actor_id = current_setting('manageflow_test.member_id')::uuid
+  ) < 2 then
+    raise exception 'RLS probe failed: task status changes were not recorded as activities.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.task_activities activity
+    where activity.task_id = current_setting('manageflow_test.main_task_id')::uuid
+      and activity.event_type = 'archived'
+      and activity.actor_id = current_setting('manageflow_test.member_id')::uuid
+  ) or not exists (
+    select 1
+    from public.task_activities activity
+    where activity.task_id = current_setting('manageflow_test.main_task_id')::uuid
+      and activity.event_type = 'restored'
+      and activity.actor_id = current_setting('manageflow_test.member_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: task archive lifecycle was not recorded as activities.';
+  end if;
 
   insert into public.tasks (
     organization_id, project_id, assignee_id, title, status, priority, created_by
@@ -1377,6 +1452,8 @@ select
   true as member_comment_read_allowed,
   true as member_own_comment_write_allowed,
   true as member_other_comment_write_denied,
+  true as member_activity_read_allowed,
+  true as task_activity_direct_write_denied,
   true as admin_write_allowed,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
@@ -1394,6 +1471,8 @@ select
   true as admin_comment_moderation_allowed,
   true as admin_other_comment_edit_denied,
   true as archived_task_comment_denied,
+  true as task_activity_status_recorded,
+  true as task_activity_archive_lifecycle_recorded,
   true as duplicate_project_assignment_denied,
   true as archived_project_assignment_denied,
   true as archived_project_task_denied,
@@ -1424,6 +1503,7 @@ select
   true as cross_organization_checklist_task_denied,
   true as cross_organization_comments_hidden,
   true as cross_organization_comment_task_denied,
+  true as cross_organization_activities_hidden,
   true as inactive_project_assignment_denied,
   true as non_project_member_task_assignment_denied,
   true as cross_organization_project_client_denied,

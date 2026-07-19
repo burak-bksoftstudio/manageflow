@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   attachTaskHierarchy, canManageTasks, canMoveTask, filterTasks, getTaskDescendantIds,
-  getTaskErrorMessage, getTaskStats, groupTasksByStatus, mapDatabaseTask, normalizeTaskForm, validateTask,
+  getTaskErrorMessage, getTaskStats, groupTasksByStatus, mapDatabaseTask, normalizeTaskForm,
+  normalizeTaskPreferences, sortTasks, validateTask,
 } from './taskUtils';
 
 const tasks = [
@@ -76,6 +77,44 @@ describe('task mapping, filtering and metrics', () => {
     expect(filterTasks(tasks, { query: 'web', status: 'all', projectId: 'all' })).toHaveLength(2);
     expect(filterTasks(tasks, { query: '', status: 'done', projectId: 'all' })).toEqual([tasks[2]]);
     expect(filterTasks(tasks, { query: '', status: 'all', projectId: 'p1' })).toHaveLength(2);
+  });
+
+  it('filters by assignee and hierarchy without mixing parent tasks and subtasks', () => {
+    const hierarchicalTasks = [
+      { ...tasks[0], assigneeId: 'u1', parentTaskId: '', subtaskTotal: 1 },
+      { ...tasks[1], assigneeId: 'u2', parentTaskId: '1', subtaskTotal: 0 },
+      { ...tasks[2], assigneeId: '', parentTaskId: '', subtaskTotal: 0 },
+    ];
+    expect(filterTasks(hierarchicalTasks, { assigneeId: 'u1', hierarchy: 'all' })).toEqual([hierarchicalTasks[0]]);
+    expect(filterTasks(hierarchicalTasks, { assigneeId: 'unassigned', hierarchy: 'all' })).toEqual([hierarchicalTasks[2]]);
+    expect(filterTasks(hierarchicalTasks, { assigneeId: 'all', hierarchy: 'roots' })).toEqual([hierarchicalTasks[0], hierarchicalTasks[2]]);
+    expect(filterTasks(hierarchicalTasks, { assigneeId: 'all', hierarchy: 'subtasks' })).toEqual([hierarchicalTasks[1]]);
+    expect(filterTasks(hierarchicalTasks, { assigneeId: 'all', hierarchy: 'parents' })).toEqual([hierarchicalTasks[0]]);
+  });
+
+  it('sorts tasks by date, priority and title while keeping missing dates last', () => {
+    const sortableTasks = [
+      { id: '1', title: 'Z Raporu', dueDate: '', priority: 'normal', status: 'todo', createdAt: '2026-07-18T10:00:00Z' },
+      { id: '2', title: 'A Tasarım', dueDate: '2026-07-22', priority: 'urgent', status: 'done', createdAt: '2026-07-19T10:00:00Z' },
+      { id: '3', title: 'B Geliştirme', dueDate: '2026-07-20', priority: 'low', status: 'in_progress', createdAt: '2026-07-17T10:00:00Z' },
+    ];
+    expect(sortTasks(sortableTasks, { sortBy: 'dueDate', direction: 'asc' }).map(task => task.id)).toEqual(['3', '2', '1']);
+    expect(sortTasks(sortableTasks, { sortBy: 'dueDate', direction: 'desc' }).map(task => task.id)).toEqual(['2', '3', '1']);
+    expect(sortTasks(sortableTasks, { sortBy: 'priority', direction: 'desc' }).map(task => task.id)).toEqual(['2', '1', '3']);
+    expect(sortTasks(sortableTasks, { sortBy: 'title', direction: 'asc' }).map(task => task.id)).toEqual(['2', '3', '1']);
+  });
+
+  it('normalizes stored task preferences to safe supported values', () => {
+    expect(normalizeTaskPreferences({
+      query: 'tasarım', status: 'done', projectId: 'p1', archive: 'all', assigneeId: 'u1',
+      hierarchy: 'subtasks', sortBy: 'priority', sortDirection: 'asc', view: 'kanban',
+    })).toEqual({
+      query: 'tasarım', status: 'done', projectId: 'p1', archive: 'all', assigneeId: 'u1',
+      hierarchy: 'subtasks', sortBy: 'priority', sortDirection: 'asc', view: 'kanban',
+    });
+    expect(normalizeTaskPreferences({ status: 'invalid', hierarchy: 'invalid', sortBy: 'invalid', view: 'invalid' })).toMatchObject({
+      status: 'all', hierarchy: 'all', sortBy: 'createdAt', sortDirection: 'desc', view: 'list',
+    });
   });
 
   it('calculates task stats and maps errors', () => {

@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.22.0-task-hierarchy` |
-| Mevcut aşama | Aynı proje içinde döngü korumalı üst/alt görev ilişkileri ve gerçek ilerleme çalışıyor |
-| Sonraki ana hedef | Görev arama, hiyerarşi filtreleri, sıralama ve görünüm tercihlerini tamamlamak |
+| Mevcut sürüm | `0.23.0-task-filters` |
+| Mevcut aşama | Müşteri → proje → görev çekirdeği; kalıcı gelişmiş filtreleme ve sıralama dahil tamamlandı |
+| Sonraki ana hedef | Profil ve organizasyon ayarlarını gerçek veriye bağlamak |
 
 ---
 
@@ -69,7 +69,7 @@ Mevcut sürümde:
 - Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
-- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar ve otomatik aktivite geçmişi kalıcı veriden yönetilmektedir.
+- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek CRUD, hiyerarşi, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar ve aktivite geçmişi Supabase ile bağlı |
+| Görevler | Gerçek CRUD, hiyerarşi, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar, aktivite geçmişi ve kalıcı gelişmiş filtre/sıralama bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
@@ -551,8 +551,15 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Alt görev satırından ilgili görev drawer'ına güvenli geçiş
 - Liste ve Kanban kartlarında üst görev ve alt görev ilerleme bağlamı
 - Üst görev bağlantısı değişikliklerini append-only aktivite geçmişine otomatik kaydetme
+- Görevli, atanmamış görev ve ana/alt/alt görevi olan yapı filtreleri
+- Oluşturulma, bitiş tarihi, öncelik, başlık ve durum alanlarında artan/azalan sıralama
+- Bitiş tarihi olmayan görevleri her iki sıralama yönünde de sonuçların sonunda tutma
+- Kaldırılabilir aktif filtre etiketleri ve bütün filtreleri tek işlemle varsayılana döndürme
+- Arama, filtre, sıralama ve Liste/Kanban tercihlerinin organizasyon bazında tarayıcıda saklanması
+- Kayıtlı tercihlerin güvenli biçimde normalize edilmesi ve geçersiz proje/görevli seçimlerinin temizlenmesi
+- Masaüstü, tablet ve mobil için taşmayan iki katmanlı responsive görev toolbar'ı
 
-Görev CRUD yaşam döngüsü, hiyerarşi, proje ekibi atama, Liste/Kanban, checklist, yorum ve aktivite geçmişi akışları tamamlanmıştır.
+Görev CRUD yaşam döngüsü, hiyerarşi, proje ekibi atama, Liste/Kanban, checklist, yorum, aktivite geçmişi ve gelişmiş filtre/sıralama akışları tamamlanmıştır.
 
 ---
 
@@ -1163,7 +1170,7 @@ Durum: **Devam ediyor**
 
 ### Faz 3 — müşteri, proje ve görev çekirdeği
 
-Durum: **Devam ediyor**
+Durum: **Tamamlandı**
 
 - [x] Müşteri veri modeli, listeleme ve oluşturma
 - [x] Müşteri detay, düzenleme ve pasife alma
@@ -1179,7 +1186,7 @@ Durum: **Devam ediyor**
 - [x] Aktivite geçmişi
 - [x] Dashboard'u gerçek verilere bağla
 - [x] Liste ve Kanban görünümü
-- [ ] Arama, filtreleme ve sıralama
+- [x] Arama, filtreleme ve sıralama
 
 ### Faz 4 — dosya, bildirim ve zaman
 
@@ -1348,27 +1355,58 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Görev toolbar'ına görevli ve hiyerarşi filtreleri ekle.
-2. Oluşturulma, bitiş tarihi, öncelik, başlık ve durum için kontrollü sıralama seçenekleri tanımla.
-3. Aktif filtreleri görünür etiketlerle göster ve tek işlemle temizleme davranışı ekle.
-4. Liste/Kanban görünümü ile filtre/sıralama tercihlerini organizasyon bazında tarayıcıda koru.
-5. Alt görevlerin üst görev bağlamını sıralama ve arama sonrasında da kaybetmemesini sağla.
-6. Domain testleri, mobil toolbar davranışı, boş sonuç ve production build doğrulamasını tamamla.
+1. Oturumdaki kullanıcının ad-soyad ve temel profil bilgilerini gerçek `profiles` verisinden düzenleyebilmesini sağla.
+2. Profil ve çalışma alanı ayarlarını ayrı, gerçek ve korumalı bir ayarlar rotasında topla.
+3. Owner/admin için organizasyon adını ve görsel kimlik alanlarını düzenleme yetkisi tanımla.
+4. Member rolünü organizasyon değişikliklerinde salt okunur tut; profil düzenlemesini yalnızca kendi kaydıyla sınırla.
+5. Sidebar kullanıcı/organizasyon özetlerini kaydetme sonrasında context yenilemeden güncelle.
+6. RLS, doğrulama, loading/hata/başarı durumları, domain testleri ve production build kontrolünü tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Kullanıcı görevleri görevli ve hiyerarşi tipine göre filtreleyebilir
-→ Sonuçları seçtiği alana göre artan veya azalan sıralayabilir
-→ Aktif filtreleri tek bakışta görüp temizleyebilir
-→ Liste/Kanban geçişinde filtre bağlamı korunur
-→ Sayfa yenilendiğinde organizasyona ait görünüm tercihi geri gelir
-→ Mobil toolbar taşmadan ve erişilebilir etiketlerle çalışır
+Kullanıcı kendi profil bilgilerini güvenli biçimde güncelleyebilir
+→ Owner/admin organizasyon adını ve izin verilen marka alanlarını değiştirebilir
+→ Member organizasyon ayarlarını yalnızca görüntüler
+→ Ayarlar kaydedildiğinde sidebar ve uygulama bağlamı anında güncellenir
+→ Başka kullanıcıya veya organizasyona ait kayıt değiştirilemez
+→ Mobil ayarlar ekranı, hata ve loading durumlarıyla birlikte çalışır
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.23.0-task-filters`
+
+Eklenenler:
+
+- Görevli ve atanmamış görev filtreleri
+- Ana görev, alt görev ve alt görevi olan görev filtreleri
+- Oluşturulma, bitiş tarihi, öncelik, başlık ve duruma göre artan/azalan sıralama
+- Tek tek kaldırılabilen aktif filtre etiketleri ve tümünü temizleme işlemi
+- Arama, filtre, sıralama ve Liste/Kanban görünümünü organizasyon bazında saklayan tercihler
+- Bozuk veya artık desteklenmeyen kayıtlı tercihleri güvenli varsayılanlara döndüren normalizasyon
+- Yeni filtre katmanı için responsive masaüstü, tablet ve mobil stilleri
+- Filtre, sıralama ve tercih normalizasyonu için 3 yeni domain testi
+
+Değiştirilenler:
+
+- Liste ve Kanban görünümü aynı filtrelenmiş ve sıralanmış görev koleksiyonunu kullanır.
+- Bitiş tarihi bulunmayan görevler sıralama yönünden bağımsız olarak listenin sonunda tutulur.
+- Eski global Liste/Kanban tercihi yerini organizasyon kapsamlı tek tercih kaydına bıraktı.
+- Faz 3 müşteri, proje ve görev çekirdeği tamamlandı olarak işaretlendi.
+
+Doğrulama:
+
+- `npm test` — 12 dosyada 74/74 test başarılı
+- `npm run build`
+- Bu paket veritabanı şemasını veya mevcut RLS politikalarını değiştirmedi.
+
+Bilinen sınırlamalar:
+
+- Tercihler şu anda kullanıcı profiline senkronize edilmez; aynı tarayıcı ve cihazda saklanır.
+- UI entegrasyon ve uçtan uca tarayıcı testleri henüz bulunmuyor.
 
 ### 19 Temmuz 2026 — `0.22.0-task-hierarchy`
 

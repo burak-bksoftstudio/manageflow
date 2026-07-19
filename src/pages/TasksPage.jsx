@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive, ArchiveRestore, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
+  Archive, ArchiveRestore, ArrowUpDown, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
   Columns3, CornerDownRight, FileText, FolderKanban, GitBranch, GripVertical, History, ListChecks, ListTodo,
   LoaderCircle, MessageSquare, Pencil, Plus, RefreshCw, Rows3, Search, Send, ShieldCheck, Timer,
   Trash2, UserRound, X,
@@ -9,8 +9,9 @@ import { useOrganization } from '../features/organizations/OrganizationContext';
 import { useProjectMembers } from '../features/projects/useProjectMembers';
 import { useProjects } from '../features/projects/useProjects';
 import {
-  canManageTasks, canMoveTask, filterTasks, getTaskDescendantIds, getTaskErrorMessage,
-  getTaskStats, groupTasksByStatus, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, validateTask,
+  canManageTasks, canMoveTask, DEFAULT_TASK_PREFERENCES, filterTasks, getTaskDescendantIds,
+  getTaskErrorMessage, getTaskStats, groupTasksByStatus, normalizeTaskPreferences, sortTasks,
+  TASK_HIERARCHY_LABELS, TASK_PRIORITY_LABELS, TASK_SORT_LABELS, TASK_STATUS_LABELS, validateTask,
 } from '../features/tasks/taskUtils';
 import { useTasks } from '../features/tasks/useTasks';
 import {
@@ -471,7 +472,12 @@ export default function TasksPage() {
   const [status, setStatus] = useState('all');
   const [projectId, setProjectId] = useState('all');
   const [archive, setArchive] = useState('active');
-  const [view, setView] = useState(() => window.localStorage.getItem('manageflow-task-view') === 'kanban' ? 'kanban' : 'list');
+  const [assigneeId, setAssigneeId] = useState('all');
+  const [hierarchy, setHierarchy] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [view, setView] = useState('list');
+  const [preferencesOrganizationId, setPreferencesOrganizationId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [movingTaskId, setMovingTaskId] = useState('');
@@ -480,10 +486,28 @@ export default function TasksPage() {
   const canManage = canManageTasks(activeOrganization?.role);
   const activeProjects = useMemo(() => projects.filter(project => !project.isArchived), [projects]);
   const stats = useMemo(() => getTaskStats(tasks), [tasks]);
+  const assigneeOptions = useMemo(() => [...tasks.reduce((members, task) => {
+    if (task.assigneeId && !members.has(task.assigneeId)) members.set(task.assigneeId, task.assigneeName);
+    return members;
+  }, new Map()).entries()].sort((first, second) => first[1].localeCompare(second[1], 'tr-TR')), [tasks]);
   const filteredTasks = useMemo(
-    () => filterTasks(tasks, { query, status, projectId, archive }),
-    [archive, projectId, query, status, tasks],
+    () => sortTasks(
+      filterTasks(tasks, { query, status, projectId, archive, assigneeId, hierarchy }),
+      { sortBy, direction: sortDirection },
+    ),
+    [archive, assigneeId, hierarchy, projectId, query, sortBy, sortDirection, status, tasks],
   );
+  const activeFilters = useMemo(() => {
+    const filters = [];
+    if (query.trim()) filters.push({ key: 'query', label: `Arama · ${query.trim()}` });
+    if (status !== 'all') filters.push({ key: 'status', label: TASK_STATUS_LABELS[status] });
+    if (projectId !== 'all') filters.push({ key: 'projectId', label: projects.find(project => project.id === projectId)?.name || 'Proje' });
+    if (archive !== 'active') filters.push({ key: 'archive', label: archive === 'archived' ? 'Arşivlenen görevler' : 'Aktif ve arşivlenen' });
+    if (assigneeId !== 'all') filters.push({ key: 'assigneeId', label: assigneeId === 'unassigned' ? 'Atanmamış' : assigneeOptions.find(([id]) => id === assigneeId)?.[1] || 'Görevli' });
+    if (hierarchy !== 'all') filters.push({ key: 'hierarchy', label: TASK_HIERARCHY_LABELS[hierarchy] });
+    if (sortBy !== DEFAULT_TASK_PREFERENCES.sortBy || sortDirection !== DEFAULT_TASK_PREFERENCES.sortDirection) filters.push({ key: 'sort', label: `${TASK_SORT_LABELS[sortBy]} · ${sortDirection === 'asc' ? 'Artan' : 'Azalan'}` });
+    return filters;
+  }, [archive, assigneeId, assigneeOptions, hierarchy, projectId, projects, query, sortBy, sortDirection, status]);
   const creationBlocked = projectsLoading || activeProjects.length === 0;
 
   useEffect(() => {
@@ -493,8 +517,60 @@ export default function TasksPage() {
   }, [toast]);
 
   useEffect(() => {
-    window.localStorage.setItem('manageflow-task-view', view);
-  }, [view]);
+    const organizationId = activeOrganization?.id;
+    if (!organizationId) return;
+    let storedPreferences = {};
+    try {
+      storedPreferences = JSON.parse(window.localStorage.getItem(`manageflow-task-preferences:${organizationId}`) || '{}');
+    } catch {
+      storedPreferences = {};
+    }
+    const preferences = normalizeTaskPreferences(storedPreferences);
+    setQuery(preferences.query);
+    setStatus(preferences.status);
+    setProjectId(preferences.projectId);
+    setArchive(preferences.archive);
+    setAssigneeId(preferences.assigneeId);
+    setHierarchy(preferences.hierarchy);
+    setSortBy(preferences.sortBy);
+    setSortDirection(preferences.sortDirection);
+    setView(preferences.view);
+    setPreferencesOrganizationId(organizationId);
+  }, [activeOrganization?.id]);
+
+  useEffect(() => {
+    const organizationId = activeOrganization?.id;
+    if (!organizationId || preferencesOrganizationId !== organizationId) return;
+    window.localStorage.setItem(`manageflow-task-preferences:${organizationId}`, JSON.stringify({
+      query, status, projectId, archive, assigneeId, hierarchy, sortBy, sortDirection, view,
+    }));
+  }, [activeOrganization?.id, archive, assigneeId, hierarchy, preferencesOrganizationId, projectId, query, sortBy, sortDirection, status, view]);
+
+  useEffect(() => {
+    if (loading || projectsLoading || preferencesOrganizationId !== activeOrganization?.id) return;
+    if (projectId !== 'all' && !projects.some(project => project.id === projectId)) setProjectId('all');
+    if (assigneeId !== 'all' && assigneeId !== 'unassigned' && !assigneeOptions.some(([id]) => id === assigneeId)) setAssigneeId('all');
+  }, [activeOrganization?.id, assigneeId, assigneeOptions, loading, preferencesOrganizationId, projectId, projects, projectsLoading]);
+
+  const clearFilter = key => {
+    if (key === 'query') setQuery('');
+    if (key === 'status') setStatus('all');
+    if (key === 'projectId') setProjectId('all');
+    if (key === 'archive') setArchive('active');
+    if (key === 'assigneeId') setAssigneeId('all');
+    if (key === 'hierarchy') setHierarchy('all');
+    if (key === 'sort') { setSortBy('createdAt'); setSortDirection('desc'); }
+  };
+  const clearAllFilters = () => {
+    setQuery('');
+    setStatus('all');
+    setProjectId('all');
+    setArchive('active');
+    setAssigneeId('all');
+    setHierarchy('all');
+    setSortBy('createdAt');
+    setSortDirection('desc');
+  };
 
   const closeModal = result => {
     setModalOpen(false);
@@ -544,6 +620,8 @@ export default function TasksPage() {
       <section className="task-list-card">
         <div className="task-list-head"><div><h2>{view === 'kanban' ? 'Görev panosu' : 'Görev listesi'}</h2><p>{filteredTasks.length} görev görüntüleniyor</p></div><TaskViewToggle view={view} setView={setView} /></div>
         <div className="task-toolbar"><label className="task-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Görev, proje, görevli veya açıklama ara" /></label><select value={status} onChange={event => setStatus(event.target.value)} aria-label="Görev durumuna göre filtrele"><option value="all">Tüm durumlar</option>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={projectId} onChange={event => setProjectId(event.target.value)} aria-label="Projeye göre filtrele"><option value="all">Tüm projeler</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select><select value={archive} onChange={event => setArchive(event.target.value)} aria-label="Arşiv durumuna göre filtrele"><option value="active">Aktif görevler</option><option value="archived">Arşivlenenler</option><option value="all">Tümü</option></select></div>
+        <div className="task-advanced-toolbar"><select value={assigneeId} onChange={event => setAssigneeId(event.target.value)} aria-label="Görevliye göre filtrele"><option value="all">Tüm görevliler</option><option value="unassigned">Atanmamış</option>{assigneeOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select><select value={hierarchy} onChange={event => setHierarchy(event.target.value)} aria-label="Görev yapısına göre filtrele">{Object.entries(TASK_HIERARCHY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><label className="task-sort-control"><span>Sırala</span><select value={sortBy} onChange={event => setSortBy(event.target.value)} aria-label="Görevleri sıralama alanı">{Object.entries(TASK_SORT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button className="task-sort-direction" onClick={() => setSortDirection(direction => direction === 'asc' ? 'desc' : 'asc')} title={`Sıralama yönü: ${sortDirection === 'asc' ? 'artan' : 'azalan'}`} aria-label={`Sıralama yönünü ${sortDirection === 'asc' ? 'azalan' : 'artan'} yap`}><ArrowUpDown /><span>{sortDirection === 'asc' ? 'Artan' : 'Azalan'}</span></button></div>
+        {activeFilters.length > 0 && <div className="task-active-filters"><span>AKTİF FİLTRELER</span><div>{activeFilters.map(filter => <button key={filter.key} onClick={() => clearFilter(filter.key)} title={`${filter.label} filtresini kaldır`}>{filter.label}<X /></button>)}</div><button className="task-clear-filters" onClick={clearAllFilters}><RefreshCw /> Tümünü temizle</button></div>}
         {moveError && <div className="task-move-error form-error" role="alert"><CircleAlert />{moveError}<button onClick={() => setMoveError('')} aria-label="Hatayı kapat"><X /></button></div>}
         {loading && <div className="tasks-state" role="status"><LoaderCircle className="spin" /><span>Görevler yükleniyor…</span></div>}
         {!loading && error && <div className="tasks-state error"><CircleAlert /><h3>Görevler yüklenemedi</h3><p>Bağlantınızı kontrol edip tekrar deneyin.</p><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}

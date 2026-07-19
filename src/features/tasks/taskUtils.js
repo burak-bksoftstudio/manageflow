@@ -12,6 +12,33 @@ export const TASK_PRIORITY_LABELS = {
   urgent: 'Acil',
 };
 
+export const TASK_HIERARCHY_LABELS = {
+  all: 'Tüm görev yapıları',
+  roots: 'Ana görevler',
+  subtasks: 'Alt görevler',
+  parents: 'Alt görevi olanlar',
+};
+
+export const TASK_SORT_LABELS = {
+  createdAt: 'Oluşturulma',
+  dueDate: 'Bitiş tarihi',
+  priority: 'Öncelik',
+  title: 'Başlık',
+  status: 'Durum',
+};
+
+export const DEFAULT_TASK_PREFERENCES = {
+  query: '',
+  status: 'all',
+  projectId: 'all',
+  archive: 'active',
+  assigneeId: 'all',
+  hierarchy: 'all',
+  sortBy: 'createdAt',
+  sortDirection: 'desc',
+  view: 'list',
+};
+
 export function canManageTasks(role) {
   return ['owner', 'admin', 'project_manager'].includes(role);
 }
@@ -112,14 +139,85 @@ export function getTaskDescendantIds(tasks, taskId) {
   return descendants;
 }
 
-export function filterTasks(tasks, { query, status, projectId, archive = 'active' }) {
+export function normalizeTaskPreferences(preferences = {}) {
+  const value = preferences && typeof preferences === 'object' ? preferences : {};
+  return {
+    query: typeof value.query === 'string' ? value.query : DEFAULT_TASK_PREFERENCES.query,
+    status: value.status === 'all' || TASK_STATUS_LABELS[value.status]
+      ? value.status
+      : DEFAULT_TASK_PREFERENCES.status,
+    projectId: typeof value.projectId === 'string' && value.projectId
+      ? value.projectId
+      : DEFAULT_TASK_PREFERENCES.projectId,
+    archive: ['active', 'archived', 'all'].includes(value.archive)
+      ? value.archive
+      : DEFAULT_TASK_PREFERENCES.archive,
+    assigneeId: typeof value.assigneeId === 'string' && value.assigneeId
+      ? value.assigneeId
+      : DEFAULT_TASK_PREFERENCES.assigneeId,
+    hierarchy: TASK_HIERARCHY_LABELS[value.hierarchy]
+      ? value.hierarchy
+      : DEFAULT_TASK_PREFERENCES.hierarchy,
+    sortBy: TASK_SORT_LABELS[value.sortBy] ? value.sortBy : DEFAULT_TASK_PREFERENCES.sortBy,
+    sortDirection: ['asc', 'desc'].includes(value.sortDirection)
+      ? value.sortDirection
+      : DEFAULT_TASK_PREFERENCES.sortDirection,
+    view: ['list', 'kanban'].includes(value.view) ? value.view : DEFAULT_TASK_PREFERENCES.view,
+  };
+}
+
+export function filterTasks(tasks, {
+  query = '', status = 'all', projectId = 'all', archive = 'active', assigneeId = 'all', hierarchy = 'all',
+} = {}) {
   const normalizedQuery = query.trim().toLocaleLowerCase('tr-TR');
   return tasks.filter(task => {
     const searchText = `${task.title} ${task.parentTaskTitle} ${task.projectName} ${task.assigneeName} ${task.description}`.toLocaleLowerCase('tr-TR');
     return searchText.includes(normalizedQuery)
       && (status === 'all' || task.status === status)
       && (projectId === 'all' || task.projectId === projectId)
-      && (archive === 'all' || (archive === 'archived' ? task.isArchived : !task.isArchived));
+      && (archive === 'all' || (archive === 'archived' ? task.isArchived : !task.isArchived))
+      && (assigneeId === 'all' || (assigneeId === 'unassigned' ? !task.assigneeId : task.assigneeId === assigneeId))
+      && (hierarchy === 'all'
+        || (hierarchy === 'roots' && !task.parentTaskId)
+        || (hierarchy === 'subtasks' && Boolean(task.parentTaskId))
+        || (hierarchy === 'parents' && task.subtaskTotal > 0));
+  });
+}
+
+const priorityOrder = { low: 0, normal: 1, high: 2, urgent: 3 };
+const statusOrder = { todo: 0, in_progress: 1, review: 2, done: 3 };
+
+function compareNullableDates(first, second) {
+  if (!first && !second) return 0;
+  if (!first) return 1;
+  if (!second) return -1;
+  return new Date(`${first}T12:00:00`).getTime() - new Date(`${second}T12:00:00`).getTime();
+}
+
+export function sortTasks(tasks, { sortBy = 'createdAt', direction = 'desc' } = {}) {
+  const normalizedSortBy = TASK_SORT_LABELS[sortBy] ? sortBy : DEFAULT_TASK_PREFERENCES.sortBy;
+  const multiplier = direction === 'asc' ? 1 : -1;
+  return [...tasks].sort((first, second) => {
+    let comparison = 0;
+    if (normalizedSortBy === 'dueDate') {
+      comparison = compareNullableDates(first.dueDate, second.dueDate);
+      if (!first.dueDate || !second.dueDate) {
+        if (comparison !== 0) return comparison;
+      }
+    } else if (normalizedSortBy === 'priority') {
+      comparison = (priorityOrder[first.priority] ?? -1) - (priorityOrder[second.priority] ?? -1);
+    } else if (normalizedSortBy === 'status') {
+      comparison = (statusOrder[first.status] ?? -1) - (statusOrder[second.status] ?? -1);
+    } else if (normalizedSortBy === 'title') {
+      comparison = String(first.title || '').localeCompare(String(second.title || ''), 'tr-TR');
+    } else {
+      comparison = new Date(first.createdAt || 0).getTime() - new Date(second.createdAt || 0).getTime();
+    }
+
+    const directedComparison = comparison * multiplier;
+    if (directedComparison !== 0) return directedComparison;
+    const titleComparison = String(first.title || '').localeCompare(String(second.title || ''), 'tr-TR');
+    return titleComparison || String(first.id || '').localeCompare(String(second.id || ''), 'tr-TR');
   });
 }
 

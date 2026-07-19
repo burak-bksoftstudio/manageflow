@@ -11,8 +11,8 @@
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
 | Mevcut sürüm | `0.29.0-public-landing` |
-| Mevcut aşama | Herkese açık SaaS landing page, oturum duyarlı CTA'lar, responsive ürün sunumu ve SEO temeli geliştirildi |
-| Sonraki ana hedef | Landing page'i production'da doğrulamak; ardından zaman kayıtlarını güvenli düzeltme/arşivleme paketine geçmek |
+| Mevcut aşama | Herkese açık SaaS landing page production'a alındı; teknik smoke kontrolleri başarılı, kullanıcı görsel kabulü bekleniyor |
+| Sonraki ana hedef | Landing page kullanıcı kabulü; ardından zaman kayıtlarını güvenli düzeltme/arşivleme paketine geçmek |
 
 ---
 
@@ -684,6 +684,8 @@ Uzak migration sayısı 19'a yükselmiştir. Proje notları güvenlik testi `res
 - Landing sayfasının ayrı lazy-loaded route chunk'ı
 
 Landing bilgi mimarisi pazar referansı olarak incelenen Managelify yaklaşımından esinlenmiştir; marka, metin, arayüz önizlemeleri ve kod ManageFlow için özgün hazırlanmıştır. Fiyatlandırma henüz kesinleşmediği için gerçekte bulunmayan paket veya ticari iddia eklenmemiştir.
+
+Landing page Vercel production'a alınmış ve `https://manageflow.bksoftstudio.com/` özel domaininde yayınlanmıştır. Ana sayfa, giriş, kayıt ve dashboard SPA rotaları teknik smoke kontrolünde `200` dönmüş; production HTML başlığı, canonical adresi, güvenlik başlıkları ve lazy landing bundle içeriği doğrulanmıştır.
 
 ---
 
@@ -1546,12 +1548,14 @@ Doğrulama:
 - `npm run build` — başarılı; lazy-loaded landing sayfası yaklaşık 25,0 kB / 6,4 kB gzip
 - Yerel `/` ve `/giris` doğrudan HTTP kontrolleri `200`
 - 1440px masaüstü ve dar ekran tarayıcı render kontrolleri
+- Vercel production deployment `READY`; özel domainde `/`, `/giris`, `/kayit` ve `/dashboard` rotaları `200`
+- Production HTML title/canonical, güvenlik başlıkları ve `LandingPage` lazy bundle içeriği doğrulandı
 
 Bilinen sınırlamalar:
 
 - Cookie/analitik, yasal sayfalar, fiyatlandırma ve müşteri referansları henüz bulunmuyor.
 - UI entegrasyon, görsel regresyon ve E2E test altyapısı henüz bulunmuyor.
-- Production deployment ve kullanıcı kabul kontrolü bu commit sonrasında yapılacak.
+- Teknik production smoke kontrolü tamamlandı; gerçek cihazda kullanıcı görsel kabulü bekleniyor.
 
 ### 20 Temmuz 2026 — `0.28.0-workspace-notes`
 

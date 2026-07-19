@@ -89,12 +89,12 @@ export function filterTeamMembers(members, filters) {
 
 export function validateInvite(form, members) {
   const name = form.name.trim();
-  const email = form.email.trim().toLocaleLowerCase('tr-TR');
+  const email = form.email.trim().toLowerCase();
   const title = form.title.trim();
 
   if (name.length < 3 || !name.includes(' ')) return 'Ad ve soyadı birlikte girin.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Geçerli bir e-posta adresi girin.';
-  if (members.some(member => member.email.toLocaleLowerCase('tr-TR') === email)) return 'Bu e-posta adresi çalışma alanında zaten bulunuyor.';
+  if (members.some(member => member.email.toLowerCase() === email)) return 'Bu e-posta adresi çalışma alanında zaten bulunuyor.';
   if (title.length < 2) return 'Görev unvanını girin.';
   return null;
 }

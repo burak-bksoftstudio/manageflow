@@ -36,15 +36,27 @@ export function validateClient(form) {
   return '';
 }
 
+export function normalizeClientForm(form) {
+  return {
+    name: String(form.name || '').trim(),
+    contactName: String(form.contactName || '').trim(),
+    email: String(form.email || '').trim().toLowerCase(),
+    phone: String(form.phone || '').trim(),
+    industry: String(form.industry || '').trim(),
+    status: form.status,
+    notes: String(form.notes || '').trim(),
+  };
+}
+
 export function mapDatabaseClient(client) {
   return {
     id: client.id,
     name: client.name,
     initials: getClientInitials(client.name),
-    contactName: client.contact_name || 'Yetkili belirtilmedi',
-    email: client.email || 'E-posta belirtilmedi',
-    phone: client.phone || 'Telefon belirtilmedi',
-    industry: client.industry || 'Sektör belirtilmedi',
+    contactName: client.contact_name || '',
+    email: client.email || '',
+    phone: client.phone || '',
+    industry: client.industry || '',
     status: client.status,
     notes: client.notes || '',
     createdAt: client.created_at,
@@ -68,7 +80,7 @@ export function getClientStats(clients) {
     active: clients.filter(client => client.status === 'active').length,
     leads: clients.filter(client => client.status === 'lead').length,
     industries: new Set(
-      clients.map(client => client.industry).filter(industry => industry && industry !== 'Sektör belirtilmedi'),
+      clients.map(client => client.industry).filter(Boolean),
     ).size,
   };
 }

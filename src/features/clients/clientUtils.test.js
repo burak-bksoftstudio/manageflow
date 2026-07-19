@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  canManageClients, filterClients, getClientErrorMessage, getClientInitials, getClientStats, mapDatabaseClient, validateClient,
+  canManageClients, filterClients, getClientErrorMessage, getClientInitials, getClientStats, mapDatabaseClient,
+  normalizeClientForm, validateClient,
 } from './clientUtils';
 
 const clients = [
@@ -27,8 +28,7 @@ describe('client utilities', () => {
       id: '1', name: 'Atlas Labs', contact_name: null, email: null, phone: null,
       industry: null, status: 'lead', notes: null, created_at: '2026-07-19T01:00:00.000Z',
     })).toMatchObject({
-      name: 'Atlas Labs', contactName: 'Yetkili belirtilmedi', email: 'E-posta belirtilmedi',
-      industry: 'Sektör belirtilmedi', status: 'lead',
+      name: 'Atlas Labs', contactName: '', email: '', industry: '', status: 'lead',
     });
   });
 
@@ -49,5 +49,15 @@ describe('client utilities', () => {
   it('translates database constraint errors', () => {
     expect(getClientErrorMessage({ code: '23505' })).toContain('zaten bulunuyor');
     expect(getClientErrorMessage({ code: '42501' })).toContain('yetkiniz yok');
+  });
+
+  it('normalizes client form values before persistence', () => {
+    expect(normalizeClientForm({
+      name: '  Atlas Labs ', contactName: ' Ayşe Kaya ', email: ' INFO@ATLAS.CO ',
+      phone: ' 123 ', industry: ' Yazılım ', status: 'active', notes: ' İlk görüşme ',
+    })).toEqual({
+      name: 'Atlas Labs', contactName: 'Ayşe Kaya', email: 'info@atlas.co', phone: '123',
+      industry: 'Yazılım', status: 'active', notes: 'İlk görüşme',
+    });
   });
 });

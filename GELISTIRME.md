@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.10.0-client-foundation` |
-| Mevcut aşama | Organizasyona bağlı gerçek müşteri listesi ve ilk müşteri oluşturma akışı Supabase ile çalışıyor |
-| Sonraki ana hedef | Müşteri detay drawer'ı, düzenleme ve güvenli pasife alma akışı |
+| Mevcut sürüm | `0.11.0-client-details` |
+| Mevcut aşama | Gerçek müşteri oluşturma, detay, düzenleme ve güvenli pasife alma akışları Supabase ile çalışıyor |
+| Sonraki ana hedef | Müşteriye bağlı gerçek proje veri modeli, proje listesi ve ilk proje oluşturma akışı |
 
 ---
 
@@ -79,7 +79,7 @@ Mevcut sürümde:
 | Organizasyon onboarding | Gerçek Supabase verisiyle kullanılabilir |
 | Dashboard | Demo verilerle kullanılabilir |
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
-| Müşteriler | Gerçek Supabase listesi, arama/filtre/metrik ve ilk oluşturma akışı bağlı |
+| Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Demo state ile kullanılabilir |
 | Gündem ve bildirimler | Demo içerikle önizlenebilir |
 | Projeler, Görevler ve Çalışma Alanı | Yakında |
@@ -427,8 +427,13 @@ Gerçek hesapla ilk organizasyon oluşturuldu; uzak veritabanında 1 organizasyo
 - Aynı organizasyonda büyük/küçük harf duyarsız tekrarlayan müşteri adını engelleme
 - Müşteriyi başka organizasyona taşıma ve oluşturucu kimliğini değiştirme koruması
 - Supabase olmayan ortam için demo müşteri listesi ve oluşturma fallback'i
+- Müşteri satırından açılan detay drawer'ı
+- İletişim, sektör, durum ve notların gerçek Supabase update işlemi
+- Member rolünde salt okunur detay görünümü
+- Fiziksel silme yerine onaylı pasife alma ve yeniden aktifleştirme desteği
+- Düzenleme/pasife alma loading, doğrulama, hata ve başarı durumları
 
-Müşteri listesi ve oluşturma altyapısı tamamlanmıştır. Müşteri detayını açma, düzenleme, pasife alma ve projeleri müşteriye bağlama sonraki paketlerdedir.
+Müşteri çekirdeğinin listeleme, oluşturma, detay, düzenleme ve pasife alma altyapısı tamamlanmıştır. Projeleri müşteriye bağlama sıradaki pakettedir.
 
 ---
 
@@ -1044,7 +1049,7 @@ Durum: **Devam ediyor**
 Durum: **Devam ediyor**
 
 - [x] Müşteri veri modeli, listeleme ve oluşturma
-- [ ] Müşteri detay, düzenleme ve pasife alma
+- [x] Müşteri detay, düzenleme ve pasife alma
 - [ ] Proje CRUD
 - [ ] Proje üyeleri
 - [ ] Görev CRUD
@@ -1227,27 +1232,60 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Müşteri satırından açılan detay drawer'ını oluştur.
-2. İletişim, sektör, durum ve not alanlarını düzenlenebilir hale getir.
-3. Owner/admin/proje yöneticisi update işlemini gerçek Supabase'e bağla.
-4. Member rolüne salt okunur müşteri detayı göster.
-5. Fiziksel silme yerine onaylı `Pasif` durumuna alma akışını ekle.
-6. Gerçek müşteri kaydıyla düzenleme/yenileme kalıcılığını doğrulayıp ayrı commit gönder.
+1. Aktif organizasyona ve zorunlu müşteriye bağlı temel `projects` veri modelini oluştur.
+2. Planlandı, devam ediyor, beklemede ve tamamlandı proje durumlarını tanımla.
+3. Organizasyon üyelerine okuma; owner/admin/proje yöneticisine oluşturma-güncelleme RLS kurallarını yaz.
+4. Mevcut `/projeler` placeholder'ını gerçek responsive proje listesiyle değiştir.
+5. İlk proje oluşturma modalında müşteri seçimini gerçek `clients` verisinden getir.
+6. Projenin müşteri ilişkisini, yenileme kalıcılığını ve çapraz organizasyon izolasyonunu doğrula.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Yetkili kullanıcı müşteri detayını açabilir
-→ İletişim ve durum bilgilerini güncelleyebilir
-→ Sayfa yenilendiğinde değişiklik korunur
-→ Member aynı detayı salt okunur görür
-→ Pasife alma işlemi onay ister
-→ Müşteri kaydı silinmeden geçmiş bağlamı korunur
+Yetkili kullanıcı aktif müşteriyi seçerek proje oluşturabilir
+→ Proje aktif organizasyona ve müşteriye bağlanır
+→ Sayfa yenilendiğinde proje korunur
+→ Organizasyon üyeleri projeyi okuyabilir
+→ Member yetkisiz proje oluşturamaz
+→ Başka organizasyon müşteri veya projeyi göremez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.11.0-client-details`
+
+Eklenenler ve iyileştirmeler:
+
+- Müşteri satırını etkileşimli detay açma aksiyonuna dönüştürme
+- Müşteri kimliği, durum, iletişim, sektör ve not alanlarını gösteren detay drawer'ı
+- Owner/admin/proje yöneticisi için tüm müşteri alanlarını düzenleme formu
+- `useClients` veri katmanında gerçek Supabase update işlemi
+- Güncelleme sonrasında liste, drawer, metrik ve filtreleri eşzamanlı yenileme
+- Member rolünde salt okunur detay paneli ve yetki açıklaması
+- Fiziksel silme yerine onay isteyen `Pasife al` akışı
+- Pasif müşteriyi düzenleyerek yeniden aktifleştirme desteği
+- Demo ortamında müşteri update fallback'i
+- Form değerlerini merkezi biçimde trim/lowercase yapan `normalizeClientForm`
+- Türkçe locale'in `INFO@...` adresini hatalı `ınfo@...` değerine dönüştürmesini engelleyen dil bağımsız e-posta normalizasyonu
+- Aynı e-posta düzeltmesinin ekip daveti doğrulama ve gönderme akışına uygulanması
+- Form normalizasyonu ve Türkçe locale e-posta regresyonu için 2 yeni otomatik test
+
+Doğrulama:
+
+- Owner hesabından ilk gerçek aktif müşteri tarayıcıda oluşturuldu.
+- Sayfa yenileme sonrasında müşteri kaydının korunduğu kullanıcı tarafından doğrulandı.
+- Uzak veritabanı sorgusu `real_client_count: 1`, `active_clients: 1` döndürdü.
+- Müşteri update RLS matrisi yeniden `result: passed` döndürdü.
+- Owner/admin/proje yöneticisi update izni ve member write reddi doğrulandı.
+- `npm test` — 32/32 test başarılı
+- `npm run build` — uyarısız başarılı
+
+Kullanıcı doğrulaması bekleyenler:
+
+- Gerçek müşteri detayında alan güncelleme ve sayfa yenileme kalıcılığı tarayıcıda test edilmelidir.
+- Onaylı pasife alma ve member salt okunur drawer davranışı tarayıcıda test edilmelidir.
 
 ### 19 Temmuz 2026 — `0.10.0-client-foundation`
 
@@ -1283,10 +1321,10 @@ Doğrulama:
 - `npm test` — 30/30 test başarılı
 - `npm run build` — uyarısız başarılı
 
-Kullanıcı doğrulaması bekleyenler:
+Kullanıcı doğrulaması:
 
-- Owner hesabından ilk gerçek müşteri oluşturma ve sayfa yenileme kalıcılığı henüz tarayıcıda test edilmedi.
-- Member hesabında müşteri listesinin okunması ve oluşturma butonunun devre dışı olması tarayıcıda doğrulanmalıdır.
+- Owner hesabından ilk gerçek müşteri oluşturuldu ve sayfa yenileme kalıcılığı doğrulandı.
+- Member müşteri okuma/write reddi uzak RLS testinde doğrulandı; tarayıcı görünümü ayrıca kontrol edilebilir.
 
 ### 19 Temmuz 2026 — `0.9.1-rls-hardening`
 

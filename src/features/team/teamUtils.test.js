@@ -33,6 +33,14 @@ describe('team utilities', () => {
     expect(error).toBe('Bu e-posta adresi çalışma alanında zaten bulunuyor.');
   });
 
+  it('normalizes ASCII email casing independently from Turkish locale', () => {
+    const error = validateInvite(
+      { name: 'Yeni Üye', email: 'INFO@EXAMPLE.COM', title: 'Designer' },
+      [{ email: 'info@example.com' }],
+    );
+    expect(error).toBe('Bu e-posta adresi çalışma alanında zaten bulunuyor.');
+  });
+
   it('accepts a complete, unique invitation', () => {
     const error = validateInvite({ name: 'Ayşe Yılmaz', email: 'ayse@studio.co', title: 'Designer' }, initialTeamMembers);
     expect(error).toBeNull();

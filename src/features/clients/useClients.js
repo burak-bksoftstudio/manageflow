@@ -5,7 +5,7 @@ import { initialClients } from '../../data/demo';
 import { requireSupabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { useOrganization } from '../organizations/OrganizationContext';
-import { getClientInitials, mapDatabaseClient } from './clientUtils';
+import { getClientInitials, mapDatabaseClient, normalizeClientForm } from './clientUtils';
 
 export function useClients() {
   const { isDemoMode, user } = useAuth();
@@ -50,18 +50,13 @@ export function useClients() {
   }, [loadClients]);
 
   const createClientRecord = useCallback(async form => {
+    const normalized = normalizeClientForm(form);
     if (isDemoMode) {
       const now = new Date();
       const record = {
         id: `client-${Date.now()}`,
-        name: form.name.trim(),
-        initials: getClientInitials(form.name),
-        contactName: form.contactName.trim() || 'Yetkili belirtilmedi',
-        email: form.email.trim().toLocaleLowerCase('tr-TR') || 'E-posta belirtilmedi',
-        phone: form.phone.trim() || 'Telefon belirtilmedi',
-        industry: form.industry.trim() || 'Sektör belirtilmedi',
-        status: form.status,
-        notes: form.notes.trim(),
+        ...normalized,
+        initials: getClientInitials(normalized.name),
         createdAt: now.toISOString(),
         createdAtLabel: new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(now),
       };
@@ -74,13 +69,13 @@ export function useClients() {
       .from('clients')
       .insert({
         organization_id: activeOrganization.id,
-        name: form.name.trim(),
-        contact_name: form.contactName.trim() || null,
-        email: form.email.trim().toLocaleLowerCase('tr-TR') || null,
-        phone: form.phone.trim() || null,
-        industry: form.industry.trim() || null,
-        status: form.status,
-        notes: form.notes.trim() || null,
+        name: normalized.name,
+        contact_name: normalized.contactName || null,
+        email: normalized.email || null,
+        phone: normalized.phone || null,
+        industry: normalized.industry || null,
+        status: normalized.status,
+        notes: normalized.notes || null,
         created_by: user.id,
       })
       .select('id, name, contact_name, email, phone, industry, status, notes, created_at')
@@ -92,12 +87,46 @@ export function useClients() {
     return { data: mappedClient, error: null };
   }, [activeOrganization, isDemoMode, user]);
 
+  const updateClientRecord = useCallback(async (clientId, form) => {
+    const normalized = normalizeClientForm(form);
+    if (isDemoMode) {
+      const currentClient = clients.find(client => client.id === clientId);
+      const updatedClient = currentClient
+        ? { ...currentClient, ...normalized, initials: getClientInitials(normalized.name) }
+        : null;
+      if (updatedClient) setClients(value => value.map(client => client.id === clientId ? updatedClient : client));
+      return { data: updatedClient, error: null };
+    }
+
+    const client = requireSupabase();
+    const { data, error: updateError } = await client
+      .from('clients')
+      .update({
+        name: normalized.name,
+        contact_name: normalized.contactName || null,
+        email: normalized.email || null,
+        phone: normalized.phone || null,
+        industry: normalized.industry || null,
+        status: normalized.status,
+        notes: normalized.notes || null,
+      })
+      .eq('id', clientId)
+      .eq('organization_id', activeOrganization.id)
+      .select('id, name, contact_name, email, phone, industry, status, notes, created_at')
+      .single();
+
+    if (updateError) return { data: null, error: updateError };
+    const mappedClient = mapDatabaseClient(data);
+    setClients(value => value.map(item => item.id === clientId ? mappedClient : item));
+    return { data: mappedClient, error: null };
+  }, [activeOrganization, clients, isDemoMode]);
+
   return useMemo(() => ({
     clients,
     createClient: createClientRecord,
     error,
     loading,
     refresh: loadClients,
-  }), [clients, createClientRecord, error, loadClients, loading]);
+    updateClient: updateClientRecord,
+  }), [clients, createClientRecord, error, loadClients, loading, updateClientRecord]);
 }
-

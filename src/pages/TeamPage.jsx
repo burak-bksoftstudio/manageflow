@@ -64,7 +64,7 @@ function InviteMemberModal({ close, inviteMember, members }) {
     const result = await inviteMember({
       ...form,
       name: form.name.trim(),
-      email: form.email.trim().toLocaleLowerCase('tr-TR'),
+      email: form.email.trim().toLowerCase(),
       title: form.title.trim(),
     });
     setSaving(false);

@@ -142,7 +142,7 @@ export function useTeamMembers() {
       body: {
         organizationId: activeOrganization.id,
         fullName: form.name.trim(),
-        email: form.email.trim().toLocaleLowerCase('tr-TR'),
+        email: form.email.trim().toLowerCase(),
         role: getTeamRoleValue(form.role),
         department: form.department === 'Belirtilmedi' ? null : form.department,
         title: form.title.trim(),

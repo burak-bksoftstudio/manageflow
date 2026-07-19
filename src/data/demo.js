@@ -4,6 +4,20 @@ export const initialProjects = [
   { name: 'Marka yenileme', client: 'Mono Coffee', progress: 91, status: 'İncelemede' },
 ];
 
+export const initialClients = [
+  {
+    id: 'client-atlas', name: 'Atlas Labs', initials: 'AL', contactName: 'Ayşe Kaya',
+    email: 'ayse@atlaslabs.co', phone: '+90 212 555 12 12', industry: 'Yazılım', status: 'active',
+    notes: '', createdAt: '2026-06-12T10:00:00.000Z', createdAtLabel: '12 Haz 2026',
+  },
+  {
+    id: 'client-mono', name: 'Mono Coffee', initials: 'MC', contactName: 'Can Demir',
+    email: 'can@monocoffee.co', phone: '+90 532 555 18 24', industry: 'Yiyecek & İçecek', status: 'lead',
+    notes: '', createdAt: '2026-07-03T09:30:00.000Z', createdAtLabel: '03 Tem 2026',
+  },
+];
+
+
 export const notifications = [
   'Ece yeni görevi sana atadı.',
   'Web sitesi projesinde yorum var.',

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
-  AlarmClock, Bell, BriefcaseBusiness, CalendarDays, CheckSquare2,
+  AlarmClock, Bell, BriefcaseBusiness, Building2, CalendarDays, CheckSquare2,
   ChevronDown, ChevronLeft, ChevronRight, Files, FolderKanban,
   LayoutDashboard, LogOut, MessageSquare, Settings2, Sparkles, Users, X,
 } from 'lucide-react';
@@ -27,6 +27,7 @@ const navGroups = [
     title: 'Ekip & Müşteri',
     icon: MessageSquare,
     items: [
+      { label: 'Müşteriler', to: '/musteriler', icon: Building2 },
       { label: 'Kanallar', to: '/kanallar', icon: MessageSquare, badge: 'Yakında' },
       { label: 'Gelen Kutusu', to: '/gelen-kutusu', icon: Bell, badge: 'Yakında' },
       { label: 'Takvim', to: '/takvim', icon: CalendarDays, badge: 'Yakında' },
@@ -47,7 +48,8 @@ function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile 
 }
 
 export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, organization, onSignOut }) {
-  const [openGroups, setOpenGroups] = useState([true, false]);
+  const location = useLocation();
+  const [openGroups, setOpenGroups] = useState([true, location.pathname === '/musteriler']);
   const closeMobile = () => setMobileOpen(false);
 
   return (

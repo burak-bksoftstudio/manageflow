@@ -21,6 +21,7 @@ import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage';
 const OrganizationOnboardingPage = lazy(() => import('./pages/OrganizationOnboardingPage'));
 const InvitationAcceptancePage = lazy(() => import('./pages/InvitationAcceptancePage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
+const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 
 function LazyPage({ children }) {
   return <Suspense fallback={<div className="page-inline-loading">Sayfa hazırlanıyor…</div>}>{children}</Suspense>;
@@ -112,6 +113,7 @@ export default function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} />} />
               <Route path="/ekipler" element={<LazyPage><TeamPage /></LazyPage>} />
+              <Route path="/musteriler" element={<LazyPage><ClientsPage /></LazyPage>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />
             </Route>

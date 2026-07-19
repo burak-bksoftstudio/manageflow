@@ -9,10 +9,10 @@
 | Proje adı | ManageFlow |
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
-| Son güncelleme | 19 Temmuz 2026 |
+| Son güncelleme | 20 Temmuz 2026 |
 | Mevcut sürüm | `0.26.0-time-tracking` |
-| Mevcut aşama | Proje/görev bağlantılı gerçek Zaman Takibi v1 uzak Supabase şemasıyla hazır |
-| Sonraki ana hedef | Gerçek kullanıcı kabul testini tamamlayıp manuel süre ve haftalık geçmiş paketini planlamak |
+| Mevcut aşama | Zaman Takibi v1 başlatma, yenilemede sürdürme ve durdurma akışı production'da doğrulandı |
+| Sonraki ana hedef | Manuel süre girişi ve haftalık kişisel geçmiş paketini oluşturmak |
 
 ---
 
@@ -92,7 +92,7 @@ Mevcut sürümde:
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
 | Dosyalar | Yakında |
-| Zaman Takibi | Gerçek kişisel sayaç, proje/görev bağlantısı, bugünkü metrikler ve kayıt listesi Supabase ile bağlı; kullanıcı kabul testi bekliyor |
+| Zaman Takibi | Gerçek kişisel sayaç, proje/görev bağlantısı, yenilemede sürdürme, bugünkü metrikler ve kayıt listesi Supabase ile bağlı ve doğrulandı |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
@@ -625,7 +625,7 @@ Vercel production yayını özel domain üzerinden çalışmaktadır. Cloudflare
 - Süre hesaplama, günlük kesişim, formatlama ve hata davranışları için 7 otomatik test
 - Tek transaction ve `ROLLBACK` kullanan ayrı uzak zaman takibi güvenlik smoke testi
 
-Veritabanı migration'ları uzak projeye uygulanmış, zaman takibi RLS testi ve mevcut tam RLS regresyon testi `passed`, schema lint temizdir. Gerçek hesapla başlatma, sayfa yenileme ve durdurma kabul testi beklemektedir.
+Veritabanı migration'ları uzak projeye uygulanmış, zaman takibi RLS testi ve mevcut tam RLS regresyon testi `passed`, schema lint temizdir. Gerçek hesapla sayaç başlatma, sayfayı yeniledikten sonra aynı sunucu başlangıç zamanıyla sürdürme, durdurma ve kaydı listede koruma production ortamında doğrulanmıştır.
 
 ---
 
@@ -1280,7 +1280,7 @@ Durum: **Devam ediyor**
 - [ ] Gerçek uygulama içi bildirimler
 - [ ] E-posta bildirimleri
 - [x] Zaman takip sayacı altyapısı ve gerçek arayüzü
-- [ ] Zaman takip sayacı gerçek kullanıcı kabul testi
+- [x] Zaman takip sayacı gerçek kullanıcı kabul testi
 - [ ] Timesheet
 - [ ] Proje raporları
 - [ ] Global arama
@@ -1460,7 +1460,7 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 
 ## 15. Değişiklik günlüğü
 
-### 19 Temmuz 2026 — `0.26.0-time-tracking`
+### 20 Temmuz 2026 — `0.26.0-time-tracking`
 
 Eklenenler:
 
@@ -1481,10 +1481,10 @@ Doğrulama:
 - Zaman takibi RLS smoke testi — `result: passed`, 9 güvenlik/bütünlük kontrolü `true`
 - Mevcut tam RLS regresyon testi — `result: passed`
 - Uzak Supabase schema lint — hata/uyarı yok
+- Gerçek hesapla production başlatma → sayfa yenileme → aynı sayacı sürdürme → durdurma → kalıcı listede gösterme akışı başarılı
 
 Bilinen sınırlamalar:
 
-- Gerçek hesapla başlatma → yenileme → durdurma kullanıcı kabul testi bekliyor.
 - Manuel süre girişi, düzenleme/arşivleme, haftalık timesheet ve ekip raporları henüz yok.
 - Production build ana JavaScript chunk'ı minified 500 kB uyarı eşiğini aşıyor; gzip boyutu yaklaşık 152 kB.
 

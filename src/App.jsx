@@ -5,7 +5,6 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import AppHeader from './components/AppHeader';
 import { AgendaDrawer, QuickCreateModal } from './components/AppOverlays';
 import AppSidebar from './components/AppSidebar';
-import { initialProjects } from './data/demo';
 import { useAuth } from './features/auth/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './features/auth/AuthRouteGuards';
 import { getUserIdentity } from './features/auth/authUtils';
@@ -79,16 +78,12 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [projects, setProjects] = useState(initialProjects);
-  const [taskCount, setTaskCount] = useState(28);
 
   useEffect(() => {
     window.localStorage.setItem('manageflow-theme', dark ? 'dark' : 'light');
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
   }, [dark]);
 
-  const addProject = name => setProjects(value => [{ name, client: 'Yeni müşteri', progress: 0, status: 'Planlandı' }, ...value]);
-  const addTask = () => setTaskCount(value => value + 1);
   const shellClass = useMemo(() => `${dark ? 'dark' : ''} ${collapsed ? 'is-collapsed' : ''}`, [dark, collapsed]);
   const shellState = {
     collapsed, setCollapsed, mobileOpen, setMobileOpen, dark, setDark,
@@ -111,7 +106,7 @@ export default function App() {
           <Route element={<OrganizationRouteGuard />}>
             <Route element={<AppLayout shellState={shellState} />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/ekipler" element={<LazyPage><TeamPage /></LazyPage>} />
               <Route path="/musteriler" element={<LazyPage><ClientsPage /></LazyPage>} />
               <Route path="/projeler" element={<LazyPage><ProjectsPage /></LazyPage>} />
@@ -122,7 +117,7 @@ export default function App() {
           </Route>
         </Route>
       </Routes>
-      {modal && <QuickCreateModal type={modal} close={() => setModal(null)} {...{ addProject, addTask }} />}
+      {modal && <QuickCreateModal close={() => setModal(null)} />}
       {agendaOpen && <AgendaDrawer close={() => setAgendaOpen(false)} />}
     </div>
   );

@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.16.0-task-lifecycle` |
-| Mevcut aşama | Görev detay, düzenleme, yeniden atama, durum geçişi ve güvenli arşivleme yaşam döngüsü Supabase ile çalışıyor |
-| Sonraki ana hedef | Dashboard metriklerini, aktif projeleri ve güncel görevleri gerçek Supabase verisine bağlamak |
+| Mevcut sürüm | `0.17.0-real-dashboard` |
+| Mevcut aşama | Dashboard metrikleri, haftalık görev hareketi, proje dağılımı, aktif projeler ve bugünkü gündem gerçek Supabase verisiyle çalışıyor |
+| Sonraki ana hedef | Görevler için liste yanında durum bazlı Kanban görünümü oluşturmak |
 
 ---
 
@@ -56,10 +56,10 @@ Mevcut sürümde:
 - Uygulama yerel ortamda açılmaktadır.
 - Production derlemesi başarıyla alınmaktadır.
 - Masaüstü ve mobil arayüz bulunmaktadır.
-- Dashboard demo verilerle görüntülenmektedir.
+- Dashboard aktif organizasyonun gerçek müşteri, proje, görev ve ekip verileriyle görüntülenmektedir.
 - Bazı arayüz etkileşimleri gerçekten çalışmaktadır.
 - Supabase istemcisi uzak projeye bağlıdır; Auth, organizasyon ve ekip ekranları gerçek veriyi kullanmaktadır.
-- Dashboard ve diğer tamamlanmamış modüller demo verilerini kullanmaktadır; `/projeler` ve `/gorevler` gerçek Supabase verisine geçmiştir.
+- Dashboard, `/musteriler`, `/projeler`, `/gorevler` ve `/ekipler` gerçek Supabase verisini kullanmaktadır; tamamlanmamış modüller demo/placeholder durumundadır.
 - Supabase Auth kayıt, giriş, çıkış, doğrulama ve şifre yenileme arayüzleri bulunmaktadır.
 - Uygulama rotaları oturumsuz erişime karşı korunmaktadır; kayıt, e-posta doğrulama, çıkış ve yeniden giriş gerçek hesapla doğrulanmıştır.
 - İlk organizasyon onboarding akışı, aktif organizasyon context'i ve owner üyeliği gerçek Supabase verisiyle çalışmaktadır.
@@ -79,13 +79,13 @@ Mevcut sürümde:
 |---|---|
 | Kimlik doğrulama | Supabase ile bağlı; kayıt/doğrulama/giriş/çıkış doğrulandı |
 | Organizasyon onboarding | Gerçek Supabase verisiyle kullanılabilir |
-| Dashboard | Demo verilerle kullanılabilir |
+| Dashboard | Gerçek metrik, haftalık görev hareketi, proje dağılımı, aktif proje özeti ve bugünkü gündem bağlı |
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
 | Görevler | Gerçek CRUD yaşam döngüsü, proje ekibi ataması, durum geçişleri ve güvenli arşivleme Supabase ile bağlı |
-| Hızlı proje/görev oluşturma | Demo state ile kullanılabilir |
-| Gündem ve bildirimler | Demo içerikle önizlenebilir |
+| Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
+| Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
 | Dosyalar ve Zaman Takibi | Yakında |
 | Flow AI | Yakında |
@@ -270,24 +270,22 @@ src/
 
 ### 4.4 KPI kartları
 
-Mevcut demo kartları:
+Aktif organizasyonun gerçek verisinden hesaplanan kartlar:
 
-- Toplam proje
-- Görevler
-- Mesajlar
-- Ekip ve müşteri
+- Arşiv dışındaki toplam ve devam eden projeler
+- Arşiv dışındaki toplam/tamamlanan görevler ve tamamlanma oranı
+- Toplam ve aktif müşteriler
+- Davetler hariç toplam ve aktif ekip üyeleri
 
-Görev kartında ilerleme çubuğu bulunmaktadır. Değerler şu anda demo state üzerinden hesaplanmaktadır.
+Arşivlenmiş görevlere veya arşivlenmiş projelere bağlı görevlere Dashboard metriklerinde yer verilmez.
 
 ### 4.5 Haftalık ilerleme
 
-- Haftanın yedi günü için demo grafik
-- Görev ve tamamlanan görev göstergeleri
+- Son yedi gün için gerçek görev oluşturma/tamamlama grafiği
+- Oluşturulan ve tamamlanan görev serileri
 - Responsive grafik alanı
-- Proje durumları için donut grafik
-- Devam ediyor, incelemede ve planlandı ayrımı
-
-Grafikler şu anda gerçek analitik veriye bağlı değildir.
+- Arşiv dışındaki projeler için dinamik donut grafik
+- Devam ediyor, beklemede, planlandı ve tamamlandı durum ayrımı
 
 ### 4.6 Aktif projeler
 
@@ -298,19 +296,16 @@ Her proje satırında:
 - Proje durumu
 - İlerleme oranı
 - Proje ikonu
-- Ek işlem ikonu
+- Teslim tarihi
 
-bulunmaktadır.
+bulunmaktadır. Son oluşturulan ve henüz tamamlanmamış en fazla beş proje gösterilir; satır ve “Tümünü gör” bağlantısı gerçek Projeler ekranına gider.
 
 ### 4.7 Hızlı oluşturma
 
-- Proje veya görev seçilebilir.
-- İsim girilebilir.
-- Demo müşteri/proje seçilebilir.
-- Yeni proje oluşturulunca proje listesine eklenir.
-- Yeni görev oluşturulunca görev sayısı artar.
-
-Bu değişiklikler yalnızca React belleğinde tutulur ve sayfa yenilenince kaybolur.
+- Üst “+” düğmesi proje veya görev başlangıcını seçtirir.
+- Proje seçimi gerçek müşteri bağlantılı Projeler ekranına gider.
+- Görev seçimi gerçek proje/görevli bağlantılı Görevler ekranına gider.
+- Kalıcı olmayan sahte sayaç ve demo oluşturma state'i kaldırılmıştır.
 
 ### 4.8 Bugünkü gündem
 
@@ -319,12 +314,11 @@ Sağdan açılan drawer içerisinde:
 - Tarih
 - Günün odağı
 - Tamamlanma sayacı
-- Toplantılar
-- Görevler
-- Saat bilgileri
-- Gündeme yeni kayıt ekleme düğmesi
+- Teslim tarihi bugün olan gerçek görevler
+- Görev önceliği, proje ve durum bilgisi
+- Gerçek Görevler ekranına bağlantı
 
-bulunmaktadır. Gündeme ekleme düğmesi henüz gerçek form veya veritabanı işlemi yapmamaktadır.
+bulunmaktadır. Arşivlenmiş görevler ve arşivlenmiş projelerin görevleri gündemde gösterilmez. Toplantı/takvim olayları henüz bağlı değildir.
 
 ### 4.9 Arama
 
@@ -519,7 +513,7 @@ Görev CRUD yaşam döngüsü ve proje ekibi atama akışı tamamlanmıştır. A
 
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
-- Dashboard ve diğer iş modüllerinin Supabase sorguları
+- Dosya, zaman takibi, mesaj, bildirim ve takvim modüllerinin Supabase sorguları
 - Supabase Auth production Site URL ve yönlendirme adresleri
 - Gerçek şifre yenileme e-posta teslim testi
 - Production canlı domain için `MANAGEFLOW_APP_URL` Edge Function secret'ı
@@ -1135,7 +1129,7 @@ Durum: **Devam ediyor**
 - [ ] Alt görevler ve checklist
 - [ ] Görev yorumları
 - [ ] Aktivite geçmişi
-- [ ] Dashboard'u gerçek verilere bağla
+- [x] Dashboard'u gerçek verilere bağla
 - [ ] Liste ve Kanban görünümü
 - [ ] Arama, filtreleme ve sıralama
 
@@ -1289,14 +1283,11 @@ Her özellik tamamlanmış sayılmadan önce:
 
 - TypeScript kullanılmıyor.
 - Sunucu verisi/cache yönetim katmanı henüz yok; ekran state'i yerel React state ile yönetiliyor.
-- Dashboard ve üst hızlı oluşturma akışındaki proje/görev verileri hâlâ sabit/demo içeriklerden oluşuyor.
 - Sunucu sorguları için merkezi cache/invalidation katmanı henüz yok.
 - Formlar gelişmiş doğrulama yapmıyor.
-- Hızlı görev oluşturma yalnızca sayacı artırıyor.
 - Global arama gerçek sonuç üretmiyor.
 - Bildirimler demo.
-- Gündem demo.
-- Grafikler gerçek veri kullanmıyor.
+- Gündem yalnızca görevleri içeriyor; toplantı ve takvim olayları henüz bağlı değil.
 - Placeholder modüller işlevsel değil.
 - Domain/config testleri var; UI entegrasyon ve E2E testleri henüz yok.
 - ESLint/Prettier yapılandırması bulunmuyor.
@@ -1309,27 +1300,62 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Dashboard sayaçlarını gerçek müşteri, proje, görev ve ekip sorgularından üret.
-2. Haftalık ilerleme grafiğini görev oluşturma/tamamlama verileriyle besle.
-3. Proje durum dağılımını arşiv dışındaki gerçek projelerden hesapla.
-4. Aktif proje özetini gerçek proje ilerlemesi ve teslim tarihleriyle göster.
-5. Bugünkü gündemi bitiş tarihi bugün olan görevlerle bağla.
-6. Dashboard loading, hata, boş organizasyon ve yetkisiz erişim durumlarını tamamla.
+1. Görevler ekranına Liste/Kanban görünüm seçicisi ekle.
+2. Yapılacak, devam ediyor, incelemede ve tamamlandı sütunlarını gerçek görevlerden üret.
+3. Arama, proje ve arşiv filtrelerini iki görünümde ortak kullan.
+4. Yetkili kullanıcının kartı sütunlar arasında taşıyarak durum güncellemesini sağla.
+5. Member rolünde Kanban'ı salt okunur tut.
+6. Boş sütun, loading, hata, mobil yatay akış ve update rollback davranışlarını tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Dashboard aktif organizasyonun gerçek verilerini gösterir
-→ Müşteri, proje, görev ve ekip metrikleri Supabase ile eşleşir
-→ Grafikler ve aktif proje özeti demo veriden arındırılır
-→ Bugünkü gündem gerçek bitiş tarihli görevleri listeler
-→ Veri yoksa anlamlı boş durum gösterilir
-→ Yenileme sonrasında tüm değerler kalıcı kaynakla tutarlı kalır
+Görev kullanıcı Liste ve Kanban arasında geçiş yapabilir
+→ Aynı arama ve filtre sonucu iki görünümde de korunur
+→ Yetkili kullanıcı görev durumunu Kanban üzerinden değiştirebilir
+→ Değişiklik Supabase'e yazılır ve yenilemede korunur
+→ Member kartları görür fakat taşıyamaz
+→ Mobilde sütunlar kullanılabilir yatay akışla sunulur
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.17.0-real-dashboard`
+
+Eklenenler:
+
+- Aktif organizasyondaki müşteri, proje, görev ve ekip verilerini birleştiren gerçek Dashboard akışı
+- Arşiv dışındaki proje ve görevlerden hesaplanan gerçek KPI kartları
+- Son yedi günün görev oluşturma ve tamamlama sayılarını gösteren çift serili grafik
+- Proje durumlarından dinamik oluşturulan donut dağılımı ve açıklama listesi
+- Son oluşturulan, arşiv dışı ve tamamlanmamış beş proje için gerçek aktif proje özeti
+- Dashboard genel loading, veri kaynağı hata, yeniden deneme ve proje boş durumları
+- Teslim tarihi bugün olan gerçek görevlerden üretilen Bugünkü Gündem drawer'ı
+- Dashboard hesapları, haftalık seri, proje dağılımı ve gündem sıralaması için domain testleri
+
+Değiştirilenler:
+
+- Mesaj veri modeli bulunmadığı için sahte Mesajlar KPI'ı kaldırıldı; müşteri ve ekip ayrı gerçek kartlara dönüştürüldü.
+- Arşivlenmiş görevler ve arşivlenmiş projelerin görevleri Dashboard/gündem hesaplarından çıkarıldı.
+- Üst Projeler kısayolundaki `Yakında` işareti kaldırıldı.
+- Hızlı oluşturma modalındaki kalıcı olmayan demo state kaldırıldı; gerçek Projeler ve Görevler ekranlarına yönlendirme eklendi.
+- Aktif proje satırları gerçek Projeler ekranına bağlandı ve teslim tarihi bilgisi eklendi.
+- Bugünkü Gündem'in sabit tarihi ve demo toplantıları kaldırıldı; tarih çalışma gününe göre dinamik hale getirildi.
+
+Doğrulama:
+
+- `npm test -- --run` — 9 test dosyasında 56 test geçti
+- `npm run build`
+- `git diff --check`
+- `http://127.0.0.1:5173/dashboard` yerel sunucu erişimi
+
+Bilinen sınırlamalar:
+
+- Dashboard sorguları ortak bir istemci cache katmanı kullanmadığı için modül hook'ları ayrı sorgular çalıştırır.
+- Gündem toplantı veya harici takvim olaylarını henüz içermez.
+- Gerçek bildirimler ve global arama henüz bağlı değildir.
 
 ### 19 Temmuz 2026 — `0.16.0-task-lifecycle`
 

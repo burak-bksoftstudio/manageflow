@@ -20,7 +20,7 @@ export default function AppHeader({ setMobileOpen, dark, setDark, openModal, set
     <header className="header">
       <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Menüyü aç"><Menu /></button>
       <button className="agenda-button" onClick={() => setAgendaOpen(true)}><CalendarDays /> Bugünkü Gündem</button>
-      <Link className="soft-button projects-shortcut" to="/projeler" title="Projeler modülü yakında"><FolderKanban /> Projeler <small className="soon-inline">Yakında</small></Link>
+      <Link className="soft-button projects-shortcut" to="/projeler"><FolderKanban /> Projeler</Link>
       <span className="header-separator" />
       <button className="round-button" onClick={() => openModal('create')} aria-label="Yeni oluştur"><Plus /></button>
       <button className="round-button" onClick={() => setDark(!dark)} aria-label="Temayı değiştir">{dark ? <Sun /> : <Moon />}</button>

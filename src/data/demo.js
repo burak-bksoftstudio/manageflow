@@ -1,7 +1,7 @@
 export const initialProjects = [
-  { name: 'Yeni web sitesi', client: 'North Studio', progress: 72, status: 'Devam ediyor' },
-  { name: 'Mobil uygulama', client: 'Atlas Labs', progress: 46, status: 'Planlandı' },
-  { name: 'Marka yenileme', client: 'Mono Coffee', progress: 91, status: 'İncelemede' },
+  { id: 'project-web', name: 'Yeni web sitesi', clientId: 'client-atlas', client: 'Atlas Labs', progress: 72, status: 'Devam ediyor', statusValue: 'active', description: 'Kurumsal web sitesi yenileme çalışması', createdAt: '2026-06-15T10:00:00.000Z' },
+  { id: 'project-mobile', name: 'Mobil uygulama', clientId: 'client-atlas', client: 'Atlas Labs', progress: 46, status: 'Planlandı', statusValue: 'planned', description: 'Mobil ürün tasarım ve geliştirme süreci', createdAt: '2026-07-01T09:30:00.000Z' },
+  { id: 'project-brand', name: 'Marka yenileme', clientId: 'client-mono', client: 'Mono Coffee', progress: 91, status: 'Beklemede', statusValue: 'on_hold', description: 'Marka kimliği ve ambalaj tasarımı', createdAt: '2026-07-08T13:15:00.000Z' },
 ];
 
 export const initialClients = [

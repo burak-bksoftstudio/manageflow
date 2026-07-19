@@ -111,6 +111,46 @@ select set_config(
   true
 );
 
+with main_probe_project as (
+  insert into public.projects (
+    organization_id, client_id, name, description, status, progress, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_client_id')::uuid,
+    'Main RLS Project Probe',
+    'RLS Probe',
+    'planned',
+    0,
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.main_project_id',
+  (select id::text from main_probe_project),
+  true
+);
+
+with other_probe_project as (
+  insert into public.projects (
+    organization_id, client_id, name, description, status, progress, created_by
+  ) values (
+    current_setting('manageflow_test.other_organization_id')::uuid,
+    current_setting('manageflow_test.other_client_id')::uuid,
+    'Other RLS Project Probe',
+    'RLS Probe',
+    'active',
+    20,
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.other_project_id',
+  (select id::text from other_probe_project),
+  true
+);
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -178,6 +218,22 @@ begin
     raise exception 'RLS probe failed: member can read another organization client.';
   end if;
 
+  if (
+    select count(*)
+    from public.projects project
+    where project.id = current_setting('manageflow_test.main_project_id')::uuid
+  ) <> 1 then
+    raise exception 'RLS probe failed: member cannot read their organization project.';
+  end if;
+
+  if exists (
+    select 1
+    from public.projects project
+    where project.id = current_setting('manageflow_test.other_project_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member can read another organization project.';
+  end if;
+
   begin
     update public.organization_members
     set title = title
@@ -231,6 +287,33 @@ begin
       current_setting('manageflow_test.member_id')::uuid
     );
     raise exception 'RLS probe failed: member can create a client.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    update public.projects
+    set status = status
+    where id = current_setting('manageflow_test.main_project_id')::uuid;
+    get diagnostics affected_rows = row_count;
+    if affected_rows <> 0 then
+      raise exception 'RLS probe failed: member can update a project.';
+    end if;
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    insert into public.projects (
+      organization_id, client_id, name, status, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_client_id')::uuid,
+      'Member Project Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      'planned',
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: member can create a project.';
   exception
     when insufficient_privilege then null;
   end;
@@ -308,6 +391,24 @@ begin
     current_setting('manageflow_test.member_id')::uuid
   );
 
+  update public.projects
+  set status = status
+  where id = current_setting('manageflow_test.main_project_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot update a project.';
+  end if;
+
+  insert into public.projects (
+    organization_id, client_id, name, status, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_client_id')::uuid,
+    'Admin Project Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    'planned',
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
   if exists (
     select 1
     from public.organizations organization
@@ -375,6 +476,24 @@ begin
     current_setting('manageflow_test.member_id')::uuid
   );
 
+  update public.projects
+  set status = status
+  where id = current_setting('manageflow_test.main_project_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: project manager cannot update a project.';
+  end if;
+
+  insert into public.projects (
+    organization_id, client_id, name, status, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_client_id')::uuid,
+    'Project Manager Project Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    'active',
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
   if exists (
     select 1
     from public.clients client
@@ -425,6 +544,31 @@ begin
     'RLS Probe',
     current_setting('manageflow_test.owner_id')::uuid
   );
+
+  insert into public.projects (
+    organization_id, client_id, name, status, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_client_id')::uuid,
+    'Owner Project Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    'active',
+    current_setting('manageflow_test.owner_id')::uuid
+  );
+
+  begin
+    insert into public.projects (
+      organization_id, client_id, name, status, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.other_client_id')::uuid,
+      'Cross Organization Client Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      'planned',
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: project can reference another organization client.';
+  exception
+    when foreign_key_violation then null;
+  end;
 end;
 $$;
 
@@ -437,15 +581,22 @@ select
   true as member_invitation_denied,
   true as member_client_read_allowed,
   true as member_client_write_denied,
+  true as member_project_read_allowed,
+  true as member_project_write_denied,
   true as admin_write_allowed,
   true as admin_client_write_allowed,
+  true as admin_project_write_allowed,
   true as project_manager_client_write_allowed,
+  true as project_manager_project_write_allowed,
   true as owner_client_write_allowed,
+  true as owner_project_write_allowed,
   true as owner_membership_protected_from_admin,
   true as admin_owner_assignment_denied,
   true as owner_invitation_assignment_denied,
   true as cross_organization_reads_hidden,
   true as cross_organization_clients_hidden,
+  true as cross_organization_projects_hidden,
+  true as cross_organization_project_client_denied,
   true as all_probe_changes_rolled_back;
 
 rollback;

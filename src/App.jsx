@@ -22,6 +22,7 @@ const OrganizationOnboardingPage = lazy(() => import('./pages/OrganizationOnboar
 const InvitationAcceptancePage = lazy(() => import('./pages/InvitationAcceptancePage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 
 function LazyPage({ children }) {
   return <Suspense fallback={<div className="page-inline-loading">Sayfa hazırlanıyor…</div>}>{children}</Suspense>;
@@ -29,7 +30,6 @@ function LazyPage({ children }) {
 
 const placeholderRoutes = [
   ['/flow-ai', 'Flow AI'],
-  ['/projeler', 'Projeler'],
   ['/gorevler', 'Görevler'],
   ['/calisma-alani', 'Çalışma Alanı'],
   ['/dosyalar', 'Dosyalar'],
@@ -114,6 +114,7 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardPage {...{ projects, taskCount }} />} />
               <Route path="/ekipler" element={<LazyPage><TeamPage /></LazyPage>} />
               <Route path="/musteriler" element={<LazyPage><ClientsPage /></LazyPage>} />
+              <Route path="/projeler" element={<LazyPage><ProjectsPage /></LazyPage>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />
             </Route>

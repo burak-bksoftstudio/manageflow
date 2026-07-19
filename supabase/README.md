@@ -25,21 +25,21 @@ http://127.0.0.1:5173/sifre-yenile
 http://127.0.0.1:5173/davet-kabul
 ```
 
-Production uygulaması şu adreste yayındadır:
+Production uygulamasının birincil adresi:
 
 ```text
-https://manageflow-seven.vercel.app
+https://manageflow.bksoftstudio.com
 ```
 
 Supabase Dashboard > Authentication > URL Configuration alanında `Site URL` bu origin olarak ayarlanmalı ve aşağıdaki kesin production adresleri redirect izin listesine eklenmelidir:
 
 ```text
-https://manageflow-seven.vercel.app/eposta-dogrula
-https://manageflow-seven.vercel.app/sifre-yenile
-https://manageflow-seven.vercel.app/davet-kabul
+https://manageflow.bksoftstudio.com/eposta-dogrula
+https://manageflow.bksoftstudio.com/sifre-yenile
+https://manageflow.bksoftstudio.com/davet-kabul
 ```
 
-Yerel üç adres de geliştirme için listede tutulmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır. Vercel Preview ortamı e-posta callback'leri için `VITE_APP_URL` üzerinden aynı kararlı production origin'ini kullanır.
+`https://manageflow-seven.vercel.app` altındaki aynı üç yol ve yerel üç adres yedek/geliştirme için listede tutulmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır. Vercel Preview ortamı e-posta callback'leri için `VITE_APP_URL` üzerinden aynı kararlı özel domain origin'ini kullanır.
 
 Bu `Site URL` ve redirect listesi production projesinde tanımlanmış; gerçek şifre sıfırlama e-postası, `/sifre-yenile` callback'i ve yeni şifre kaydı canlı hesapla doğrulanmıştır.
 
@@ -54,7 +54,7 @@ supabase functions deploy invite-member
 Yerel origin otomatik olarak desteklenir. Canlı domain yayınında yalnızca production origin'ine izin vermek için Edge Function secret'ı eklenmelidir:
 
 ```bash
-supabase secrets set MANAGEFLOW_APP_URL=https://manageflow-seven.vercel.app
+supabase secrets set MANAGEFLOW_APP_URL=https://manageflow.bksoftstudio.com
 ```
 
 Bu production secret'ı bağlı `manageflow` projesinde tanımlanmıştır.

@@ -191,6 +191,27 @@ select set_config(
   true
 );
 
+with main_probe_child_task as (
+  insert into public.tasks (
+    organization_id, project_id, parent_task_id, assignee_id, title, status, priority, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_project_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    current_setting('manageflow_test.owner_id')::uuid,
+    'Main RLS Child Task Probe',
+    'todo',
+    'normal',
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.main_child_task_id',
+  (select id::text from main_probe_child_task),
+  true
+);
+
 with main_probe_checklist as (
   insert into public.task_checklist_items (
     organization_id, task_id, title, position, created_by
@@ -393,6 +414,15 @@ begin
     where task.id = current_setting('manageflow_test.other_task_id')::uuid
   ) then
     raise exception 'RLS probe failed: member can read another organization task.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.tasks task
+    where task.id = current_setting('manageflow_test.main_child_task_id')::uuid
+      and task.parent_task_id = current_setting('manageflow_test.main_task_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member cannot read the task hierarchy.';
   end if;
 
   if (
@@ -994,6 +1024,59 @@ begin
     raise exception 'RLS probe failed: task archive lifecycle was not recorded as activities.';
   end if;
 
+  update public.tasks
+  set parent_task_id = null
+  where id = current_setting('manageflow_test.main_child_task_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot detach a child task.';
+  end if;
+
+  update public.tasks
+  set parent_task_id = current_setting('manageflow_test.main_task_id')::uuid
+  where id = current_setting('manageflow_test.main_child_task_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot attach a child task.';
+  end if;
+
+  if (
+    select count(*)
+    from public.task_activities activity
+    where activity.task_id = current_setting('manageflow_test.main_child_task_id')::uuid
+      and activity.event_type = 'parent_changed'
+      and activity.actor_id = current_setting('manageflow_test.member_id')::uuid
+  ) < 2 then
+    raise exception 'RLS probe failed: parent task changes were not recorded as activities.';
+  end if;
+
+  begin
+    update public.tasks
+    set parent_task_id = current_setting('manageflow_test.main_child_task_id')::uuid
+    where id = current_setting('manageflow_test.main_child_task_id')::uuid;
+    raise exception 'RLS probe failed: a task accepted itself as parent.';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.tasks
+    set parent_task_id = current_setting('manageflow_test.main_child_task_id')::uuid
+    where id = current_setting('manageflow_test.main_task_id')::uuid;
+    raise exception 'RLS probe failed: a cyclic task hierarchy was accepted.';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.tasks
+    set parent_task_id = current_setting('manageflow_test.other_task_id')::uuid
+    where id = current_setting('manageflow_test.main_child_task_id')::uuid;
+    raise exception 'RLS probe failed: another organization task was accepted as parent.';
+  exception
+    when foreign_key_violation or check_violation then null;
+  end;
+
   insert into public.tasks (
     organization_id, project_id, assignee_id, title, status, priority, created_by
   ) values (
@@ -1447,6 +1530,7 @@ select
   true as member_project_team_write_denied,
   true as member_task_read_allowed,
   true as member_task_write_denied,
+  true as member_task_hierarchy_read_allowed,
   true as member_checklist_read_allowed,
   true as member_checklist_write_denied,
   true as member_comment_read_allowed,
@@ -1473,6 +1557,11 @@ select
   true as archived_task_comment_denied,
   true as task_activity_status_recorded,
   true as task_activity_archive_lifecycle_recorded,
+  true as task_parent_change_allowed,
+  true as task_parent_activity_recorded,
+  true as task_parent_self_reference_denied,
+  true as task_parent_cycle_denied,
+  true as cross_organization_task_parent_denied,
   true as duplicate_project_assignment_denied,
   true as archived_project_assignment_denied,
   true as archived_project_task_denied,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  canManageTasks, canMoveTask, filterTasks, getTaskErrorMessage, getTaskStats, groupTasksByStatus,
-  mapDatabaseTask, normalizeTaskForm, validateTask,
+  attachTaskHierarchy, canManageTasks, canMoveTask, filterTasks, getTaskDescendantIds,
+  getTaskErrorMessage, getTaskStats, groupTasksByStatus, mapDatabaseTask, normalizeTaskForm, validateTask,
 } from './taskUtils';
 
 const tasks = [
@@ -36,7 +36,7 @@ describe('task permissions and validation', () => {
   it('normalizes optional task fields', () => {
     expect(normalizeTaskForm({
       title: '  Ana sayfa  ', projectId: ' p1 ', assigneeId: ' u1 ', description: '  Açıklama  ', status: 'todo', priority: 'high', dueDate: '',
-    })).toEqual({ title: 'Ana sayfa', projectId: 'p1', assigneeId: 'u1', description: 'Açıklama', status: 'todo', priority: 'high', dueDate: '' });
+    })).toEqual({ title: 'Ana sayfa', projectId: 'p1', assigneeId: 'u1', description: 'Açıklama', status: 'todo', priority: 'high', dueDate: '', parentTaskId: '' });
   });
 });
 
@@ -44,11 +44,25 @@ describe('task mapping, filtering and metrics', () => {
   it('maps project and assignee context', () => {
     const mapped = mapDatabaseTask({
       id: '1', title: 'Ana sayfa', description: null, status: 'in_progress', priority: 'high', project_id: 'p1', assignee_id: 'u1', due_date: null, completed_at: null, created_at: '2026-07-19T10:00:00.000Z',
-    }, new Map([['p1', { name: 'Web sitesi', archived_at: null }]]), new Map([['u1', { full_name: 'Ayşe Kaya', email: 'ayse@example.com' }]]));
+      parent_task_id: 'parent-1',
+    }, new Map([['p1', { name: 'Web sitesi', archived_at: null }]]), new Map([['u1', { full_name: 'Ayşe Kaya', email: 'ayse@example.com' }]]), new Map([['parent-1', { title: 'Ana iş', archived_at: null }]]));
     expect(mapped.projectName).toBe('Web sitesi');
     expect(mapped.assigneeName).toBe('Ayşe Kaya');
     expect(mapped.priorityLabel).toBe('Yüksek');
     expect(mapped.isArchived).toBe(false);
+    expect(mapped.parentTaskTitle).toBe('Ana iş');
+  });
+
+  it('attaches direct child progress and finds every descendant safely', () => {
+    const hierarchy = attachTaskHierarchy([
+      { id: 'p', parentTaskId: '', status: 'todo', isArchived: false },
+      { id: 'c1', parentTaskId: 'p', status: 'done', isArchived: false },
+      { id: 'c2', parentTaskId: 'p', status: 'todo', isArchived: false },
+      { id: 'g1', parentTaskId: 'c2', status: 'todo', isArchived: false },
+      { id: 'c3', parentTaskId: 'p', status: 'done', isArchived: true },
+    ]);
+    expect(hierarchy.find(task => task.id === 'p')).toMatchObject({ subtaskTotal: 2, subtaskCompleted: 1, subtaskPercentage: 50 });
+    expect([...getTaskDescendantIds(hierarchy, 'p')]).toEqual(['c1', 'c2', 'g1', 'c3']);
   });
 
   it('filters current and archived tasks independently', () => {

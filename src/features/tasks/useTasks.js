@@ -6,10 +6,10 @@ import { requireSupabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { useOrganization } from '../organizations/OrganizationContext';
 import {
-  mapDatabaseTask, normalizeTaskForm, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS,
+  attachTaskHierarchy, mapDatabaseTask, normalizeTaskForm, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS,
 } from './taskUtils';
 
-const taskSelect = 'id, title, description, status, priority, project_id, assignee_id, due_date, completed_at, archived_at, archived_by, created_at';
+const taskSelect = 'id, title, description, status, priority, project_id, parent_task_id, assignee_id, due_date, completed_at, archived_at, archived_by, created_at';
 
 function getDemoTasks() {
   const projectsById = new Map(initialProjects.map(project => [project.id, {
@@ -18,20 +18,23 @@ function getDemoTasks() {
   const profilesById = new Map(initialTeamMembers.map(member => [member.userId || member.id, {
     full_name: member.name, email: member.email,
   }]));
-  return initialTasks.map(task => mapDatabaseTask({
+  const taskRows = initialTasks.map(task => ({
     id: task.id,
     title: task.title,
     description: task.description,
     status: task.status,
     priority: task.priority,
     project_id: task.projectId,
+    parent_task_id: task.parentTaskId || null,
     assignee_id: task.assigneeId || null,
     due_date: task.dueDate || null,
     completed_at: task.status === 'done' ? task.createdAt : null,
     archived_at: task.archivedAt || null,
     archived_by: task.archivedBy || null,
     created_at: task.createdAt,
-  }, projectsById, profilesById));
+  }));
+  const tasksById = new Map(taskRows.map(task => [task.id, task]));
+  return attachTaskHierarchy(taskRows.map(task => mapDatabaseTask(task, projectsById, profilesById, tasksById)));
 }
 
 export function useTasks() {
@@ -85,7 +88,8 @@ export function useTasks() {
 
     const projectsById = new Map(projectResult.data.map(project => [project.id, project]));
     const profilesById = new Map(profileResult.data.map(profile => [profile.id, profile]));
-    const mappedTasks = taskRows.map(task => mapDatabaseTask(task, projectsById, profilesById));
+    const tasksById = new Map(taskRows.map(task => [task.id, task]));
+    const mappedTasks = attachTaskHierarchy(taskRows.map(task => mapDatabaseTask(task, projectsById, profilesById, tasksById)));
     setTasks(mappedTasks);
     setLoading(false);
     return { data: mappedTasks, error: null };
@@ -100,6 +104,7 @@ export function useTasks() {
     if (isDemoMode) {
       const project = initialProjects.find(item => item.id === normalized.projectId);
       const assignee = initialTeamMembers.find(item => (item.userId || item.id) === normalized.assigneeId);
+      const parentTask = tasks.find(item => item.id === normalized.parentTaskId);
       const now = new Date().toISOString();
       const record = {
         id: `task-${Date.now()}`,
@@ -108,6 +113,8 @@ export function useTasks() {
         priorityLabel: TASK_PRIORITY_LABELS[normalized.priority],
         projectName: project?.name || 'Proje bulunamadı',
         projectArchived: false,
+        parentTaskTitle: parentTask?.title || '',
+        parentTaskArchived: false,
         assigneeName: assignee?.name || 'Atanmadı',
         assigneeInitials: assignee?.initials || '—',
         completedAt: normalized.status === 'done' ? now : '',
@@ -117,8 +124,9 @@ export function useTasks() {
         createdAt: now,
         createdAtLabel: new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(now)),
       };
-      setTasks(value => [record, ...value]);
-      return { data: record, error: null };
+      const nextTasks = attachTaskHierarchy([record, ...tasks]);
+      setTasks(nextTasks);
+      return { data: nextTasks.find(task => task.id === record.id), error: null };
     }
 
     const client = requireSupabase();
@@ -127,6 +135,7 @@ export function useTasks() {
       .insert({
         organization_id: activeOrganization.id,
         project_id: normalized.projectId,
+        parent_task_id: normalized.parentTaskId || null,
         assignee_id: normalized.assigneeId || null,
         title: normalized.title,
         description: normalized.description || null,
@@ -140,7 +149,7 @@ export function useTasks() {
     if (createError) return { data: null, error: createError };
     const refreshed = await loadTasks(false);
     return { data: refreshed.data?.find(task => task.id === data.id) || { id: data.id, title: normalized.title }, error: refreshed.error };
-  }, [activeOrganization, isDemoMode, loadTasks, user]);
+  }, [activeOrganization, isDemoMode, loadTasks, tasks, user]);
 
   const updateTaskRecord = useCallback(async (taskId, form) => {
     const normalized = normalizeTaskForm(form);
@@ -149,6 +158,7 @@ export function useTasks() {
       if (!currentTask) return { data: null, error: new Error('Task not found') };
       const project = initialProjects.find(item => item.id === normalized.projectId);
       const assignee = initialTeamMembers.find(item => (item.userId || item.id) === normalized.assigneeId);
+      const parentTask = tasks.find(item => item.id === normalized.parentTaskId);
       const updatedTask = {
         ...currentTask,
         ...normalized,
@@ -156,12 +166,15 @@ export function useTasks() {
         priorityLabel: TASK_PRIORITY_LABELS[normalized.priority],
         projectName: project?.name || currentTask.projectName,
         projectArchived: Boolean(project?.archivedAt),
+        parentTaskTitle: parentTask?.title || '',
+        parentTaskArchived: Boolean(parentTask?.isArchived),
         assigneeName: assignee?.name || 'Atanmadı',
         assigneeInitials: assignee?.initials || '—',
         completedAt: normalized.status === 'done' ? (currentTask.completedAt || new Date().toISOString()) : '',
       };
-      setTasks(value => value.map(task => task.id === taskId ? updatedTask : task));
-      return { data: updatedTask, error: null };
+      const nextTasks = attachTaskHierarchy(tasks.map(task => task.id === taskId ? updatedTask : task));
+      setTasks(nextTasks);
+      return { data: nextTasks.find(task => task.id === taskId), error: null };
     }
 
     const client = requireSupabase();
@@ -169,6 +182,7 @@ export function useTasks() {
       .from('tasks')
       .update({
         project_id: normalized.projectId,
+        parent_task_id: normalized.parentTaskId || null,
         assignee_id: normalized.assigneeId || null,
         title: normalized.title,
         description: normalized.description || null,
@@ -193,8 +207,9 @@ export function useTasks() {
         archivedBy: archived ? (user?.id || 'demo-user') : '',
         isArchived: archived,
       };
-      setTasks(value => value.map(task => task.id === taskId ? updatedTask : task));
-      return { data: updatedTask, error: null };
+      const nextTasks = attachTaskHierarchy(tasks.map(task => task.id === taskId ? updatedTask : task));
+      setTasks(nextTasks);
+      return { data: nextTasks.find(task => task.id === taskId), error: null };
     }
 
     const client = requireSupabase();

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
-  Columns3, FileText, FolderKanban, GripVertical, History, ListChecks, ListTodo,
+  Columns3, CornerDownRight, FileText, FolderKanban, GitBranch, GripVertical, History, ListChecks, ListTodo,
   LoaderCircle, MessageSquare, Pencil, Plus, RefreshCw, Rows3, Search, Send, ShieldCheck, Timer,
   Trash2, UserRound, X,
 } from 'lucide-react';
@@ -9,8 +9,8 @@ import { useOrganization } from '../features/organizations/OrganizationContext';
 import { useProjectMembers } from '../features/projects/useProjectMembers';
 import { useProjects } from '../features/projects/useProjects';
 import {
-  canManageTasks, canMoveTask, filterTasks, getTaskErrorMessage, getTaskStats,
-  groupTasksByStatus, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, validateTask,
+  canManageTasks, canMoveTask, filterTasks, getTaskDescendantIds, getTaskErrorMessage,
+  getTaskStats, groupTasksByStatus, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, validateTask,
 } from '../features/tasks/taskUtils';
 import { useTasks } from '../features/tasks/useTasks';
 import {
@@ -43,13 +43,17 @@ function useModalDismiss(close, disabled) {
   }, [close, disabled]);
 }
 
-function CreateTaskModal({ projects, close, createTask }) {
+function CreateTaskModal({ projects, tasks, close, createTask }) {
   const [form, setForm] = useState({
-    title: '', projectId: projects[0]?.id || '', assigneeId: '', description: '', status: 'todo', priority: 'normal', dueDate: '',
+    title: '', projectId: projects[0]?.id || '', parentTaskId: '', assigneeId: '', description: '', status: 'todo', priority: 'normal', dueDate: '',
   });
   const { assignedMembers, loading: membersLoading } = useProjectMembers(form.projectId);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const availableParentTasks = useMemo(
+    () => tasks.filter(task => task.projectId === form.projectId && !task.isArchived),
+    [form.projectId, tasks],
+  );
   useModalDismiss(close, saving);
 
   useEffect(() => {
@@ -62,7 +66,7 @@ function CreateTaskModal({ projects, close, createTask }) {
     const { name, value } = event.target;
     setError('');
     setForm(current => name === 'projectId'
-      ? { ...current, projectId: value, assigneeId: '' }
+      ? { ...current, projectId: value, parentTaskId: '', assigneeId: '' }
       : { ...current, [name]: value });
   };
   const submit = async event => {
@@ -83,6 +87,7 @@ function CreateTaskModal({ projects, close, createTask }) {
         <div className="task-form-grid">
           <label className="full-field">Görev başlığı<input autoFocus required name="title" maxLength="200" value={form.title} onChange={update} placeholder="Örn. Ana sayfa tasarımını tamamla" /></label>
           <label className="full-field">Proje<select required name="projectId" value={form.projectId} onChange={update}>{projects.map(project => <option key={project.id} value={project.id}>{project.name} · {project.clientName}</option>)}</select></label>
+          <label className="full-field">Üst görev<select name="parentTaskId" value={form.parentTaskId} onChange={update}><option value="">Üst görev yok · Ana görev</option>{availableParentTasks.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}</select><small className="task-field-note">Yalnızca seçili projedeki aktif görevler listelenir.</small></label>
           <label>Durum<select name="status" value={form.status} onChange={update}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label>Öncelik<select name="priority" value={form.priority} onChange={update}>{priorityOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label>Bitiş tarihi<input name="dueDate" type="date" value={form.dueDate} onChange={update} /></label>
@@ -256,7 +261,20 @@ function TaskActivitySection({ taskId }) {
   );
 }
 
-function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canManage }) {
+function TaskSubtasksSection({ task, openTask }) {
+  const childTasks = task.childTasks || [];
+  return (
+    <section className="task-subtasks-section">
+      <header><span><GitBranch /></span><div><small>ALT GÖREVLER</small><b>{task.subtaskCompleted || 0}/{task.subtaskTotal || 0} tamamlandı</b></div><strong>%{task.subtaskPercentage || 0}</strong></header>
+      {task.subtaskTotal > 0 && <div className="task-subtasks-progress"><i style={{ width: `${task.subtaskPercentage}%` }} /></div>}
+      {childTasks.length === 0 && <div className="task-subtasks-empty"><GitBranch /><span><b>Alt görev bulunmuyor</b><small>Görevi düzenleyerek veya yeni görev oluştururken bu görevi üst görev seçebilirsiniz.</small></span></div>}
+      {childTasks.length > 0 && <div className="task-subtasks-list">{childTasks.map(child => <button type="button" key={child.id} onClick={() => openTask(child)}><span className={`task-subtask-check ${child.status === 'done' ? 'done' : ''}`}>{child.status === 'done' && <Check />}</span><span><b>{child.title}</b><small>{child.isArchived ? 'Arşivlendi' : `${TASK_STATUS_LABELS[child.status]} · ${child.assigneeName}`}</small></span><CornerDownRight /></button>)}</div>}
+      {childTasks.some(child => child.isArchived) && <p className="task-subtasks-note">Arşivlenmiş alt görevler ilerleme oranına dahil edilmez.</p>}
+    </section>
+  );
+}
+
+function TaskDrawer({ task, tasks, projects, close, openTask, updateTask, setTaskArchived, canManage }) {
   const [draft, setDraft] = useState(task);
   const [editing, setEditing] = useState(false);
   const [confirmingArchive, setConfirmingArchive] = useState(false);
@@ -270,6 +288,14 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
     () => projects.filter(project => !project.isArchived || project.id === draft.projectId),
     [draft.projectId, projects],
   );
+  const descendantIds = useMemo(() => getTaskDescendantIds(tasks, draft.id), [draft.id, tasks]);
+  const availableParentTasks = useMemo(
+    () => tasks.filter(candidate => candidate.projectId === draft.projectId
+      && candidate.id !== draft.id
+      && !descendantIds.has(candidate.id)
+      && (!candidate.isArchived || candidate.id === draft.parentTaskId)),
+    [descendantIds, draft.id, draft.parentTaskId, draft.projectId, tasks],
+  );
 
   useEffect(() => {
     if (!editing || membersLoading) return;
@@ -282,7 +308,7 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
     const { name, value } = event.target;
     setError('');
     setDraft(current => name === 'projectId'
-      ? { ...current, projectId: value, assigneeId: '' }
+      ? { ...current, projectId: value, parentTaskId: '', assigneeId: '' }
       : { ...current, [name]: value });
   };
   const persist = async () => {
@@ -315,6 +341,7 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
           <div className="drawer-form task-drawer-form">
             <label>Görev başlığı<input required name="title" maxLength="200" value={draft.title} onChange={update} /></label>
             <label>Proje<select required name="projectId" value={draft.projectId} onChange={update}>{availableProjects.map(project => <option key={project.id} value={project.id}>{project.name}{project.isArchived ? ' · Arşivde' : ''}</option>)}</select></label>
+            <label>Üst görev<select name="parentTaskId" value={draft.parentTaskId} onChange={update}><option value="">Üst görev yok · Ana görev</option>{availableParentTasks.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.title}{candidate.isArchived ? ' · Arşivde' : ''}</option>)}</select><small className="task-field-note">Kendisi ve kendi alt görevleri döngü oluşmaması için listelenmez.</small></label>
             <label>Durum<select name="status" value={draft.status} onChange={update}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <label>Öncelik<select name="priority" value={draft.priority} onChange={update}>{priorityOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <label>Bitiş tarihi<input name="dueDate" type="date" value={draft.dueDate} onChange={update} /></label>
@@ -327,6 +354,7 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
           <>
             <div className="task-details">
               <div><FolderKanban /><span><small>PROJE</small><b>{draft.projectName}</b></span></div>
+              <div><GitBranch /><span><small>ÜST GÖREV</small><b>{draft.parentTaskTitle || 'Ana görev'}</b></span></div>
               <div><UserRound /><span><small>GÖREVLİ</small><b>{draft.assigneeName}</b></span></div>
               <div><CircleAlert /><span><small>ÖNCELİK</small><b>{TASK_PRIORITY_LABELS[draft.priority]}</b></span></div>
               <div><CalendarDays /><span><small>BİTİŞ TARİHİ</small><b>{formatDate(draft.dueDate)}</b></span></div>
@@ -340,6 +368,7 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
           </>
         )}
 
+        {!editing && <TaskSubtasksSection task={draft} openTask={openTask} />}
         {!editing && <TaskChecklistSection taskId={draft.id} canChange={canChange && !draft.isArchived} />}
         {!editing && <TaskCommentsSection taskId={draft.id} canComment={!projectLocked && !draft.isArchived} />}
         {!editing && <TaskActivitySection key={`${draft.id}-${draft.archivedAt}`} taskId={draft.id} />}
@@ -411,6 +440,8 @@ function TaskKanban({ tasks, statusFilter, role, movingTaskId, moveTask, selectT
                   <button className="task-kanban-main" onClick={() => selectTask(task)}>
                     <span className="task-kanban-card-top"><span className={`task-priority ${task.priority}`}>{task.priorityLabel}</span>{movable && <GripVertical />}</span>
                     <b>{task.title}</b>
+                    {task.parentTaskId && <small className="task-kanban-parent"><GitBranch />{task.parentTaskTitle || 'Üst görev'}</small>}
+                    {task.subtaskTotal > 0 && <small className="task-kanban-subtasks"><CornerDownRight />{task.subtaskCompleted}/{task.subtaskTotal} alt görev tamamlandı</small>}
                     <small><FolderKanban />{task.projectName}</small>
                     <span className="task-kanban-meta"><i>{task.assigneeInitials}</i><span>{task.assigneeName}</span><span><CalendarDays />{formatDate(task.dueDate)}</span></span>
                     {(task.isArchived || task.projectArchived) && <em><Archive />{task.isArchived ? 'Görev arşivde' : 'Proje arşivde'}</em>}
@@ -518,13 +549,13 @@ export default function TasksPage() {
         {!loading && error && <div className="tasks-state error"><CircleAlert /><h3>Görevler yüklenemedi</h3><p>Bağlantınızı kontrol edip tekrar deneyin.</p><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}
         {!loading && !error && tasks.length === 0 && <div className="tasks-state empty"><CheckSquare2 /><h3>İlk görevinizi oluşturun</h3><p>{activeProjects.length ? 'Aktif projeniz için ilk yapılacak işi tanımlayın.' : 'Görev oluşturabilmek için önce aktif bir proje oluşturun.'}</p>{canManage && activeProjects.length > 0 && <button className="soft-button" onClick={() => setModalOpen(true)}><Plus /> Görev oluştur</button>}</div>}
         {!loading && !error && tasks.length > 0 && filteredTasks.length === 0 && <div className="tasks-state empty"><Search /><h3>Eşleşen görev bulunamadı</h3><p>Arama metnini veya filtreleri değiştirin.</p></div>}
-        {!loading && !error && filteredTasks.length > 0 && view === 'list' && <div className="task-table"><div className="task-table-head"><span>GÖREV</span><span>PROJE</span><span>GÖREVLİ</span><span>DURUM</span><span>ÖNCELİK</span><span>BİTİŞ</span><span>OLUŞTURULMA</span></div>{filteredTasks.map(task => <button className="task-list-row" key={task.id} onClick={() => setSelectedTask(task)}><span className="task-identity"><i><CheckSquare2 /></i><span><b>{task.title}</b><small>{task.description || 'Açıklama eklenmedi'}</small></span></span><span className="task-project"><FolderKanban /><span><b>{task.projectName}</b><small>{task.projectArchived ? 'Arşivlenmiş proje' : 'Aktif proje'}</small></span></span><span className="task-assignee"><i>{task.assigneeInitials}</i><span><b>{task.assigneeName}</b><small>Görevli</small></span></span><span className={`task-status ${task.isArchived ? 'archived' : task.status}`}>{task.isArchived ? 'Arşivlendi' : task.statusLabel}</span><span className={`task-priority ${task.priority}`}>{task.priorityLabel}</span><span className="task-due"><CalendarDays />{formatDate(task.dueDate)}</span><span className="task-created">{task.createdAtLabel}</span></button>)}</div>}
+        {!loading && !error && filteredTasks.length > 0 && view === 'list' && <div className="task-table"><div className="task-table-head"><span>GÖREV</span><span>PROJE</span><span>GÖREVLİ</span><span>DURUM</span><span>ÖNCELİK</span><span>BİTİŞ</span><span>OLUŞTURULMA</span></div>{filteredTasks.map(task => <button className={`task-list-row ${task.parentTaskId ? 'is-subtask' : ''}`} key={task.id} onClick={() => setSelectedTask(task)}><span className="task-identity"><i>{task.parentTaskId ? <CornerDownRight /> : <CheckSquare2 />}</i><span><b>{task.title}</b><small>{task.parentTaskId ? `Üst görev · ${task.parentTaskTitle}` : task.subtaskTotal > 0 ? `${task.subtaskCompleted}/${task.subtaskTotal} alt görev tamamlandı` : task.description || 'Açıklama eklenmedi'}</small></span></span><span className="task-project"><FolderKanban /><span><b>{task.projectName}</b><small>{task.projectArchived ? 'Arşivlenmiş proje' : 'Aktif proje'}</small></span></span><span className="task-assignee"><i>{task.assigneeInitials}</i><span><b>{task.assigneeName}</b><small>Görevli</small></span></span><span className={`task-status ${task.isArchived ? 'archived' : task.status}`}>{task.isArchived ? 'Arşivlendi' : task.statusLabel}</span><span className={`task-priority ${task.priority}`}>{task.priorityLabel}</span><span className="task-due"><CalendarDays />{formatDate(task.dueDate)}</span><span className="task-created">{task.createdAtLabel}</span></button>)}</div>}
         {!loading && !error && filteredTasks.length > 0 && view === 'kanban' && <TaskKanban tasks={filteredTasks} statusFilter={status} role={activeOrganization?.role} movingTaskId={movingTaskId} moveTask={moveTask} selectTask={setSelectedTask} />}
       </section>
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
-      {modalOpen && <CreateTaskModal projects={activeProjects} close={closeModal} createTask={createTask} />}
-      {selectedTask && <TaskDrawer task={selectedTask} projects={projects} close={() => setSelectedTask(null)} updateTask={updateTask} setTaskArchived={setTaskArchived} canManage={canManage} />}
+      {modalOpen && <CreateTaskModal projects={activeProjects} tasks={tasks} close={closeModal} createTask={createTask} />}
+      {selectedTask && <TaskDrawer key={selectedTask.id} task={selectedTask} tasks={tasks} projects={projects} close={() => setSelectedTask(null)} openTask={candidate => setSelectedTask(tasks.find(task => task.id === candidate.id) || candidate)} updateTask={updateTask} setTaskArchived={setTaskArchived} canManage={canManage} />}
     </>
   );
 }

@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.21.0-task-activity` |
-| Mevcut aşama | Görev değişiklikleri append-only aktivite geçmişine otomatik kaydedilip drawer'da gösteriliyor |
-| Sonraki ana hedef | Aynı proje içindeki görevler arasında güvenli alt görev ilişkileri kurmak |
+| Mevcut sürüm | `0.22.0-task-hierarchy` |
+| Mevcut aşama | Aynı proje içinde döngü korumalı üst/alt görev ilişkileri ve gerçek ilerleme çalışıyor |
+| Sonraki ana hedef | Görev arama, hiyerarşi filtreleri, sıralama ve görünüm tercihlerini tamamlamak |
 
 ---
 
@@ -69,7 +69,7 @@ Mevcut sürümde:
 - Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
-- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; görev detayındaki checklist, yorumlar ve otomatik aktivite geçmişi kalıcı veriden yönetilmektedir.
+- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar ve otomatik aktivite geçmişi kalıcı veriden yönetilmektedir.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar ve aktivite geçmişi Supabase ile bağlı |
+| Görevler | Gerçek CRUD, hiyerarşi, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar ve aktivite geçmişi Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
@@ -100,8 +100,8 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev, checklist, yorum ve aktivite temeli bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev, checklist, yorum ve aktivite şemaları RLS ile uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev hiyerarşisi, checklist, yorum ve aktivite temeli bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev hiyerarşisi, checklist, yorum ve aktivite şemaları RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
@@ -541,8 +541,18 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Aktivite kayıtlarında frontend insert/update/delete yetkisini tamamen kapatan append-only güvenlik
 - Görev drawer'ında gerçek aktör, zaman, değişiklik açıklaması ve son 60 hareketi gösteren zaman çizelgesi
 - Aktivite loading, hata, yeniden deneme, boş liste ve limit durumları
+- Görevleri aynı proje içinde birbirine bağlayan isteğe bağlı `parent_task_id` ilişkisi
+- Organizasyon, proje ve üst görev bütünlüğünü zorunlu kılan bileşik self foreign key
+- Görevin kendisini üst görev seçmesini ve döngüsel hiyerarşiyi reddeden veritabanı trigger'ı
+- Yeni ilişki kurulurken arşivlenmiş görevi üst görev seçmeyi reddetme
+- Görev oluşturma ve düzenleme formlarında projeye göre filtrelenen üst görev seçimi
+- Düzenleme sırasında görev ve tüm torunlarını üst görev seçeneklerinden çıkarma
+- Üst görev detayında doğrudan alt görev listesi, durum/görevli bilgisi ve gerçek tamamlanma oranı
+- Alt görev satırından ilgili görev drawer'ına güvenli geçiş
+- Liste ve Kanban kartlarında üst görev ve alt görev ilerleme bağlamı
+- Üst görev bağlantısı değişikliklerini append-only aktivite geçmişine otomatik kaydetme
 
-Görev CRUD yaşam döngüsü, proje ekibi atama, Liste/Kanban, checklist, yorum ve aktivite geçmişi akışları tamamlanmıştır. Alt görev ilişkileri sonraki görev geliştirme katmanıdır.
+Görev CRUD yaşam döngüsü, hiyerarşi, proje ekibi atama, Liste/Kanban, checklist, yorum ve aktivite geçmişi akışları tamamlanmıştır.
 
 ---
 
@@ -1164,7 +1174,7 @@ Durum: **Devam ediyor**
 - [x] Görev CRUD
 - [x] Görev atamaları
 - [x] Görev checklist'i
-- [ ] Alt görev ilişkileri
+- [x] Alt görev ilişkileri
 - [x] Görev yorumları
 - [x] Aktivite geçmişi
 - [x] Dashboard'u gerçek verilere bağla
@@ -1338,27 +1348,68 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. `tasks` tablosuna isteğe bağlı ve organizasyon/proje kapsamlı `parent_task_id` ilişkisi ekle.
-2. Görevin kendisini üst görev seçmesini, farklı projeye bağlanmasını ve döngüsel hiyerarşi oluşmasını veritabanında engelle.
-3. Görev oluşturma ve düzenleme ekranlarına aynı projeden üst görev seçimi ekle.
-4. Görev detayında alt görev sayısı, tamamlanma oranı ve açılabilir alt görev listesini göster.
-5. Liste görünümünde üst/alt görev bağlamını kaybetmeden okunabilir ilişki göstergeleri ekle.
-6. RLS izolasyonu, arşiv davranışı, filtreleme ve uzak bütünlük testlerini tamamla.
+1. Görev toolbar'ına görevli ve hiyerarşi filtreleri ekle.
+2. Oluşturulma, bitiş tarihi, öncelik, başlık ve durum için kontrollü sıralama seçenekleri tanımla.
+3. Aktif filtreleri görünür etiketlerle göster ve tek işlemle temizleme davranışı ekle.
+4. Liste/Kanban görünümü ile filtre/sıralama tercihlerini organizasyon bazında tarayıcıda koru.
+5. Alt görevlerin üst görev bağlamını sıralama ve arama sonrasında da kaybetmemesini sağla.
+6. Domain testleri, mobil toolbar davranışı, boş sonuç ve production build doğrulamasını tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Yetkili kullanıcı aynı projedeki bir görevi üst görev olarak seçebilir
-→ Alt görev ilişkisi sayfa yenilendiğinde korunur
-→ Görev kendisine veya kendi altına bağlanamaz
-→ Farklı proje ve organizasyon görevleri üst görev seçilemez
-→ Üst görev detayında alt görev ilerlemesi gerçek durumlardan hesaplanır
-→ Member ilişkileri görür fakat görev yapısını değiştiremez
+Kullanıcı görevleri görevli ve hiyerarşi tipine göre filtreleyebilir
+→ Sonuçları seçtiği alana göre artan veya azalan sıralayabilir
+→ Aktif filtreleri tek bakışta görüp temizleyebilir
+→ Liste/Kanban geçişinde filtre bağlamı korunur
+→ Sayfa yenilendiğinde organizasyona ait görünüm tercihi geri gelir
+→ Mobil toolbar taşmadan ve erişilebilir etiketlerle çalışır
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.22.0-task-hierarchy`
+
+Eklenenler:
+
+- Görevlere isteğe bağlı `parent_task_id` alanı ve aynı tabloya güvenli üst görev ilişkisi
+- Organizasyon, proje ve görev kapsamını birlikte koruyan bileşik self foreign key
+- Görevin kendisini üst görev seçmesini ve tüm döngüsel hiyerarşileri reddeden trigger
+- Yeni bağlantılarda arşivlenmiş üst görevi reddeden bütünlük kontrolü
+- Üst görev bağlantısı değişiklikleri için `parent_changed` aktivite olayı
+- Görev oluşturma ve düzenleme formlarında projeye göre filtrelenen üst görev seçimi
+- Düzenleme formunda kendisi ve tüm torun görevlerini seçeneklerden çıkaran döngü önleme
+- Görev drawer'ında alt görev listesi, görevli/durum bilgisi ve gerçek tamamlanma oranı
+- Alt görev satırından ilgili görev detayına geçiş
+- Liste ve Kanban kartlarında üst görev ve alt görev ilerleme göstergeleri
+- Hiyerarşi eşleme, ilerleme ve torun bulma domain yardımcılarıyla yeni otomatik test
+
+Yetkilendirme ve güvenlik:
+
+- Mevcut görev rol matrisi üst görev alanı değişikliklerinde de aynen uygulanır.
+- Member rolü hiyerarşiyi okuyabilir fakat değiştiremez.
+- Farklı organizasyon veya projedeki görev üst görev olarak seçilemez.
+- Self-reference ve dolaylı döngüler veritabanı seviyesinde reddedilir.
+- Üst görev değişiklikleri güvenilir trigger ile append-only aktivite geçmişine yazılır.
+- Uzak RLS smoke testine geçerli bağlama/ayırma, self-reference, cycle ve çapraz organizasyon kontrolleri eklendi.
+
+Doğrulama:
+
+- `npm test -- --run` — 12 test dosyasında 71 test geçti
+- `npm run build`
+- `git diff --check`
+- `npx supabase db lint --linked --level error` — şema hatası bulunmadı
+- `npx supabase db query --linked --file supabase/tests/rls_smoke.sql` — `result: passed`
+- `npx supabase migration list --linked` — 14 yerel/uzak migration eşleşiyor
+
+Bilinen sınırlamalar:
+
+- Drawer ilerlemesi doğrudan alt görevlerden hesaplanır; tüm torunları birleştiren genel ilerleme henüz yoktur.
+- Üst görev tamamlanınca alt görevleri otomatik kapatma gibi bir davranış uygulanmaz.
+- Hiyerarşik sürükle-bırak ve manuel alt görev sıralaması henüz yoktur.
+- UI entegrasyon ve E2E testleri henüz bulunmuyor.
 
 ### 19 Temmuz 2026 — `0.21.0-task-activity`
 

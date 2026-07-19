@@ -41,6 +41,7 @@ export function normalizeTaskForm(form) {
     status: form.status,
     priority: form.priority,
     dueDate: form.dueDate || '',
+    parentTaskId: String(form.parentTaskId || '').trim(),
   };
 }
 
@@ -49,9 +50,10 @@ function getInitials(name) {
     .map(part => part[0].toLocaleUpperCase('tr-TR')).join('') || '—';
 }
 
-export function mapDatabaseTask(task, projectsById, profilesById) {
+export function mapDatabaseTask(task, projectsById, profilesById, tasksById = new Map()) {
   const project = projectsById.get(task.project_id);
   const assignee = task.assignee_id ? profilesById.get(task.assignee_id) : null;
+  const parentTask = task.parent_task_id ? tasksById.get(task.parent_task_id) : null;
   const assigneeName = assignee?.full_name || assignee?.email?.split('@')[0] || '';
   return {
     id: task.id,
@@ -64,6 +66,9 @@ export function mapDatabaseTask(task, projectsById, profilesById) {
     projectId: task.project_id,
     projectName: project?.name || 'Proje bulunamadı',
     projectArchived: Boolean(project?.archived_at),
+    parentTaskId: task.parent_task_id || '',
+    parentTaskTitle: parentTask?.title || '',
+    parentTaskArchived: Boolean(parentTask?.archived_at),
     assigneeId: task.assignee_id || '',
     assigneeName: assigneeName || 'Atanmadı',
     assigneeInitials: getInitials(assigneeName),
@@ -79,10 +84,38 @@ export function mapDatabaseTask(task, projectsById, profilesById) {
   };
 }
 
+export function attachTaskHierarchy(tasks) {
+  return tasks.map(task => {
+    const childTasks = tasks.filter(candidate => candidate.parentTaskId === task.id);
+    const activeChildTasks = childTasks.filter(child => !child.isArchived);
+    const completedChildTasks = activeChildTasks.filter(child => child.status === 'done').length;
+    return {
+      ...task,
+      childTasks,
+      subtaskTotal: activeChildTasks.length,
+      subtaskCompleted: completedChildTasks,
+      subtaskPercentage: activeChildTasks.length
+        ? Math.round((completedChildTasks / activeChildTasks.length) * 100)
+        : 0,
+    };
+  });
+}
+
+export function getTaskDescendantIds(tasks, taskId) {
+  const descendants = new Set();
+  const visit = parentId => tasks.filter(task => task.parentTaskId === parentId).forEach(child => {
+    if (descendants.has(child.id)) return;
+    descendants.add(child.id);
+    visit(child.id);
+  });
+  visit(taskId);
+  return descendants;
+}
+
 export function filterTasks(tasks, { query, status, projectId, archive = 'active' }) {
   const normalizedQuery = query.trim().toLocaleLowerCase('tr-TR');
   return tasks.filter(task => {
-    const searchText = `${task.title} ${task.projectName} ${task.assigneeName} ${task.description}`.toLocaleLowerCase('tr-TR');
+    const searchText = `${task.title} ${task.parentTaskTitle} ${task.projectName} ${task.assigneeName} ${task.description}`.toLocaleLowerCase('tr-TR');
     return searchText.includes(normalizedQuery)
       && (status === 'all' || task.status === status)
       && (projectId === 'all' || task.projectId === projectId)
@@ -109,7 +142,7 @@ export function groupTasksByStatus(tasks) {
 
 export function getTaskErrorMessage(error) {
   if (error?.code === '23503') return 'Seçilen proje veya görevli bu görev için kullanılamıyor.';
-  if (error?.code === '23514') return 'Görev bilgilerinden biri geçerli değil.';
+  if (error?.code === '23514') return 'Üst görev ilişkisi veya görev bilgilerinden biri geçerli değil.';
   if (error?.code === '42501') return 'Bu çalışma alanında görev oluşturma veya düzenleme yetkiniz yok.';
   return 'Görev kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
 }

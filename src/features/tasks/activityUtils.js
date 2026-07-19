@@ -58,6 +58,10 @@ export function describeTaskActivity(activity, profilesById = new Map(), project
     }
     case 'archived': return 'Görevi arşivledi.';
     case 'restored': return 'Görevi arşivden çıkardı.';
+    case 'parent_changed':
+      if (!metadata.old_parent_task_id && metadata.new_parent_task_id) return 'Görevi bir üst göreve bağladı.';
+      if (metadata.old_parent_task_id && !metadata.new_parent_task_id) return 'Üst görev bağlantısını kaldırdı.';
+      return 'Üst görev bağlantısını değiştirdi.';
     default: return 'Görevde bir değişiklik yaptı.';
   }
 }

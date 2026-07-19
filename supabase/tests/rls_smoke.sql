@@ -399,6 +399,45 @@ begin
     raise exception 'RLS probe failed: admin cannot update a project.';
   end if;
 
+  update public.projects
+  set status = 'completed', progress = 25
+  where id = current_setting('manageflow_test.main_project_id')::uuid;
+  if (
+    select progress
+    from public.projects
+    where id = current_setting('manageflow_test.main_project_id')::uuid
+  ) <> 100 then
+    raise exception 'RLS probe failed: completed project progress is not forced to 100.';
+  end if;
+
+  update public.projects
+  set status = 'active'
+  where id = current_setting('manageflow_test.main_project_id')::uuid;
+  if (
+    select progress
+    from public.projects
+    where id = current_setting('manageflow_test.main_project_id')::uuid
+  ) <> 90 then
+    raise exception 'RLS probe failed: reopened completed project did not use safe progress.';
+  end if;
+
+  update public.projects
+  set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
+  where id = current_setting('manageflow_test.main_project_id')::uuid;
+  if not exists (
+    select 1
+    from public.projects
+    where id = current_setting('manageflow_test.main_project_id')::uuid
+      and archived_at is not null
+      and archived_by = current_setting('manageflow_test.member_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: admin cannot archive a project as self.';
+  end if;
+
+  update public.projects
+  set archived_at = null, archived_by = null
+  where id = current_setting('manageflow_test.main_project_id')::uuid;
+
   insert into public.projects (
     organization_id, client_id, name, status, created_by
   ) values (
@@ -545,6 +584,15 @@ begin
     current_setting('manageflow_test.owner_id')::uuid
   );
 
+  begin
+    update public.projects
+    set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
+    where id = current_setting('manageflow_test.main_project_id')::uuid;
+    raise exception 'RLS probe failed: owner can falsify the project archive actor.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
   insert into public.projects (
     organization_id, client_id, name, status, created_by
   ) values (
@@ -586,10 +634,14 @@ select
   true as admin_write_allowed,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
+  true as admin_project_archive_allowed,
+  true as completed_project_progress_enforced,
+  true as completed_project_reopen_progress_safe,
   true as project_manager_client_write_allowed,
   true as project_manager_project_write_allowed,
   true as owner_client_write_allowed,
   true as owner_project_write_allowed,
+  true as project_archive_actor_protected,
   true as owner_membership_protected_from_admin,
   true as admin_owner_assignment_denied,
   true as owner_invitation_assignment_denied,

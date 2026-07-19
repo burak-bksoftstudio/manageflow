@@ -41,7 +41,7 @@ https://manageflow.bksoftstudio.com/davet-kabul
 
 `https://manageflow-seven.vercel.app` altındaki aynı üç yol ve yerel üç adres yedek/geliştirme için listede tutulmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır. Vercel Preview ortamı e-posta callback'leri için `VITE_APP_URL` üzerinden aynı kararlı özel domain origin'ini kullanır.
 
-Bu `Site URL` ve redirect listesi production projesinde tanımlanmış; gerçek şifre sıfırlama e-postası, `/sifre-yenile` callback'i ve yeni şifre kaydı canlı hesapla doğrulanmıştır.
+Bu `Site URL` ve redirect listesi production projesinde tanımlanmış; gerçek şifre sıfırlama e-postası özel domaindeki `/sifre-yenile` callback'ine dönmüş ve yeni şifre kaydı canlı hesapla doğrulanmıştır.
 
 ## Ekip daveti Edge Function
 

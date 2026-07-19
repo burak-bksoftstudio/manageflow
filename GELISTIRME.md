@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 19 Temmuz 2026 |
-| Mevcut sürüm | `0.18.0-task-kanban` |
-| Mevcut aşama | Görevler ortak filtreli Liste/Kanban görünümü, yetkili durum taşıma ve mobil yatay akışla çalışıyor |
-| Sonraki ana hedef | Görev detayına alt görev/checklist veri modeli ve yönetim akışı eklemek |
+| Mevcut sürüm | `0.19.0-task-checklist` |
+| Mevcut aşama | Görev detayında kalıcı checklist, gerçek ilerleme ve rol bazlı yönetim çalışıyor |
+| Sonraki ana hedef | Görev yorumlarını ve temel aktivite geçmişini gerçek veriye bağlamak |
 
 ---
 
@@ -69,7 +69,7 @@ Mevcut sürümde:
 - Başka organizasyonların organizasyon, üyelik ve davet kayıtları member/admin oturumlarından gizlenmektedir.
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
-- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
+- Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; görev detayındaki checklist kalıcı veriden yönetilmektedir.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
 
@@ -83,7 +83,7 @@ Mevcut sürümde:
 | Ekipler | Gerçek üye listesi, yetkili güncelleme, güvenli davet, kabul ve iptal akışları bağlı |
 | Müşteriler | Gerçek liste, oluşturma, detay, düzenleme ve pasife alma akışları Supabase ile bağlı |
 | Projeler | Gerçek CRUD yaşam döngüsü ve ekip üyesi atama/çıkarma Supabase ile bağlı |
-| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme ve Liste/Kanban durum yönetimi Supabase ile bağlı |
+| Görevler | Gerçek CRUD, proje ekibi ataması, güvenli arşivleme, Liste/Kanban durum yönetimi ve checklist Supabase ile bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Yakında |
@@ -100,13 +100,13 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje ve görev temeli bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje ve görev şemaları RLS ile uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, organizasyon, ekip, müşteri, proje, görev ve checklist temeli bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Profil, organizasyon, üyelik, davet, müşteri, proje, görev ve checklist şemaları RLS ile uzak veritabanına uygulandı |
 | Kimlik doğrulama | Kısmen hazır | Kayıt, doğrulama, giriş, çıkış ve kalıcı oturum doğrulandı; şifre yenileme teslim testi bekliyor |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
 | Gerçek zamanlı işlemler | Başlanmadı | Mesaj ve canlı bildirim altyapısı yok |
-| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev domain testleri bulunuyor; UI/E2E testleri henüz yok |
+| Test altyapısı | Kısmen hazır | Vitest ve auth/organizasyon/ekip/müşteri/proje/görev/checklist domain testleri bulunuyor; UI/E2E testleri henüz yok |
 | Deployment | Başlanmadı | Production ortamı ve domain bağlantısı yok |
 
 ---
@@ -512,8 +512,18 @@ Proje CRUD yaşam döngüsü ve proje ekibi yönetimi tamamlanmıştır.
 - Member rolü ile arşivlenmiş görev/proje kartlarında salt okunur Kanban davranışı
 - Durum güncellenirken kart loading durumu ve başarısız güncellemede görünümü koruyan hata bildirimi
 - Mobilde yatay kaydırılabilir, sütunları snap eden responsive Kanban panosu
+- Göreve ve organizasyona bileşik foreign key ile bağlı gerçek `task_checklist_items` tablosu
+- Checklist başlığı, kalıcı sırası, tamamlanma durumu, tamamlanma zamanı ve oluşturan kullanıcı alanları
+- Görev detay drawer'ında gerçek checklist listesi, tamamlanan/toplam sayısı ve ilerleme çubuğu
+- Yetkili roller için checklist öğesi ekleme, tamamlama, yeniden açma ve silme
+- Member rolü ile arşivlenmiş görev/proje bağlamında salt okunur checklist davranışı
+- Tamamlama zamanını veritabanı trigger'ıyla ayarlama ve yeniden açmada temizleme
+- Arşivlenmiş görev veya projede checklist değişikliğini arayüz ve RLS seviyesinde engelleme
+- Organizasyon üyeleri için okuma; owner/admin/proje yöneticisi için değişiklik RLS policy'leri
+- Checklist loading, hata, yeniden deneme ve boş durumları
+- Supabase olmayan ortam için görev bazlı kalıcı oturum içi demo checklist fallback'i
 
-Görev CRUD yaşam döngüsü ve proje ekibi atama akışı tamamlanmıştır. Alt görev, yorum ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
+Görev CRUD yaşam döngüsü, proje ekibi atama, Liste/Kanban ve checklist akışları tamamlanmıştır. Alt görev ilişkileri, yorum ve aktivite geçmişi sonraki görev geliştirme katmanlarıdır.
 
 ---
 
@@ -1134,7 +1144,8 @@ Durum: **Devam ediyor**
 - [x] Görev veri modeli, listeleme ve oluşturma
 - [x] Görev CRUD
 - [x] Görev atamaları
-- [ ] Alt görevler ve checklist
+- [x] Görev checklist'i
+- [ ] Alt görev ilişkileri
 - [ ] Görev yorumları
 - [ ] Aktivite geçmişi
 - [x] Dashboard'u gerçek verilere bağla
@@ -1308,27 +1319,66 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Göreve bağlı ve organizasyon kapsamlı checklist öğesi veri modelini oluştur.
-2. Checklist başlığı, sıra, tamamlanma zamanı ve oluşturan kullanıcı alanlarını tanımla.
-3. Görev detay drawer'ında checklist listeleme ve ilerleme oranını göster.
-4. Yetkili roller için öğe ekleme, tamamlama, yeniden açma ve kaldırma işlemlerini bağla.
-5. Member rolünde checklist'i salt okunur göster.
+1. Göreve bağlı ve organizasyon kapsamlı `task_comments` veri modelini oluştur.
+2. Yorum metni, yazar, oluşturulma ve düzenlenme zamanlarını tanımla.
+3. Aktif organizasyon üyelerinin arşivlenmemiş görevlerde yorum yazabilmesini sağla.
+4. Yalnızca yorum yazarının kendi yorumunu düzenleyip silebilmesini; owner/admin rollerinin moderasyon yapabilmesini tanımla.
+5. Görev detay drawer'ında kronolojik yorum akışı, yazma alanı ve gönderim durumlarını ekle.
 6. RLS izolasyonu, boş/loading/hata durumları ve uzak güvenlik testlerini tamamla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Yetkili kullanıcı görev detayında checklist öğesi oluşturabilir
-→ Öğeyi tamamlayabilir ve yeniden açabilir
-→ İlerleme oranı gerçek checklist durumundan hesaplanır
-→ Sayfa yenilendiğinde tüm öğeler ve sıraları korunur
-→ Member checklist'i görür fakat değiştiremez
-→ Başka organizasyonun checklist verisi RLS ile görünmez
+Aktif organizasyon üyesi görev detayında yorum yazabilir
+→ Yorum gerçek yazar ve zaman bilgisiyle listelenir
+→ Sayfa yenilendiğinde yorum korunur
+→ Yazar kendi yorumunu düzenleyebilir ve silebilir
+→ Yetkisiz kullanıcı başka kişinin yorumunu değiştiremez
+→ Başka organizasyonun yorumları RLS ile görünmez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 19 Temmuz 2026 — `0.19.0-task-checklist`
+
+Eklenenler:
+
+- Göreve ve organizasyona bağlı gerçek `task_checklist_items` tablosu
+- Checklist başlığı, sıra, tamamlanma zamanı, oluşturan kullanıcı ve zaman damgası alanları
+- Organizasyon/görev bağlantısını koruyan bileşik foreign key ve görev silindiğinde cascade temizleme
+- Tamamlanma zamanını güvenli biçimde oluşturan ve yeniden açmada temizleyen veritabanı trigger'ı
+- Checklist kaydının organizasyon, görev ve oluşturucu kimliğini değişmez tutan bütünlük koruması
+- Görev detay drawer'ında tamamlanan/toplam sayısı ve gerçek ilerleme çubuğu
+- Checklist öğesi ekleme, tamamlama, yeniden açma ve silme işlemleri
+- Loading, hata, yeniden deneme, boş liste ve salt okunur durumlar
+- Supabase olmayan demo ortamı için görev bazlı checklist fallback'i
+- Checklist doğrulama, eşleme, ilerleme ve hata yardımcıları için 4 otomatik test
+
+Yetkilendirme ve güvenlik:
+
+- Organizasyon üyeleri checklist öğelerini okuyabilir.
+- Owner, admin ve proje yöneticisi aktif proje içindeki arşivlenmemiş görevlerde checklist yönetebilir.
+- Member rolü checklist'i salt okunur görür.
+- Arşivlenmiş görev ve projelerde yeni checklist işlemleri RLS seviyesinde reddedilir.
+- Başka organizasyona ait görev/checklist ilişkisi bileşik foreign key ve RLS ile engellenir.
+- Uzak RLS smoke testine member/admin/proje yöneticisi checklist yetki matrisi, tamamlanma zamanı ve çapraz organizasyon kontrolleri eklendi.
+
+Doğrulama:
+
+- `npm test -- --run` — 10 test dosyasında 62 test geçti
+- `npm run build`
+- `git diff --check`
+- `npx supabase db lint --linked --level error` — şema hatası bulunmadı
+- `npx supabase db query --linked --file supabase/tests/rls_smoke.sql` — `result: passed`
+- `npx supabase migration list --linked` — 11 yerel/uzak migration eşleşiyor
+
+Bilinen sınırlamalar:
+
+- Checklist öğeleri oluşturulma sırasına göre saklanır; sürükle-bırak ile özel sıralama henüz yoktur.
+- Ayrı alt görev ilişkileri, görev yorumları ve aktivite geçmişi henüz yoktur.
+- UI entegrasyon ve E2E testleri henüz bulunmuyor.
 
 ### 19 Temmuz 2026 — `0.18.0-task-kanban`
 

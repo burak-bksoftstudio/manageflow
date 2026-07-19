@@ -191,6 +191,42 @@ select set_config(
   true
 );
 
+with main_probe_checklist as (
+  insert into public.task_checklist_items (
+    organization_id, task_id, title, position, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Main RLS Checklist Probe',
+    0,
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.main_checklist_id',
+  (select id::text from main_probe_checklist),
+  true
+);
+
+with other_probe_checklist as (
+  insert into public.task_checklist_items (
+    organization_id, task_id, title, position, created_by
+  ) values (
+    current_setting('manageflow_test.other_organization_id')::uuid,
+    current_setting('manageflow_test.other_task_id')::uuid,
+    'Other RLS Checklist Probe',
+    0,
+    current_setting('manageflow_test.owner_id')::uuid
+  )
+  returning id
+)
+select set_config(
+  'manageflow_test.other_checklist_id',
+  (select id::text from other_probe_checklist),
+  true
+);
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -305,6 +341,22 @@ begin
     where task.id = current_setting('manageflow_test.other_task_id')::uuid
   ) then
     raise exception 'RLS probe failed: member can read another organization task.';
+  end if;
+
+  if (
+    select count(*)
+    from public.task_checklist_items checklist_item
+    where checklist_item.id = current_setting('manageflow_test.main_checklist_id')::uuid
+  ) <> 1 then
+    raise exception 'RLS probe failed: member cannot read their task checklist.';
+  end if;
+
+  if exists (
+    select 1
+    from public.task_checklist_items checklist_item
+    where checklist_item.id = current_setting('manageflow_test.other_checklist_id')::uuid
+  ) then
+    raise exception 'RLS probe failed: member can read another organization task checklist.';
   end if;
 
   begin
@@ -440,6 +492,40 @@ begin
   exception
     when insufficient_privilege then null;
   end;
+
+  begin
+    update public.task_checklist_items
+    set title = title
+    where id = current_setting('manageflow_test.main_checklist_id')::uuid;
+    get diagnostics affected_rows = row_count;
+    if affected_rows <> 0 then
+      raise exception 'RLS probe failed: member can update a task checklist item.';
+    end if;
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    insert into public.task_checklist_items (
+      organization_id, task_id, title, position, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_task_id')::uuid,
+      'Member Checklist Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      1,
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: member can create a task checklist item.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  delete from public.task_checklist_items
+  where id = current_setting('manageflow_test.main_checklist_id')::uuid;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS probe failed: member can delete a task checklist item.';
+  end if;
 end;
 $$;
 
@@ -464,6 +550,7 @@ select set_config(
 do $$
 declare
   affected_rows integer;
+  checklist_probe_id uuid;
 begin
   update public.organization_members
   set title = title
@@ -602,6 +689,71 @@ begin
   ) then
     raise exception 'RLS probe failed: restored task kept archive metadata.';
   end if;
+
+  update public.task_checklist_items
+  set is_completed = true
+  where id = current_setting('manageflow_test.main_checklist_id')::uuid;
+  if not exists (
+    select 1
+    from public.task_checklist_items checklist_item
+    where checklist_item.id = current_setting('manageflow_test.main_checklist_id')::uuid
+      and checklist_item.is_completed
+      and checklist_item.completed_at is not null
+  ) then
+    raise exception 'RLS probe failed: checklist completion timestamp was not set.';
+  end if;
+
+  update public.task_checklist_items
+  set is_completed = false
+  where id = current_setting('manageflow_test.main_checklist_id')::uuid;
+  if exists (
+    select 1
+    from public.task_checklist_items checklist_item
+    where checklist_item.id = current_setting('manageflow_test.main_checklist_id')::uuid
+      and checklist_item.completed_at is not null
+  ) then
+    raise exception 'RLS probe failed: reopened checklist item kept its completion timestamp.';
+  end if;
+
+  insert into public.task_checklist_items (
+    organization_id, task_id, title, position, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Admin Checklist Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    1,
+    current_setting('manageflow_test.member_id')::uuid
+  ) returning id into checklist_probe_id;
+
+  delete from public.task_checklist_items
+  where id = checklist_probe_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'RLS probe failed: admin cannot delete a task checklist item.';
+  end if;
+
+  update public.tasks
+  set archived_at = now(), archived_by = current_setting('manageflow_test.member_id')::uuid
+  where id = current_setting('manageflow_test.main_task_id')::uuid;
+
+  begin
+    insert into public.task_checklist_items (
+      organization_id, task_id, title, position, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.main_task_id')::uuid,
+      'Archived Task Checklist Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      2,
+      current_setting('manageflow_test.member_id')::uuid
+    );
+    raise exception 'RLS probe failed: archived task accepted a checklist item.';
+  exception
+    when insufficient_privilege or check_violation then null;
+  end;
+
+  update public.tasks
+  set archived_at = null, archived_by = null
+  where id = current_setting('manageflow_test.main_task_id')::uuid;
 
   insert into public.tasks (
     organization_id, project_id, assignee_id, title, status, priority, created_by
@@ -827,6 +979,16 @@ begin
     current_setting('manageflow_test.member_id')::uuid
   );
 
+  insert into public.task_checklist_items (
+    organization_id, task_id, title, position, created_by
+  ) values (
+    current_setting('manageflow_test.main_organization_id')::uuid,
+    current_setting('manageflow_test.main_task_id')::uuid,
+    'Project Manager Checklist Allowed ' || replace(gen_random_uuid()::text, '-', ''),
+    3,
+    current_setting('manageflow_test.member_id')::uuid
+  );
+
   if exists (
     select 1
     from public.clients client
@@ -926,6 +1088,21 @@ begin
     when foreign_key_violation or insufficient_privilege or check_violation then null;
   end;
 
+  begin
+    insert into public.task_checklist_items (
+      organization_id, task_id, title, position, created_by
+    ) values (
+      current_setting('manageflow_test.main_organization_id')::uuid,
+      current_setting('manageflow_test.other_task_id')::uuid,
+      'Cross Organization Checklist Denied ' || replace(gen_random_uuid()::text, '-', ''),
+      4,
+      current_setting('manageflow_test.owner_id')::uuid
+    );
+    raise exception 'RLS probe failed: another organization task accepted a checklist item.';
+  exception
+    when foreign_key_violation or insufficient_privilege or check_violation then null;
+  end;
+
   delete from public.project_members
   where project_id = current_setting('manageflow_test.main_project_id')::uuid
     and user_id = current_setting('manageflow_test.member_id')::uuid;
@@ -1008,6 +1185,8 @@ select
   true as member_project_team_write_denied,
   true as member_task_read_allowed,
   true as member_task_write_denied,
+  true as member_checklist_read_allowed,
+  true as member_checklist_write_denied,
   true as admin_write_allowed,
   true as admin_client_write_allowed,
   true as admin_project_write_allowed,
@@ -1017,6 +1196,10 @@ select
   true as admin_task_archive_allowed,
   true as task_completion_timestamp_enforced,
   true as reopened_task_completion_cleared,
+  true as admin_checklist_write_allowed,
+  true as checklist_completion_timestamp_enforced,
+  true as reopened_checklist_completion_cleared,
+  true as archived_task_checklist_denied,
   true as duplicate_project_assignment_denied,
   true as archived_project_assignment_denied,
   true as archived_project_task_denied,
@@ -1026,6 +1209,7 @@ select
   true as project_manager_project_write_allowed,
   true as project_manager_project_team_write_allowed,
   true as project_manager_task_write_allowed,
+  true as project_manager_checklist_write_allowed,
   true as removed_project_member_task_unassigned,
   true as owner_client_write_allowed,
   true as owner_project_write_allowed,
@@ -1041,6 +1225,8 @@ select
   true as cross_organization_project_assignment_denied,
   true as cross_organization_tasks_hidden,
   true as cross_organization_task_project_denied,
+  true as cross_organization_checklists_hidden,
+  true as cross_organization_checklist_task_denied,
   true as inactive_project_assignment_denied,
   true as non_project_member_task_assignment_denied,
   true as cross_organization_project_client_denied,

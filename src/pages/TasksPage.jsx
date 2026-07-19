@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, CalendarDays, Check, CheckCheck, CheckSquare2, CircleAlert,
-  Columns3, FileText, FolderKanban, GripVertical, ListTodo, LoaderCircle, Pencil,
-  Plus, RefreshCw, Rows3, Search, ShieldCheck, Timer, UserRound, X,
+  Columns3, FileText, FolderKanban, GripVertical, ListChecks, ListTodo, LoaderCircle,
+  Pencil, Plus, RefreshCw, Rows3, Search, ShieldCheck, Timer, Trash2, UserRound, X,
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
 import { useProjectMembers } from '../features/projects/useProjectMembers';
@@ -12,6 +12,10 @@ import {
   groupTasksByStatus, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, validateTask,
 } from '../features/tasks/taskUtils';
 import { useTasks } from '../features/tasks/useTasks';
+import {
+  getChecklistErrorMessage, getChecklistProgress, validateChecklistTitle,
+} from '../features/tasks/checklistUtils';
+import { useTaskChecklist } from '../features/tasks/useTaskChecklist';
 
 const statusOptions = Object.entries(TASK_STATUS_LABELS);
 const priorityOptions = Object.entries(TASK_PRIORITY_LABELS);
@@ -98,6 +102,57 @@ function formatDateTime(date) {
   }).format(new Date(date));
 }
 
+function TaskChecklistSection({ taskId, canChange }) {
+  const {
+    addItem, error: loadError, items, loading, refresh, removeItem, toggleItem,
+  } = useTaskChecklist(taskId);
+  const [title, setTitle] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [savingItemId, setSavingItemId] = useState('');
+  const [actionError, setActionError] = useState('');
+  const progress = useMemo(() => getChecklistProgress(items), [items]);
+
+  const add = async event => {
+    event.preventDefault();
+    const validationError = validateChecklistTitle(title);
+    if (validationError) { setActionError(validationError); return; }
+    setAdding(true);
+    setActionError('');
+    const result = await addItem(title);
+    setAdding(false);
+    if (result.error) { setActionError(getChecklistErrorMessage(result.error)); return; }
+    setTitle('');
+  };
+  const toggle = async item => {
+    setSavingItemId(item.id);
+    setActionError('');
+    const result = await toggleItem(item);
+    setSavingItemId('');
+    if (result.error) setActionError(getChecklistErrorMessage(result.error));
+  };
+  const remove = async item => {
+    setSavingItemId(item.id);
+    setActionError('');
+    const result = await removeItem(item.id);
+    setSavingItemId('');
+    if (result.error) setActionError(getChecklistErrorMessage(result.error));
+  };
+
+  return (
+    <section className="task-checklist-section">
+      <header><span><ListChecks /></span><div><small>CHECKLIST</small><b>{progress.completed}/{progress.total} tamamlandı</b></div><strong>%{progress.percentage}</strong></header>
+      {progress.total > 0 && <div className="task-checklist-progress"><i style={{ width: `${progress.percentage}%` }} /></div>}
+      {loading && <div className="task-checklist-state"><LoaderCircle className="spin" /> Checklist yükleniyor…</div>}
+      {!loading && loadError && <div className="task-checklist-state error"><CircleAlert /> Checklist yüklenemedi.<button onClick={refresh}>Tekrar dene</button></div>}
+      {!loading && !loadError && items.length === 0 && <div className="task-checklist-empty"><ListChecks /><span><b>Henüz checklist yok</b><small>{canChange ? 'İlk kontrol adımını aşağıdan ekleyin.' : 'Yetkili kullanıcılar kontrol adımı ekleyebilir.'}</small></span></div>}
+      {!loading && !loadError && items.length > 0 && <div className="task-checklist-list">{items.map(item => <div className={`task-checklist-item ${item.isCompleted ? 'completed' : ''}`} key={item.id}><button className="task-checklist-toggle" onClick={() => toggle(item)} disabled={!canChange || Boolean(savingItemId)} aria-label={`${item.title} öğesini ${item.isCompleted ? 'yeniden aç' : 'tamamla'}`}>{savingItemId === item.id ? <LoaderCircle className="spin" /> : item.isCompleted ? <Check /> : null}</button><span><b>{item.title}</b><small>{item.isCompleted ? `${formatDateTime(item.completedAt)} tamamlandı` : 'Bekliyor'}</small></span>{canChange && <button className="task-checklist-remove" onClick={() => remove(item)} disabled={Boolean(savingItemId)} aria-label={`${item.title} öğesini kaldır`} title="Checklist öğesini kaldır"><Trash2 /></button>}</div>)}</div>}
+      {canChange && !loading && !loadError && <form className="task-checklist-add" onSubmit={add}><input value={title} onChange={event => { setTitle(event.target.value); setActionError(''); }} maxLength="180" placeholder="Yeni kontrol adımı…" aria-label="Yeni checklist öğesi" /><button disabled={adding}>{adding ? <LoaderCircle className="spin" /> : <Plus />} Ekle</button></form>}
+      {!canChange && !loading && !loadError && items.length > 0 && <p className="task-checklist-readonly"><ShieldCheck /> Checklist salt okunur.</p>}
+      {actionError && <div className="form-error" role="alert">{actionError}</div>}
+    </section>
+  );
+}
+
 function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canManage }) {
   const [draft, setDraft] = useState(task);
   const [editing, setEditing] = useState(false);
@@ -181,6 +236,8 @@ function TaskDrawer({ task, projects, close, updateTask, setTaskArchived, canMan
             {error && <div className="form-error" role="alert">{error}</div>}
           </>
         )}
+
+        {!editing && <TaskChecklistSection taskId={draft.id} canChange={canChange && !draft.isArchived} />}
 
         {confirmingArchive && <div className="deactivate-confirm" role="alert"><b>Görev arşivlensin mi?</b><p>Görev silinmeyecek; proje bağlantısı, sorumlusu ve tamamlanma geçmişi korunacak.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingArchive(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={() => changeArchive(true)} disabled={saving}>{saving ? 'Arşivleniyor…' : 'Arşivle'}</button></div></div>}
         {!confirmingArchive && canChange && <div className="drawer-actions task-drawer-actions">

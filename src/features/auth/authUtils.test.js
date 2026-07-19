@@ -1,12 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
-  getAuthErrorMessage, getAuthRedirectUrl, getUserIdentity, validatePassword,
+  getAuthErrorMessage, getAuthRedirectUrl, getPasswordRecoveryState, getUserIdentity,
+  resolveAppUrl, validatePassword,
 } from './authUtils';
 
 describe('Auth utilities', () => {
   it('builds stable callback URLs', () => {
     expect(getAuthRedirectUrl('eposta-dogrula', 'http://127.0.0.1:5173/'))
       .toBe('http://127.0.0.1:5173/eposta-dogrula');
+    expect(resolveAppUrl('https://manageflow.vercel.app/path', 'http://127.0.0.1:5173')).toBe('https://manageflow.vercel.app');
+    expect(resolveAppUrl('javascript:alert(1)', 'http://127.0.0.1:5173/')).toBe('http://127.0.0.1:5173');
+  });
+
+  it('accepts password changes only for a recovery callback session', () => {
+    const session = { user: { id: 'u1' } };
+    expect(getPasswordRecoveryState({ event: 'PASSWORD_RECOVERY', session })).toEqual({ errorDescription: '', ready: true });
+    expect(getPasswordRecoveryState({ event: 'SIGNED_IN', session })).toEqual({ errorDescription: '', ready: false });
+    expect(getPasswordRecoveryState({ event: 'SIGNED_IN', session, hash: '#type=recovery' }).ready).toBe(true);
+    expect(getPasswordRecoveryState({ event: 'PASSWORD_RECOVERY', session, hash: '#error_description=Expired' })).toEqual({ errorDescription: 'Expired', ready: false });
   });
 
   it('derives display identity from user metadata', () => {

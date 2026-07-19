@@ -6,7 +6,9 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Brand';
 import { useAuth } from '../features/auth/AuthContext';
-import { getAuthErrorMessage, validatePassword } from '../features/auth/authUtils';
+import {
+  getAuthErrorMessage, getPasswordRecoveryState, validatePassword,
+} from '../features/auth/authUtils';
 
 export function AuthShell({ eyebrow, title, description, children }) {
   const { isDemoMode, initializationError } = useAuth();
@@ -215,11 +217,14 @@ export function VerifyEmailPage() {
 }
 
 export function ResetPasswordPage() {
-  const { loading, session, updatePassword } = useAuth();
+  const { event, loading, session, updatePassword } = useAuth();
   const [form, setForm] = useState({ password: '', confirmation: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [complete, setComplete] = useState(false);
+  const recoveryState = useMemo(() => getPasswordRecoveryState({
+    event, session, hash: window.location.hash, search: window.location.search,
+  }), [event, session]);
 
   const submit = async event => {
     event.preventDefault();
@@ -236,9 +241,11 @@ export function ResetPasswordPage() {
 
   return (
     <AuthShell eyebrow="YENİ ŞİFRE" title="Hesabınızı yeniden güvene alın" description="Daha önce kullanmadığınız güçlü bir şifre belirleyin.">
-      {complete ? (
+      {recoveryState.errorDescription ? (
+        <div className="auth-success-panel neutral"><CircleAlert /><p>Bu şifre yenileme bağlantısı geçersiz veya süresi dolmuş.</p><Link className="auth-submit" to="/sifremi-unuttum"><span>Yeni bağlantı iste</span><ArrowRight /></Link></div>
+      ) : complete ? (
         <div className="auth-success-panel"><CheckCircle2 /><p>Şifreniz başarıyla değiştirildi. Çalışma alanınıza devam edebilirsiniz.</p><Link className="auth-submit" to="/dashboard"><span>ManageFlow'a devam et</span><ArrowRight /></Link></div>
-      ) : !loading && !session ? (
+      ) : !loading && !recoveryState.ready ? (
         <div className="auth-success-panel neutral"><KeyRound /><p>Bu şifre yenileme bağlantısı geçersiz veya süresi dolmuş.</p><Link className="auth-submit" to="/sifremi-unuttum"><span>Yeni bağlantı iste</span><ArrowRight /></Link></div>
       ) : (
         <form className="auth-form" onSubmit={submit}>

@@ -25,7 +25,21 @@ http://127.0.0.1:5173/sifre-yenile
 http://127.0.0.1:5173/davet-kabul
 ```
 
-Production yayını alındığında `Site URL` canlı domain olarak güncellenmeli ve aynı üç yol canlı domain ile ayrıca tanımlanmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır.
+Production uygulaması şu adreste yayındadır:
+
+```text
+https://manageflow-seven.vercel.app
+```
+
+Supabase Dashboard > Authentication > URL Configuration alanında `Site URL` bu origin olarak ayarlanmalı ve aşağıdaki kesin production adresleri redirect izin listesine eklenmelidir:
+
+```text
+https://manageflow-seven.vercel.app/eposta-dogrula
+https://manageflow-seven.vercel.app/sifre-yenile
+https://manageflow-seven.vercel.app/davet-kabul
+```
+
+Yerel üç adres de geliştirme için listede tutulmalıdır. Production ortamında genel wildcard yerine kesin adresler kullanılmalıdır. Vercel Preview ortamı e-posta callback'leri için `VITE_APP_URL` üzerinden aynı kararlı production origin'ini kullanır.
 
 ## Ekip daveti Edge Function
 
@@ -38,8 +52,10 @@ supabase functions deploy invite-member
 Yerel origin otomatik olarak desteklenir. Canlı domain yayınında yalnızca production origin'ine izin vermek için Edge Function secret'ı eklenmelidir:
 
 ```bash
-supabase secrets set MANAGEFLOW_APP_URL=https://app.manageflow.example
+supabase secrets set MANAGEFLOW_APP_URL=https://manageflow-seven.vercel.app
 ```
+
+Bu production secret'ı bağlı `manageflow` projesinde tanımlanmıştır.
 
 Supabase'in varsayılan SMTP servisi production kullanımı için uygun değildir. Gerçek müşteri adreslerine davet gönderilmeden önce Authentication > SMTP Settings alanında özel SMTP yapılandırılmalıdır.
 

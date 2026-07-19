@@ -20,9 +20,39 @@ export function getAuthErrorMessage(error) {
   return 'İşlem şu anda tamamlanamadı. Lütfen tekrar deneyin.';
 }
 
-export function getAuthRedirectUrl(path, origin = window.location.origin) {
+export function resolveAppUrl(configuredUrl = '', runtimeOrigin = window.location.origin) {
+  const candidate = String(configuredUrl || '').trim() || runtimeOrigin;
+  try {
+    const url = new URL(candidate);
+    const localHttp = url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname);
+    if (url.protocol !== 'https:' && !localHttp) return String(runtimeOrigin).replace(/\/$/, '');
+    return url.origin;
+  } catch {
+    return String(runtimeOrigin).replace(/\/$/, '');
+  }
+}
+
+export function getAuthRedirectUrl(path, origin = resolveAppUrl(import.meta.env.VITE_APP_URL, window.location.origin)) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${origin.replace(/\/$/, '')}${normalizedPath}`;
+}
+
+function getAuthCallbackParameters(hash = '', search = '') {
+  const hashParams = new URLSearchParams(String(hash).replace(/^#/, ''));
+  const searchParams = new URLSearchParams(String(search).replace(/^\?/, ''));
+  return {
+    errorDescription: hashParams.get('error_description') || searchParams.get('error_description') || '',
+    type: hashParams.get('type') || searchParams.get('type') || '',
+  };
+}
+
+export function getPasswordRecoveryState({ event, session, hash = '', search = '' }) {
+  const parameters = getAuthCallbackParameters(hash, search);
+  const recoveryEvent = event === 'PASSWORD_RECOVERY' || parameters.type === 'recovery';
+  return {
+    errorDescription: parameters.errorDescription,
+    ready: Boolean(session && recoveryEvent && !parameters.errorDescription),
+  };
 }
 
 export function getUserIdentity(user) {

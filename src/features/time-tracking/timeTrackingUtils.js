@@ -78,6 +78,11 @@ export function mapDatabaseTimeEntry(entry, projectsById = new Map(), tasksById 
     endedAt: entry.ended_at || '',
     durationSeconds: entry.duration_seconds ?? null,
     isActive: !entry.ended_at,
+    isArchived: Boolean(entry.archived_at),
+    archivedAt: entry.archived_at || '',
+    archivedBy: entry.archived_by || '',
+    correctedAt: entry.corrected_at || '',
+    correctedBy: entry.corrected_by || '',
     createdAt: entry.created_at,
   };
 }
@@ -108,6 +113,8 @@ export function getWeeklyHistory(entries, weekDate = new Date(), filters = {}, n
     getRangeSeconds(entry, start, end, now) > 0
       && (!filters.projectId || entry.projectId === filters.projectId)
       && (!filters.taskId || entry.taskId === filters.taskId)
+      && (filters.archive === 'all'
+        || (filters.archive === 'archived' ? entry.isArchived : !entry.isArchived))
   ));
   return {
     end,
@@ -142,8 +149,10 @@ export function getTodaySeconds(entry, now = new Date()) {
 }
 
 export function getTimeTrackingStats(entries, now = new Date()) {
-  const todayEntries = entries.filter(entry => getTodaySeconds(entry, now) > 0 || (
-    entry.isActive && toTime(entry.startedAt) <= new Date(now).getTime()
+  const todayEntries = entries.filter(entry => !entry.isArchived && (
+    getTodaySeconds(entry, now) > 0 || (
+      entry.isActive && toTime(entry.startedAt) <= new Date(now).getTime()
+    )
   ));
   return {
     activeEntry: entries.find(entry => entry.isActive) || null,
@@ -195,5 +204,6 @@ export function getTimeTrackingErrorMessage(error) {
   if (error?.code === '23503') return 'Seçilen proje veya görev artık zaman takibi için kullanılamıyor.';
   if (error?.code === '23514') return 'Süre bilgileri doğrulanamadı. Tarih, saat ve süreyi kontrol edin.';
   if (error?.code === '42501') return 'Bu çalışma alanında zaman takibi yapma yetkiniz yok.';
+  if (error?.code === 'P0002') return 'Zaman kaydı bulunamadı veya artık kullanılamıyor.';
   return 'Zaman kaydı tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.';
 }

@@ -22,7 +22,10 @@ describe('Time tracking utilities', () => {
       note: null, entry_type: 'timer', started_at: '2026-07-19T09:00:00Z', ended_at: null, duration_seconds: null,
       created_at: '2026-07-19T09:00:00Z',
     }, new Map([['p1', { name: 'Web Sitesi' }]]), new Map([['t1', { title: 'Ana sayfa' }]]));
-    expect(mapped).toMatchObject({ projectName: 'Web Sitesi', taskTitle: 'Ana sayfa', isActive: true, note: '', entryType: 'timer' });
+    expect(mapped).toMatchObject({
+      projectName: 'Web Sitesi', taskTitle: 'Ana sayfa', isActive: true, isArchived: false,
+      archivedAt: '', correctedAt: '', note: '', entryType: 'timer',
+    });
   });
 
   it('normalizes and validates a past manual entry', () => {
@@ -71,6 +74,18 @@ describe('Time tracking utilities', () => {
     expect(formatWeekRange(new Date('2026-07-16T12:00:00+03:00'))).toContain('13');
   });
 
+  it('keeps archived entries out of active history and metrics', () => {
+    const now = new Date('2026-07-19T12:00:00+03:00');
+    const entries = [
+      { id: 'active', projectId: 'p1', startedAt: '2026-07-19T09:00:00+03:00', endedAt: '2026-07-19T10:00:00+03:00', durationSeconds: 3600, isActive: false, isArchived: false },
+      { id: 'archived', projectId: 'p1', startedAt: '2026-07-19T10:00:00+03:00', endedAt: '2026-07-19T11:00:00+03:00', durationSeconds: 3600, isActive: false, isArchived: true },
+    ];
+    expect(getWeeklyHistory(entries, now).entries.map(entry => entry.id)).toEqual(['active']);
+    expect(getWeeklyHistory(entries, now, { archive: 'archived' }).entries.map(entry => entry.id)).toEqual(['archived']);
+    expect(getWeeklyHistory(entries, now, { archive: 'all' }).totalSeconds).toBe(7200);
+    expect(getTimeTrackingStats(entries, now)).toMatchObject({ sessions: 1, todaySeconds: 3600 });
+  });
+
   it('formats timer and compact durations', () => {
     expect(formatTimerDuration(3661)).toBe('01:01:01');
     expect(formatCompactDuration(30)).toBe('30 sn');
@@ -81,6 +96,7 @@ describe('Time tracking utilities', () => {
     expect(getTimeTrackingErrorMessage({ code: '23505' })).toContain('devam eden');
     expect(getTimeTrackingErrorMessage({ code: '42501' })).toContain('yetkiniz');
     expect(getTimeTrackingErrorMessage({ code: '23514' })).toContain('Tarih');
+    expect(getTimeTrackingErrorMessage({ code: 'P0002' })).toContain('bulunamadı');
     expect(getTimeTrackingErrorMessage(new Error('details'))).not.toContain('details');
   });
 });

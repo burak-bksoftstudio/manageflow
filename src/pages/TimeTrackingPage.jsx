@@ -2,8 +2,9 @@ import {
   useEffect, useMemo, useState,
 } from 'react';
 import {
-  Activity, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3,
-  FolderKanban, History, ListTodo, LoaderCircle, Plus, Play, RefreshCw, Square, TimerReset, X,
+  Activity, Archive, ArchiveRestore, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight,
+  CircleAlert, Clock3, FolderKanban, History, ListTodo, LoaderCircle, Pencil, Plus, Play, RefreshCw,
+  Square, TimerReset, X,
 } from 'lucide-react';
 import { useTimeEntries } from '../features/time-tracking/useTimeEntries';
 import {
@@ -24,16 +25,23 @@ function localInputParts(value = new Date()) {
   };
 }
 
-function ManualTimeEntryModal({ close, createManualEntry, projects, tasks }) {
-  const initialStart = new Date(Date.now() - 60 * 60 * 1000);
+function TimeEntryModal({ close, entry = null, projects, submitEntry, tasks }) {
+  const editing = Boolean(entry);
+  const initialStart = editing ? new Date(entry.startedAt) : new Date(Date.now() - 60 * 60 * 1000);
   const initialParts = localInputParts(initialStart);
+  const initialProjectId = editing && projects.some(project => project.id === entry.projectId)
+    ? entry.projectId
+    : projects[0]?.id || '';
+  const initialTaskId = editing && tasks.some(task => (
+    task.id === entry.taskId && !task.isArchived && !task.projectArchived && task.projectId === initialProjectId
+  )) ? entry.taskId : '';
   const [form, setForm] = useState({
     date: initialParts.date,
-    durationMinutes: '60',
-    note: '',
-    projectId: projects[0]?.id || '',
+    durationMinutes: editing ? String(Math.max(1, Math.round((entry.durationSeconds || 60) / 60))) : '60',
+    note: entry?.note || '',
+    projectId: initialProjectId,
     startTime: initialParts.time,
-    taskId: '',
+    taskId: initialTaskId,
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -66,16 +74,16 @@ function ManualTimeEntryModal({ close, createManualEntry, projects, tasks }) {
     const validationError = validateManualTimeForm(form, tasks);
     if (validationError) { setError(validationError); return; }
     setSaving(true);
-    const result = await createManualEntry(form);
+    const result = await submitEntry(form);
     setSaving(false);
     if (result.error) { setError(getTimeTrackingErrorMessage(result.error)); return; }
-    close({ created: result.data });
+    close(editing ? { updated: result.data } : { created: result.data });
   };
 
   return (
     <div className="modal-layer" onMouseDown={saving ? undefined : close} role="presentation">
       <form className="modal time-manual-modal" onSubmit={submit} onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="manual-time-title">
-        <div className="modal-head"><div><span>MANUEL SÜRE</span><h2 id="manual-time-title">Geçmiş çalışmayı kaydedin</h2><p>Başlangıç ve süre sunucuda doğrulanır; geleceğe uzanan kayıtlar kabul edilmez.</p></div><button type="button" className="icon-button" onClick={close} disabled={saving} aria-label="Pencereyi kapat"><X /></button></div>
+        <div className="modal-head"><div><span>{editing ? 'SÜREYİ DÜZELT' : 'MANUEL SÜRE'}</span><h2 id="manual-time-title">{editing ? 'Zaman kaydını düzenleyin' : 'Geçmiş çalışmayı kaydedin'}</h2><p>{editing ? 'Proje, görev, zaman ve açıklama değişiklikleri sunucuda doğrulanıp düzeltme geçmişine işlenir.' : 'Başlangıç ve süre sunucuda doğrulanır; geleceğe uzanan kayıtlar kabul edilmez.'}</p></div><button type="button" className="icon-button" onClick={close} disabled={saving} aria-label="Pencereyi kapat"><X /></button></div>
         <div className="time-manual-form">
           <label>Proje<select name="projectId" value={form.projectId} onChange={update} disabled={saving}><option value="">Proje seçin</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
           <label>Görev <small>İsteğe bağlı</small><select name="taskId" value={form.taskId} onChange={update} disabled={saving || !form.projectId}><option value="">Yalnızca projeye kaydet</option>{availableTasks.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}</select></label>
@@ -85,16 +93,52 @@ function ManualTimeEntryModal({ close, createManualEntry, projects, tasks }) {
           <label className="full-field">Kısa açıklama <small>İsteğe bağlı</small><textarea name="note" maxLength="500" value={form.note} onChange={update} placeholder="Örn. Müşteri toplantısı ve revizyon notları" disabled={saving} /></label>
         </div>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="modal-actions"><button type="button" className="soft-button" onClick={close} disabled={saving}>Vazgeç</button><button className="agenda-button" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Plus />}{saving ? 'Kaydediliyor…' : 'Süreyi kaydet'}</button></div>
+        <div className="modal-actions"><button type="button" className="soft-button" onClick={close} disabled={saving}>Vazgeç</button><button className="agenda-button" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : editing ? <Check /> : <Plus />}{saving ? 'Kaydediliyor…' : editing ? 'Değişiklikleri kaydet' : 'Süreyi kaydet'}</button></div>
       </form>
+    </div>
+  );
+}
+
+function TimeArchiveModal({ archiveTimeEntry, close, entry }) {
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = event => event.key === 'Escape' && !saving && close();
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [close, saving]);
+
+  const archive = async () => {
+    setSaving(true);
+    setError('');
+    const result = await archiveTimeEntry(entry.id);
+    setSaving(false);
+    if (result.error) { setError(getTimeTrackingErrorMessage(result.error)); return; }
+    close({ archived: result.data });
+  };
+
+  return (
+    <div className="modal-layer" onMouseDown={saving ? undefined : close} role="presentation">
+      <div className="modal time-archive-modal" onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="archive-time-title">
+        <div className="modal-head"><div><span>ZAMAN KAYDI</span><h2 id="archive-time-title">Kayıt arşivlensin mi?</h2><p><b>{entry.taskTitle || entry.projectName}</b> için kaydedilen {formatCompactDuration(entry.durationSeconds)} silinmeyecek; toplam ve raporlardan çıkarılacak.</p></div><button type="button" className="icon-button" onClick={close} disabled={saving} aria-label="Pencereyi kapat"><X /></button></div>
+        <div className="time-archive-note"><Archive /><span><b>Geri alınabilir işlem</b><small>Arşiv filtresinden kaydı bulup yeniden aktif geçmişe alabilirsiniz.</small></span></div>
+        {error && <div className="form-error" role="alert">{error}</div>}
+        <div className="modal-actions"><button type="button" className="soft-button" onClick={close} disabled={saving}>Vazgeç</button><button type="button" className="danger-button" onClick={archive} disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Archive />}{saving ? 'Arşivleniyor…' : 'Arşivle'}</button></div>
+      </div>
     </div>
   );
 }
 
 export default function TimeTrackingPage() {
   const {
-    activeEntry, createManualEntry, entries, error: loadError, loading, projects, refresh, startTimer,
-    stopTimer, tasks,
+    activeEntry, archiveTimeEntry, createManualEntry, entries, error: loadError, loading, projects,
+    refresh, restoreTimeEntry, startTimer, stopTimer, tasks, updateTimeEntry,
   } = useTimeEntries();
   const [form, setForm] = useState({ projectId: '', taskId: '', note: '' });
   const [now, setNow] = useState(() => new Date());
@@ -102,15 +146,19 @@ export default function TimeTrackingPage() {
   const [formError, setFormError] = useState('');
   const [toast, setToast] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [archivingEntry, setArchivingEntry] = useState(null);
+  const [historyError, setHistoryError] = useState('');
+  const [actionBusyId, setActionBusyId] = useState('');
   const [weekOffset, setWeekOffset] = useState(0);
-  const [historyFilters, setHistoryFilters] = useState({ projectId: '', taskId: '' });
+  const [historyFilters, setHistoryFilters] = useState({ archive: 'active', projectId: '', taskId: '' });
 
   const activeProjects = useMemo(() => projects.filter(project => !project.isArchived), [projects]);
   const availableTasks = useMemo(() => tasks.filter(task => (
     !task.isArchived && !task.projectArchived && task.projectId === form.projectId
   )), [form.projectId, tasks]);
   const stats = useMemo(() => getTimeTrackingStats(entries, now), [entries, now]);
-  const todayEntries = useMemo(() => entries.filter(entry => (
+  const todayEntries = useMemo(() => entries.filter(entry => !entry.isArchived && (
     entry.isActive || getTodaySeconds(entry, now) > 0
   )).slice(0, 12), [entries, now]);
   const selectedWeek = useMemo(() => {
@@ -189,6 +237,30 @@ export default function TimeTrackingPage() {
     setToast(`${formatCompactDuration(result.created.durationSeconds)} manuel süre kaydedildi.`);
   };
 
+  const closeEditor = result => {
+    setEditingEntry(null);
+    if (!result?.updated) return;
+    setNow(new Date());
+    setToast(`${formatCompactDuration(result.updated.durationSeconds)} zaman kaydı güncellendi.`);
+  };
+
+  const closeArchive = result => {
+    setArchivingEntry(null);
+    if (!result?.archived) return;
+    setNow(new Date());
+    setToast('Zaman kaydı arşivlendi. Toplamlardan çıkarıldı.');
+  };
+
+  const restore = async entry => {
+    setActionBusyId(entry.id);
+    setHistoryError('');
+    const result = await restoreTimeEntry(entry.id);
+    setActionBusyId('');
+    if (result.error) { setHistoryError(getTimeTrackingErrorMessage(result.error)); return; }
+    setNow(new Date());
+    setToast('Zaman kaydı arşivden çıkarıldı.');
+  };
+
   const updateHistoryFilter = event => {
     const { name, value } = event.target;
     setHistoryFilters(current => ({
@@ -263,17 +335,21 @@ export default function TimeTrackingPage() {
           <div className="time-week-nav"><button onClick={() => setWeekOffset(value => value - 1)} aria-label="Önceki hafta"><ChevronLeft /></button><button className="week-label" onClick={() => setWeekOffset(0)}><CalendarDays />{weekOffset === 0 ? 'Bu hafta' : formatWeekRange(selectedWeek)}</button><button onClick={() => setWeekOffset(value => value + 1)} disabled={weekOffset >= 0} aria-label="Sonraki hafta"><ChevronRight /></button></div>
           <select name="projectId" value={historyFilters.projectId} onChange={updateHistoryFilter} aria-label="Geçmişi projeye göre filtrele"><option value="">Tüm projeler</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
           <select name="taskId" value={historyFilters.taskId} onChange={updateHistoryFilter} aria-label="Geçmişi göreve göre filtrele"><option value="">Tüm görevler</option>{historyTasks.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}</select>
+          <select name="archive" value={historyFilters.archive} onChange={updateHistoryFilter} aria-label="Geçmişi arşiv durumuna göre filtrele"><option value="active">Aktif kayıtlar</option><option value="archived">Arşivlenenler</option><option value="all">Tüm kayıtlar</option></select>
         </div>
+        {historyError && <div className="time-history-error" role="alert"><CircleAlert />{historyError}</div>}
         <div className="time-history-list">
           {weeklyHistory.entries.map(entry => (
-            <article key={entry.id}><span className="time-history-date"><CalendarDays /><b>{formatTimeEntryDate(entry)}</b></span><span className="time-history-context"><b>{entry.taskTitle || entry.projectName}{entry.entryType === 'manual' && <em className="time-manual-tag">Manuel</em>}</b><small>{entry.taskTitle ? entry.projectName : 'Proje geneli'} · {formatTimeEntryRange(entry)}</small>{entry.note && <p>{entry.note}</p>}</span><strong>{formatCompactDuration(getElapsedSeconds(entry, now))}</strong></article>
+            <article className={entry.isArchived ? 'archived' : ''} key={entry.id}><span className="time-history-date"><CalendarDays /><b>{formatTimeEntryDate(entry)}</b></span><span className="time-history-context"><b>{entry.taskTitle || entry.projectName}{entry.entryType === 'manual' && <em className="time-manual-tag">Manuel</em>}{entry.correctedAt && <em className="time-corrected-tag">Düzeltildi</em>}{entry.isArchived && <em className="time-archived-tag">Arşivde</em>}</b><small>{entry.taskTitle ? entry.projectName : 'Proje geneli'} · {formatTimeEntryRange(entry)}</small>{entry.note && <p>{entry.note}</p>}</span><strong>{formatCompactDuration(getElapsedSeconds(entry, now))}</strong><div className="time-history-actions">{entry.isArchived ? <button type="button" onClick={() => restore(entry)} disabled={actionBusyId === entry.id} aria-label="Zaman kaydını arşivden çıkar" title="Arşivden çıkar">{actionBusyId === entry.id ? <LoaderCircle className="spin" /> : <ArchiveRestore />}</button> : <><button type="button" onClick={() => { setHistoryError(''); setEditingEntry(entry); }} aria-label="Zaman kaydını düzenle" title="Düzenle"><Pencil /></button><button type="button" onClick={() => { setHistoryError(''); setArchivingEntry(entry); }} aria-label="Zaman kaydını arşivle" title="Arşivle"><Archive /></button></>}</div></article>
           ))}
           {!loading && !loadError && weeklyHistory.entries.length === 0 && <div className="time-history-empty"><History /><h3>Bu hafta için kayıt bulunamadı</h3><p>Haftayı veya filtreleri değiştirin; yeni süreler burada görünecek.</p></div>}
         </div>
       </section>
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
-      {manualOpen && <ManualTimeEntryModal close={closeManual} createManualEntry={createManualEntry} projects={activeProjects} tasks={tasks} />}
+      {manualOpen && <TimeEntryModal close={closeManual} projects={activeProjects} submitEntry={createManualEntry} tasks={tasks} />}
+      {editingEntry && <TimeEntryModal close={closeEditor} entry={editingEntry} projects={activeProjects} submitEntry={formValue => updateTimeEntry(editingEntry.id, formValue)} tasks={tasks} />}
+      {archivingEntry && <TimeArchiveModal archiveTimeEntry={archiveTimeEntry} close={closeArchive} entry={archivingEntry} />}
     </>
   );
 }

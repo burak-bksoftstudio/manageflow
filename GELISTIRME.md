@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.29.1-quote-cta` |
-| Mevcut aşama | Landing satış aksiyonları ihtiyaca özel “Fiyat teklifi al” akışına geçirildi; production kullanıcı kabulü bekleniyor |
-| Sonraki ana hedef | Landing page kullanıcı kabulü; ardından zaman kayıtlarını güvenli düzeltme/arşivleme paketine geçmek |
+| Mevcut sürüm | `0.30.0-time-corrections` |
+| Mevcut aşama | Zaman Takibi v1.2 güvenli kayıt düzeltme, denetlenebilir değişiklik ve geri alınabilir arşivleme production şemasına uygulandı |
+| Sonraki ana hedef | Production kullanıcı kabulü; ardından owner/admin ekip timesheet ekranını geliştirmek |
 
 ---
 
@@ -93,7 +93,7 @@ Mevcut sürümde:
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Gerçek proje bağlantılı ortak notlar, arama, proje filtresi, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı; kabul testi bekliyor |
 | Dosyalar | Yakında |
-| Zaman Takibi | Gerçek sayaç, sunucu doğrulamalı manuel süre, haftalık kişisel geçmiş ve proje/görev filtreleri Supabase ile bağlı; v1 doğrulandı, v1.1 kabul testi bekliyor |
+| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme, denetim alanları ve geri alınabilir arşivleme Supabase ile bağlı; v1.2 kullanıcı kabulü bekliyor |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
@@ -687,6 +687,26 @@ Landing bilgi mimarisi pazar referansı olarak incelenen Managelify yaklaşımı
 
 Landing page Vercel production'a alınmış ve `https://manageflow.bksoftstudio.com/` özel domaininde yayınlanmıştır. Ana sayfa, giriş, kayıt ve dashboard SPA rotaları teknik smoke kontrolünde `200` dönmüş; production HTML başlığı, canonical adresi, güvenlik başlıkları ve lazy landing bundle içeriği doğrulanmıştır.
 
+### 4.23 Zaman Takibi v1.2 — düzeltme ve arşivleme
+
+- Tamamlanmış kişisel kayıtlarda proje, görev, tarih, başlangıç, toplam süre ve açıklama düzeltme
+- Aktif sayacın düzeltme ve arşivleme işlemlerine kapalı tutulması
+- 1–1440 dakika, geçmiş zaman, aktif proje/görev ve not uzunluğu kontrollerinin sunucuda yeniden doğrulanması
+- `corrected_at` ve `corrected_by` alanlarıyla değişiklik zamanı/aktörü denetimi
+- `archived_at` ve `archived_by` alanlarıyla fiziksel silme yerine geri alınabilir arşivleme
+- Aktif, arşivlenen ve tüm kayıtlar için haftalık geçmiş filtresi
+- Arşivlenen kayıtları kişisel metrik ve varsayılan toplamların dışında tutma
+- Arşivden geri çıkarma ve kaydı yeniden kişisel toplamlara dahil etme
+- Sayaç durdurmayı `stop_time_entry` güvenli sunucu fonksiyonuna taşıma
+- Düzeltme, arşivleme ve geri alma işlemleri için ayrı `SECURITY DEFINER` RPC sınırları
+- Authenticated rolünün `time_entries` tablosuna doğrudan `UPDATE` yetkisini kaldırma
+- Kullanıcının kendi kaydı; owner/admin için ilerideki ekip timesheet ekranına hazır yönetim yetkisi
+- Düzenleme modalı, arşiv onayı, durum etiketleri, hata ve mobil görünüm
+- Arşiv davranışı ve metrik dışlama için yeni domain testi
+- RPC sınırı, düzeltme aktörü, başka kullanıcı reddi, arşiv ve geri alma için genişletilmiş rollback güvenlik testi
+
+Uzak migration sayısı 21'e yükselmiştir. Zaman takibi v1.2 güvenlik testi, tam RLS regresyon testi ve proje notları regresyon testi `result: passed`; uzak schema lint temiz ve yerel/uzak migration geçmişi eşleşmektedir.
+
 ---
 
 ## 5. Henüz yapılmamış bağlantılar
@@ -694,7 +714,7 @@ Landing page Vercel production'a alınmış ve `https://manageflow.bksoftstudio.
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
 - Dosya, mesaj, bildirim ve takvim modüllerinin Supabase sorguları
-- Zaman kaydı düzeltme/arşivleme yaşam döngüsü, ekip timesheet'i ve ekip zaman raporları
+- Ekip timesheet'i ve ekip zaman raporları
 - Özel domainde production kayıt doğrulama ve davet kabul callback'lerinin canlı hesaplarla smoke testi
 - Google ile giriş
 - Birden fazla organizasyon arasında çalışma alanı değiştirme akışı
@@ -1201,7 +1221,7 @@ ai_actions
 automations
 ```
 
-Uygulanmış `time_entries` v1 modeli şu bağlamı taşır:
+Uygulanmış `time_entries` v1.2 modeli şu bağlamı taşır:
 
 ```text
 id
@@ -1213,11 +1233,16 @@ note
 started_at
 ended_at
 duration_seconds
+entry_type
+archived_at
+archived_by
+corrected_at
+corrected_by
 created_at
 updated_at
 ```
 
-Başlangıç/bitiş ve süre alanları sunucu trigger'ı tarafından yönetilir. V1'de kullanıcı kaydı silmek yerine yalnızca aktif sayacı bitirebilir; düzeltme/arşivleme yaşam döngüsü manuel giriş paketiyle tasarlanacaktır.
+Başlangıç/bitiş ve süre alanları sunucu trigger'ı tarafından yönetilir. Sayaç durdurma, tamamlanmış kayıt düzeltme, arşivleme ve geri alma yalnız yetki kontrollü RPC fonksiyonları üzerinden yapılır; authenticated rolünün doğrudan insert/update/delete yetkisi yoktur.
 
 Organizasyona ait bütün ana tablolarda en az şu ortak alanlar bulunmalıdır:
 
@@ -1506,9 +1531,9 @@ Her özellik tamamlanmış sayılmadan önce:
 
 1. Production landing sayfasını masaüstü ve mobilde aç; navigasyon, anchor ve CTA akışlarını doğrula.
 2. Oturumsuz CTA'nın teklif talebi e-postasını, giriş bağlantısının `/giris`, oturumlu CTA'nın `/dashboard` rotasını açtığını doğrula.
-3. Zaman Takibi v1.1 ve Çalışma Alanı v1 production kabul kontrollerini tamamla.
-4. Hatalı zaman kaydını güvenli düzeltme/arşivleme yaşam döngüsünü tasarla ve uygula.
-5. Sonraki pakette owner/admin ekip timesheet ekranına geç.
+3. Tamamlanmış bir süreyi düzenle; yenilemede düzeltme etiketi, yeni süre ve toplamın korunduğunu doğrula.
+4. Kaydı arşivle, varsayılan toplamdan çıktığını ve Arşivlenenler filtresinde göründüğünü doğrula; ardından geri al.
+5. Kabul sonrasında owner/admin ekip timesheet ekranına geç.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
@@ -1517,12 +1542,46 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 → Sayacı durdurunca sunucu hesaplı süre kalıcı kayda dönüşür
 → Manuel süre kayıtları tarih, proje ve isteğe bağlı görev bağlamıyla eklenebilir
 → Kullanıcı günlük/haftalık geçmişini filtreleyebilir
+→ Tamamlanmış kayıt güvenli RPC ile düzeltilebilir ve aktörü kaydedilir
+→ Arşivlenen kayıt silinmez, varsayılan toplamdan çıkar ve geri alınabilir
 → Başka kullanıcı veya organizasyonun süre kayıtlarına erişemez
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.30.0-time-corrections`
+
+Eklenenler:
+
+- Tamamlanmış zaman kayıtları için düzenleme modalı ve sunucu doğrulamalı düzeltme RPC'si
+- Düzeltme zamanı/aktörü ile arşiv zamanı/aktörü alanları
+- Geri alınabilir zaman kaydı arşivleme ve arşivden çıkarma
+- Aktif, arşivlenen ve tüm kayıt geçmişi filtresi
+- Düzeltildi ve Arşivde durum etiketleri
+- Arşiv onay ekranı ve responsive kayıt aksiyonları
+
+Güvenlik:
+
+- Doğrudan `time_entries UPDATE` yetkisi kaldırıldı
+- Sayaç durdurma `stop_time_entry` RPC'sine taşındı
+- Düzeltme, arşivleme ve geri alma ayrı yetki kontrollü sunucu fonksiyonlarına ayrıldı
+- Aktif sayaç düzeltme/arşivlemeye, arşivlenmiş kayıt düzeltmeye kapatıldı
+- Test fixture'ları pasif ekip üyesi durumunda rollback içinde güvenle çalışacak hale getirildi
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 95/95 test başarılı
+- `npm run build` — başarılı; Zaman Takibi lazy chunk'ı yaklaşık 29,8 kB / 8,4 kB gzip
+- `time_tracking_rls_smoke.sql` — `result: passed`, düzeltme/arşivleme dahil 17 güvenlik alanı `true`
+- Tam RLS regresyon testi ve proje notları regresyon testi — `result: passed`
+- Uzak Supabase schema lint — hata/uyarı yok
+- Uzak migration sayısı 21; yerel ve uzak geçmiş eşleşiyor
+
+Kabul testi:
+
+- Production hesabıyla düzeltme, arşiv filtresi ve geri alma arayüz doğrulaması bekleniyor.
 
 ### 20 Temmuz 2026 — `0.29.1-quote-cta`
 

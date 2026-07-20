@@ -8,7 +8,7 @@ select set_config(
   (
     select membership.organization_id::text
     from public.organization_members membership
-    where membership.role = 'member' and membership.status = 'active'
+    where membership.role = 'member'
     order by membership.created_at desc
     limit 1
   ),
@@ -22,7 +22,6 @@ select set_config(
     from public.organization_members membership
     where membership.organization_id = current_setting('manageflow_time_test.organization_id')::uuid
       and membership.role = 'member'
-      and membership.status = 'active'
     order by membership.created_at desc
     limit 1
   ),
@@ -42,6 +41,12 @@ select set_config(
   ),
   true
 );
+
+-- Keep the probe independent from the current product state. Any temporary reactivation rolls back.
+update public.organization_members
+set status = 'active', joined_at = coalesce(joined_at, now())
+where organization_id = current_setting('manageflow_time_test.organization_id')::uuid
+  and user_id = current_setting('manageflow_time_test.member_id')::uuid;
 
 with probe_client as (
   insert into public.clients (organization_id, name, status, created_by)
@@ -135,7 +140,6 @@ do $$
 declare
   member_entry_id uuid;
   manual_entry_id uuid;
-  affected_rows integer;
 begin
   member_entry_id := public.start_time_entry(
     current_setting('manageflow_time_test.organization_id')::uuid,
@@ -200,11 +204,11 @@ begin
     when foreign_key_violation then null;
   end;
 
-  update public.time_entries
-  set ended_at = now()
-  where id = member_entry_id;
-  get diagnostics affected_rows = row_count;
-  if affected_rows <> 1 or not exists (
+  perform public.stop_time_entry(
+    current_setting('manageflow_time_test.organization_id')::uuid,
+    member_entry_id
+  );
+  if not exists (
     select 1 from public.time_entries entry
     where entry.id = member_entry_id
       and entry.ended_at is not null
@@ -218,9 +222,9 @@ begin
     update public.time_entries
     set project_id = current_setting('manageflow_time_test.second_project_id')::uuid
     where id = member_entry_id;
-    raise exception 'Time tracking probe failed: time entry context was mutable.';
+    raise exception 'Time tracking probe failed: direct time entry updates remained available.';
   exception
-    when check_violation then null;
+    when insufficient_privilege then null;
   end;
 
   begin
@@ -249,6 +253,84 @@ begin
   ) then
     raise exception 'Time tracking probe failed: manual entry was not normalized and stored.';
   end if;
+
+  perform public.update_time_entry(
+    current_setting('manageflow_time_test.organization_id')::uuid,
+    manual_entry_id,
+    current_setting('manageflow_time_test.project_id')::uuid,
+    null,
+    now() - interval '4 hours',
+    60,
+    '  Corrected entry  '
+  );
+
+  if not exists (
+    select 1 from public.time_entries entry
+    where entry.id = manual_entry_id
+      and entry.duration_seconds = 3600
+      and entry.note = 'Corrected entry'
+      and entry.corrected_at is not null
+      and entry.corrected_by = current_setting('manageflow_time_test.member_id')::uuid
+  ) then
+    raise exception 'Time tracking probe failed: completed entry correction was not audited.';
+  end if;
+
+  perform public.archive_time_entry(
+    current_setting('manageflow_time_test.organization_id')::uuid,
+    manual_entry_id
+  );
+
+  if not exists (
+    select 1 from public.time_entries entry
+    where entry.id = manual_entry_id
+      and entry.archived_at is not null
+      and entry.archived_by = current_setting('manageflow_time_test.member_id')::uuid
+  ) then
+    raise exception 'Time tracking probe failed: completed entry was not archived recoverably.';
+  end if;
+
+  begin
+    perform public.update_time_entry(
+      current_setting('manageflow_time_test.organization_id')::uuid,
+      manual_entry_id,
+      current_setting('manageflow_time_test.project_id')::uuid,
+      null,
+      now() - interval '4 hours',
+      30,
+      null
+    );
+    raise exception 'Time tracking probe failed: archived entry accepted a correction.';
+  exception
+    when check_violation then null;
+  end;
+
+  perform public.restore_time_entry(
+    current_setting('manageflow_time_test.organization_id')::uuid,
+    manual_entry_id
+  );
+
+  if exists (
+    select 1 from public.time_entries entry
+    where entry.id = manual_entry_id
+      and (entry.archived_at is not null or entry.archived_by is not null)
+  ) then
+    raise exception 'Time tracking probe failed: archived entry was not restored.';
+  end if;
+
+  begin
+    perform public.update_time_entry(
+      current_setting('manageflow_time_test.organization_id')::uuid,
+      current_setting('manageflow_time_test.owner_entry_id')::uuid,
+      current_setting('manageflow_time_test.project_id')::uuid,
+      null,
+      now() - interval '2 hours',
+      30,
+      null
+    );
+    raise exception 'Time tracking probe failed: member corrected another user entry.';
+  exception
+    when insufficient_privilege then null;
+  end;
 
   begin
     perform public.create_manual_time_entry(
@@ -304,6 +386,7 @@ select
   'passed' as result,
   true as member_own_timer_allowed,
   true as server_time_lifecycle_enforced,
+  true as direct_update_revoked,
   true as authenticated_rpc_boundary_enforced,
   true as single_active_timer_enforced,
   true as other_user_entries_hidden,
@@ -311,6 +394,10 @@ select
   true as immutable_timer_context_enforced,
   true as timer_deletion_denied,
   true as manual_entry_server_validation_enforced,
+  true as completed_entry_correction_audited,
+  true as recoverable_archiving_enforced,
+  true as archived_entry_correction_denied,
+  true as other_user_correction_denied,
   true as future_manual_entry_denied,
   true as archived_project_timer_denied,
   true as all_probe_changes_rolled_back;

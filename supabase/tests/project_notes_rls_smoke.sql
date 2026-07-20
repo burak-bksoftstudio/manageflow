@@ -8,7 +8,7 @@ select set_config(
   (
     select membership.organization_id::text
     from public.organization_members membership
-    where membership.role = 'member' and membership.status = 'active'
+    where membership.role = 'member'
     order by membership.created_at desc
     limit 1
   ),
@@ -22,7 +22,6 @@ select set_config(
     from public.organization_members membership
     where membership.organization_id = current_setting('manageflow_note_test.organization_id')::uuid
       and membership.role = 'member'
-      and membership.status = 'active'
     limit 1
   ),
   true
@@ -40,6 +39,12 @@ select set_config(
   ),
   true
 );
+
+-- Product state may contain an inactive probe member. Reactivation is transaction-local and rolls back.
+update public.organization_members
+set status = 'active', joined_at = coalesce(joined_at, now())
+where organization_id = current_setting('manageflow_note_test.organization_id')::uuid
+  and user_id = current_setting('manageflow_note_test.member_id')::uuid;
 
 with probe_client as (
   insert into public.clients (organization_id, name, status, created_by)

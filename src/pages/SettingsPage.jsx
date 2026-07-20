@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Building2, Check, CircleAlert, Image, LoaderCircle, RefreshCw, Save,
   ShieldCheck, UserRound,
@@ -27,6 +28,7 @@ function SettingsPreview({ imageUrl, initials, icon: Icon, imageFailed, setImage
 }
 
 export default function SettingsPage() {
+  const location = useLocation();
   const {
     activeOrganization, error: loadError, loading, profile, refresh, saveOrganization, saveProfile,
   } = useSettings();
@@ -68,6 +70,13 @@ export default function SettingsPage() {
     const timeout = window.setTimeout(() => setToast(''), 3400);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    if (loading || !location.hash) return undefined;
+    const targetId = location.hash === '#calisma-alani' ? 'calisma-alani' : 'profil';
+    const frame = window.requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: 'start' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, location.hash]);
 
   const updateProfileForm = event => {
     const { name, value } = event.target;
@@ -116,7 +125,7 @@ export default function SettingsPage() {
       </section>
 
       <div className="settings-grid">
-        <form className="settings-card" onSubmit={submitProfile}>
+        <form className="settings-card" id="profil" onSubmit={submitProfile}>
           <header><span><UserRound /></span><div><small>KİŞİSEL PROFİL</small><h2>Hesap görünümünüz</h2><p>Bu bilgiler ekip, görev ve aktivite alanlarında görünür.</p></div></header>
           <SettingsPreview imageUrl={profileForm.avatarUrl} initials={getSettingsInitials(profileForm.fullName)} icon={UserRound} imageFailed={profileImageFailed} setImageFailed={setProfileImageFailed} />
           <div className="settings-fields">
@@ -129,7 +138,7 @@ export default function SettingsPage() {
           <footer><span><ShieldCheck /> Yalnızca kendi profilinizi değiştirebilirsiniz.</span><button className="agenda-button" disabled={savingProfile}>{savingProfile ? <LoaderCircle className="spin" /> : <Save />}{savingProfile ? 'Kaydediliyor…' : 'Profili kaydet'}</button></footer>
         </form>
 
-        <form className={`settings-card ${!canManageOrganization ? 'is-readonly' : ''}`} onSubmit={submitOrganization}>
+        <form className={`settings-card ${!canManageOrganization ? 'is-readonly' : ''}`} id="calisma-alani" onSubmit={submitOrganization}>
           <header><span><Building2 /></span><div><small>ÇALIŞMA ALANI</small><h2>Ajans kimliği</h2><p>ManageFlow içinde ekip üyelerinin gördüğü çalışma alanı bilgileri.</p></div><em>{getOrganizationRoleLabel(activeOrganization?.role)}</em></header>
           <SettingsPreview imageUrl={organizationForm.logoUrl} initials={getSettingsInitials(organizationForm.name)} icon={Image} imageFailed={logoImageFailed} setImageFailed={setLogoImageFailed} />
           <div className="settings-fields">

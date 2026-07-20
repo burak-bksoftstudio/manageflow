@@ -10,8 +10,8 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.30.0-time-corrections` |
-| Mevcut aşama | Zaman Takibi v1.2 güvenli kayıt düzeltme, denetlenebilir değişiklik ve geri alınabilir arşivleme production şemasına uygulandı |
+| Mevcut sürüm | `0.30.1-sidebar-navigation` |
+| Mevcut aşama | Sidebar çalışma alanı ve profil kontrolleri gerçek ayar hedeflerine bağlandı; Zaman Takibi v1.2 production şemasında hazır |
 | Sonraki ana hedef | Production kullanıcı kabulü; ardından owner/admin ekip timesheet ekranını geliştirmek |
 
 ---
@@ -71,7 +71,7 @@ Mevcut sürümde:
 - Müşteri kayıtları aktif organizasyona bağlı gerçek Supabase verisiyle listelenip yönetilebilmektedir.
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
-- Kullanıcı kendi profil adını, telefonunu ve HTTPS avatar adresini güncelleyebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
+- Kullanıcı sidebar hesap kartından doğrudan kendi profil ayarına; çalışma alanı menüsünden ajans ayarına gidebilir. Profil adı, telefon ve HTTPS avatar adresi güncellenebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
 - Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir.
 - Ekip üyeleri aktif projelere ortak not ekleyebilir, proje veya metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
@@ -1550,6 +1550,29 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.30.1-sidebar-navigation`
+
+Eklenenler:
+
+- Sidebar organizasyon kartına aktif çalışma alanı özeti ve erişilebilir açılır menü
+- Çalışma alanı menüsünden ilgili ajans ayar kartına doğrudan bağlantı
+- Organizasyon değiştirme için yanıltıcı olmayan `Yakında` durumu
+- Kullanıcı adı, e-posta ve avatar alanından kişisel profil ayarına doğrudan bağlantı
+- Profil ve çalışma alanı ayar kartları için URL fragment'iyle derin bağlantı ve otomatik kaydırma
+
+Düzeltilenler:
+
+- Tıklanabilir görünen fakat tepki vermeyen organizasyon kartı işlevsel hale getirildi
+- Hesap kartının boş alanları profil navigasyonuna bağlandı; bağımsız çıkış aksiyonu korundu
+- Açılır menü dışarı tıklama ve `Escape` tuşuyla kapanacak şekilde tamamlandı
+- Daraltılmış ve mobil sidebar davranışları yeni kontrollerle uyumlu hale getirildi
+
+Doğrulama:
+
+- `npm test`
+- `npm run build`
+- Masaüstü, daraltılmış sidebar ve mobil navigasyon davranış kontrolü
 
 ### 20 Temmuz 2026 — `0.30.0-time-corrections`
 

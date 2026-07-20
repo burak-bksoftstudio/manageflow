@@ -87,6 +87,48 @@ export function mapDatabaseTimeEntry(entry, projectsById = new Map(), tasksById 
   };
 }
 
+export function canViewTeamTimesheet(role) {
+  return role === 'owner' || role === 'admin';
+}
+
+export function mapDatabaseTeamTimesheetEntry(entry) {
+  return {
+    id: entry.id,
+    userId: entry.user_id,
+    memberName: entry.member_name || 'İsimsiz kullanıcı',
+    memberEmail: entry.member_email || 'E-posta bilgisi yok',
+    memberAvatarUrl: entry.member_avatar_url || '',
+    projectId: entry.project_id,
+    projectName: entry.project_name || 'Proje bulunamadı',
+    taskId: entry.task_id || '',
+    taskTitle: entry.task_title || '',
+    note: entry.note || '',
+    entryType: entry.entry_type || 'timer',
+    startedAt: entry.started_at,
+    endedAt: entry.ended_at || '',
+    durationSeconds: entry.duration_seconds ?? null,
+    correctedAt: entry.corrected_at || '',
+    isActive: !entry.ended_at,
+  };
+}
+
+export function getTeamTimesheetSummary(entries, rangeStart, rangeEnd, filters = {}, now = new Date()) {
+  const filteredEntries = entries.filter(entry => (
+    (!filters.memberId || entry.userId === filters.memberId)
+    && (!filters.projectId || entry.projectId === filters.projectId)
+  ));
+  return {
+    entries: filteredEntries,
+    members: new Set(filteredEntries.map(entry => entry.userId)).size,
+    projects: new Set(filteredEntries.map(entry => entry.projectId)).size,
+    sessions: filteredEntries.length,
+    totalSeconds: filteredEntries.reduce(
+      (total, entry) => total + getRangeSeconds(entry, rangeStart, rangeEnd, now),
+      0,
+    ),
+  };
+}
+
 export function getWeekBounds(value = new Date()) {
   const start = new Date(value);
   start.setHours(0, 0, 0, 0);

@@ -4,13 +4,16 @@ import {
 import {
   Activity, Archive, ArchiveRestore, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight,
   CircleAlert, Clock3, FolderKanban, History, ListTodo, LoaderCircle, Pencil, Plus, Play, RefreshCw,
-  Square, TimerReset, X,
+  Square, TimerReset, UsersRound, X,
 } from 'lucide-react';
+import TeamTimesheet from '../components/TeamTimesheet';
+import { useOrganization } from '../features/organizations/OrganizationContext';
 import { useTimeEntries } from '../features/time-tracking/useTimeEntries';
 import {
-  formatCompactDuration, formatTimeEntryDate, formatTimeEntryRange, formatTimerDuration, formatWeekRange,
-  getElapsedSeconds, getTimeTrackingErrorMessage, getTimeTrackingStats, getTodaySeconds, getWeekBounds,
-  getWeeklyHistory, validateManualTimeForm, validateTimerForm,
+  canViewTeamTimesheet, formatCompactDuration, formatTimeEntryDate, formatTimeEntryRange,
+  formatTimerDuration, formatWeekRange, getElapsedSeconds, getTimeTrackingErrorMessage,
+  getTimeTrackingStats, getTodaySeconds, getWeekBounds, getWeeklyHistory, validateManualTimeForm,
+  validateTimerForm,
 } from '../features/time-tracking/timeTrackingUtils';
 
 function TimeStat({ icon: Icon, label, value, helper, active = false }) {
@@ -136,6 +139,7 @@ function TimeArchiveModal({ archiveTimeEntry, close, entry }) {
 }
 
 export default function TimeTrackingPage() {
+  const { activeOrganization } = useOrganization();
   const {
     activeEntry, archiveTimeEntry, createManualEntry, entries, error: loadError, loading, projects,
     refresh, restoreTimeEntry, startTimer, stopTimer, tasks, updateTimeEntry,
@@ -152,6 +156,8 @@ export default function TimeTrackingPage() {
   const [actionBusyId, setActionBusyId] = useState('');
   const [weekOffset, setWeekOffset] = useState(0);
   const [historyFilters, setHistoryFilters] = useState({ archive: 'active', projectId: '', taskId: '' });
+  const [view, setView] = useState('personal');
+  const teamViewAllowed = canViewTeamTimesheet(activeOrganization?.role);
 
   const activeProjects = useMemo(() => projects.filter(project => !project.isArchived), [projects]);
   const availableTasks = useMemo(() => tasks.filter(task => (
@@ -190,6 +196,10 @@ export default function TimeTrackingPage() {
     const timeout = window.setTimeout(() => setToast(''), 3200);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    if (!teamViewAllowed && view === 'team') setView('personal');
+  }, [teamViewAllowed, view]);
 
   const updateForm = event => {
     const { name, value } = event.target;
@@ -277,7 +287,14 @@ export default function TimeTrackingPage() {
         <div className="time-hero-actions"><button className="soft-button time-manual-button" onClick={() => setManualOpen(true)} disabled={loading || !activeProjects.length}><Plus /> Manuel süre</button><div className={`time-live-badge ${activeEntry ? 'running' : ''}`}><span>{activeEntry ? <Activity /> : <Clock3 />}</span><div><small>{activeEntry ? 'SAYAÇ ÇALIŞIYOR' : 'SAYAÇ HAZIR'}</small><strong>{activeEntry ? formatTimerDuration(getElapsedSeconds(activeEntry, now)) : '00:00:00'}</strong></div></div></div>
       </section>
 
-      <section className="time-stats-grid">
+      {teamViewAllowed && (
+        <div className="time-scope-tabs" role="tablist" aria-label="Zaman takibi görünümü">
+          <button className={view === 'personal' ? 'active' : ''} onClick={() => setView('personal')} role="tab" aria-selected={view === 'personal'}><Clock3 /> Kendi zamanım</button>
+          <button className={view === 'team' ? 'active' : ''} onClick={() => setView('team')} role="tab" aria-selected={view === 'team'}><UsersRound /> Ekip raporu</button>
+        </div>
+      )}
+
+      {view === 'personal' ? <><section className="time-stats-grid">
         <TimeStat icon={CalendarClock} label="BUGÜN" value={formatCompactDuration(stats.todaySeconds)} helper="Bugünkü toplam çalışma" />
         <TimeStat icon={TimerReset} label="OTURUM" value={stats.sessions} helper="Bugün açılan sayaçlar" />
         <TimeStat icon={FolderKanban} label="PROJE" value={stats.projects} helper="Bugün süre girilen işler" />
@@ -345,6 +362,8 @@ export default function TimeTrackingPage() {
           {!loading && !loadError && weeklyHistory.entries.length === 0 && <div className="time-history-empty"><History /><h3>Bu hafta için kayıt bulunamadı</h3><p>Haftayı veya filtreleri değiştirin; yeni süreler burada görünecek.</p></div>}
         </div>
       </section>
+
+      </> : <TeamTimesheet projects={projects} />}
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
       {manualOpen && <TimeEntryModal close={closeManual} projects={activeProjects} submitEntry={createManualEntry} tasks={tasks} />}

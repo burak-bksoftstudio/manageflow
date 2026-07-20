@@ -79,6 +79,14 @@ supabase db query --linked --file supabase/tests/time_tracking_rls_smoke.sql
 
 Bu test de geçici süre/proje/görev kayıtlarını tek transaction içinde oluşturur ve sonda `ROLLBACK` uygular. Başarılı sonuç `result: passed` ve bütün zaman güvenliği alanlarını `true` döndürür.
 
+Owner/admin ekip timesheet raporunun rol sınırı, organizasyon kapsamı ve tarih aralığı ayrıca şu komutla doğrulanır:
+
+```bash
+supabase db query --linked --file supabase/tests/team_timesheet_rls_smoke.sql
+```
+
+Test normal üyenin ekip raporuna erişimini reddeder, owner'ın aynı organizasyondaki ekip sürelerini okuyabildiğini doğrular ve bütün geçici kayıtları `ROLLBACK` ile geri alır.
+
 Supabase Security Advisor davet önizleme/kabul RPC'lerini çağrılabilir `SECURITY DEFINER` fonksiyonlar olarak raporlar. Bu iki uyarı beklenir: davet edilen kullanıcı kabulden önce organizasyon RLS kapsamına girmediği için fonksiyonlar doğrulanmış Auth e-postasını davet e-postasıyla eşleştirerek kontrollü erişim sağlar. Free planda sızdırılmış parola kontrolü bulunmaz; production Pro plana geçtiğinde Auth Password Security bölümünden açılmalıdır.
 
 ## Kurallar
@@ -88,4 +96,4 @@ Supabase Security Advisor davet önizleme/kabul RPC'lerini çağrılabilir `SECU
 - `service_role` anahtarı hiçbir zaman frontend veya `VITE_` değişkeninde bulunmamalıdır.
 - Migration uzak projeye uygulanmadan önce RLS politikaları gözden geçirilmelidir.
 
-İlk on beş migration kimlik, organizasyon, davet, müşteri, proje, proje ekibi, görev, checklist, yorum, aktivite, görev hiyerarşisi ve güvenli ayar temelini kurar. On altıncı migration kişisel zaman kayıtlarını, sunucu zamanı yaşam döngüsünü ve tek aktif sayaç garantisini ekler; on yedinci migration yıkıcı tablo yetkilerini kaldırır. On sekizinci migration güvenli manuel süre RPC'sini ve haftalık geçmiş temelini, on dokuzuncu migration proje notlarını, yirminci migration denetlenebilir zaman düzeltme ve geri alınabilir arşivleme RPC'lerini, yirmi birinci migration ise hesap silme sonrasında tarihsel aktör bütünlüğünü ekler. Bütün migration'lar `manageflow` uzak projesine uygulanmıştır. CLI bağlantısının ürettiği `supabase/.temp/` klasörü makineye özeldir ve Git'e eklenmez.
+İlk on beş migration kimlik, organizasyon, davet, müşteri, proje, proje ekibi, görev, checklist, yorum, aktivite, görev hiyerarşisi ve güvenli ayar temelini kurar. On altıncı migration kişisel zaman kayıtlarını, sunucu zamanı yaşam döngüsünü ve tek aktif sayaç garantisini ekler; on yedinci migration yıkıcı tablo yetkilerini kaldırır. On sekizinci migration güvenli manuel süre RPC'sini ve haftalık geçmiş temelini, on dokuzuncu migration proje notlarını, yirminci migration denetlenebilir zaman düzeltme ve geri alınabilir arşivleme RPC'lerini, yirmi birinci migration hesap silme sonrasında tarihsel aktör bütünlüğünü, yirmi ikinci migration owner/admin ekip timesheet raporlama sınırını ekler. Bütün migration'lar `manageflow` uzak projesine uygulanmıştır. CLI bağlantısının ürettiği `supabase/.temp/` klasörü makineye özeldir ve Git'e eklenmez.

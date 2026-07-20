@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.30.1-sidebar-navigation` |
-| Mevcut aşama | Sidebar çalışma alanı ve profil kontrolleri gerçek ayar hedeflerine bağlandı; Zaman Takibi v1.2 production şemasında hazır |
-| Sonraki ana hedef | Production kullanıcı kabulü; ardından owner/admin ekip timesheet ekranını geliştirmek |
+| Mevcut sürüm | `0.31.0-team-timesheet` |
+| Mevcut aşama | Owner/admin için salt okunur haftalık ekip zaman raporu production şemasına ve Zaman Takibi ekranına bağlandı |
+| Sonraki ana hedef | Ekip raporu production kullanıcı kabulü; ardından CSV dışa aktarma ve proje bazlı zaman raporu |
 
 ---
 
@@ -72,7 +72,7 @@ Mevcut sürümde:
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı sidebar hesap kartından doğrudan kendi profil ayarına; çalışma alanı menüsünden ajans ayarına gidebilir. Profil adı, telefon ve HTTPS avatar adresi güncellenebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
-- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir.
+- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye ve projeye göre inceleyebilir.
 - Ekip üyeleri aktif projelere ortak not ekleyebilir, proje veya metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
@@ -93,7 +93,7 @@ Mevcut sürümde:
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Gerçek proje bağlantılı ortak notlar, arama, proje filtresi, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı; kabul testi bekliyor |
 | Dosyalar | Yakında |
-| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme, denetim alanları ve geri alınabilir arşivleme Supabase ile bağlı; v1.2 kullanıcı kabulü bekliyor |
+| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme ve owner/admin ekip timesheet görünümü Supabase ile bağlı; ekip raporu kullanıcı kabulü bekliyor |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
@@ -109,8 +109,8 @@ Mevcut sürümde:
 | Responsive yapı | Hazır | Masaüstü, tablet ve mobil kırılımlar bulunuyor |
 | Frontend etkileşimleri | Kısmen hazır | Modal, drawer, tema, menü ve demo ekleme işlemleri çalışıyor |
 | Routing | Hazır | BrowserRouter, gerçek modül URL'leri ve 404 sayfası bulunuyor |
-| Backend | Kısmen hazır | Auth, profil/organizasyon ayarları, ekip, müşteri, proje, görev, zaman takibi ve proje notları bağlı; diğer iş modülleri henüz bağlı değil |
-| Veritabanı | Kısmen hazır | Çekirdek SaaS, `time_entries` ve `project_notes` şemaları RLS/bütünlük kurallarıyla uzak veritabanına uygulandı |
+| Backend | Kısmen hazır | Auth, profil/organizasyon ayarları, ekip, müşteri, proje, görev, kişisel/ekip zaman takibi ve proje notları bağlı; diğer iş modülleri henüz bağlı değil |
+| Veritabanı | Kısmen hazır | Çekirdek SaaS, `time_entries`, rol korumalı ekip timesheet RPC'si ve `project_notes` şemaları RLS/bütünlük kurallarıyla uzak veritabanına uygulandı |
 | Kimlik doğrulama | Hazır | Kayıt, doğrulama, giriş, çıkış, kalıcı oturum ve güvenli şifre yenileme canlı hesapla doğrulandı |
 | Yetkilendirme | Kısmen hazır | Owner/admin/member matrisi, owner koruması ve çapraz organizasyon izolasyonu gerçek RLS testiyle doğrulandı |
 | Dosya depolama | Başlanmadı | Gerçek dosya yükleme yok |
@@ -707,6 +707,22 @@ Landing page Vercel production'a alınmış ve `https://manageflow.bksoftstudio.
 
 Uzak migration sayısı 21'e yükselmiştir. Zaman takibi v1.2 güvenlik testi, tam RLS regresyon testi ve proje notları regresyon testi `result: passed`; uzak schema lint temiz ve yerel/uzak migration geçmişi eşleşmektedir.
 
+### 4.24 Zaman Takibi v1.3 — owner/admin ekip timesheet
+
+- Zaman Takibi ekranında `Kendi zamanım` ve yalnız owner/admin rollerine gösterilen `Ekip raporu` görünüm sekmeleri
+- Pazartesi–pazar haftaları arasında gezinme; ekip üyesi ve proje filtreleri
+- Seçili görünüm için toplam süre, kayıt, süre girişi bulunan ekip üyesi ve proje metrikleri
+- Ekip üyesi, proje/görev, tarih/saat, not, manuel/düzeltildi/aktif durumu ve kesişen süre ayrıntıları
+- Loading, boş, hata, yeniden deneme, masaüstü, tablet, mobil ve koyu tema durumları
+- Normal üyenin mevcut kişisel `time_entries` RLS kapsamını değiştirmeyen salt okunur raporlama sınırı
+- Yalnız aktif owner/admin üyeliğini kabul eden `get_organization_timesheet` güvenli sunucu fonksiyonu
+- Tek sorguda en fazla 31 günlük tarih aralığı ve 5.000 kayıt sınırı
+- Arşivlenen süreleri ekip raporunun ve toplamlarının dışında tutma
+- Rol görünürlüğü, veritabanı eşleme, filtreleme ve kesişen süre toplamları için domain testleri
+- Owner erişimi, member reddi, organizasyon kapsamı ve tarih sınırını rollback ile doğrulayan ayrı uzak güvenlik testi
+
+Uzak migration sayısı 22'ye yükselmiştir. Yeni ekip timesheet güvenlik testi, kişisel zaman takibi regresyonu, tam RLS matrisi ve proje notları regresyonu `result: passed`; uzak schema lint temiz ve yerel/uzak migration geçmişi eşleşmektedir.
+
 ---
 
 ## 5. Henüz yapılmamış bağlantılar
@@ -714,7 +730,7 @@ Uzak migration sayısı 21'e yükselmiştir. Zaman takibi v1.2 güvenlik testi, 
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
 - Dosya, mesaj, bildirim ve takvim modüllerinin Supabase sorguları
-- Ekip timesheet'i ve ekip zaman raporları
+- Ekip zaman raporu CSV/PDF dışa aktarma ve proje/müşteri bazlı ileri raporlama
 - Özel domainde production kayıt doğrulama ve davet kabul callback'lerinin canlı hesaplarla smoke testi
 - Google ile giriş
 - Birden fazla organizasyon arasında çalışma alanı değiştirme akışı
@@ -1529,11 +1545,11 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Production landing sayfasını masaüstü ve mobilde aç; navigasyon, anchor ve CTA akışlarını doğrula.
-2. Oturumsuz CTA'nın teklif talebi e-postasını, giriş bağlantısının `/giris`, oturumlu CTA'nın `/dashboard` rotasını açtığını doğrula.
-3. Tamamlanmış bir süreyi düzenle; yenilemede düzeltme etiketi, yeni süre ve toplamın korunduğunu doğrula.
-4. Kaydı arşivle, varsayılan toplamdan çıktığını ve Arşivlenenler filtresinde göründüğünü doğrula; ardından geri al.
-5. Kabul sonrasında owner/admin ekip timesheet ekranına geç.
+1. Production owner hesabıyla Zaman Takibi → Ekip raporu görünümünü aç.
+2. Bu hafta, önceki hafta, ekip üyesi ve proje filtrelerini gerçek kayıtlarla doğrula.
+3. Normal üye hesabında Ekip raporu sekmesinin görünmediğini ve kişisel kayıt izolasyonunun korunduğunu doğrula.
+4. Kabul sonrasında filtrelenmiş ekip raporunu CSV olarak dışa aktarma paketine geç.
+5. Ardından proje/müşteri bazlı zaman özeti ve merkezi raporlama ekranını planla.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
@@ -1550,6 +1566,37 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 20 Temmuz 2026 — `0.31.0-team-timesheet`
+
+Eklenenler:
+
+- Owner/admin için Zaman Takibi içinde salt okunur `Ekip raporu` görünümü
+- Haftalık gezinme ile ekip üyesi ve proje filtreleri
+- Toplam süre, kayıt, çalışan ekip üyesi ve proje metrikleri
+- Üye, proje/görev, tarih/saat, not, kayıt türü ve durum ayrıntılarını içeren responsive rapor listesi
+- 31 günlük aralık ve 5.000 kayıt sınırına sahip owner/admin-only `get_organization_timesheet` RPC'si
+- Ayrı rollback tabanlı ekip timesheet güvenlik testi
+
+Güvenlik:
+
+- Normal üyelerin kişisel `time_entries` select RLS politikası değiştirilmedi
+- Ekip verisi yalnız aktif owner/admin rolünü sunucuda doğrulayan salt okunur fonksiyondan döndürülüyor
+- Arşivli kayıtlar ve farklı organizasyon kapsamı rapora alınmıyor
+- Member erişimi ve aşırı tarih aralığı sunucuda reddediliyor
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 97/97 test başarılı
+- `npm run build` — başarılı
+- `team_timesheet_rls_smoke.sql` — `result: passed`
+- Zaman takibi, tam RLS ve proje notları regresyon testleri — `result: passed`
+- Uzak Supabase schema lint — hata/uyarı yok
+- Uzak migration sayısı 22; yerel ve uzak geçmiş eşleşiyor
+
+Kabul testi:
+
+- Production owner hesabıyla ekip görünümü ve filtrelerin gerçek süre kayıtlarıyla doğrulanması bekleniyor.
 
 ### 20 Temmuz 2026 — `0.30.1-sidebar-navigation`
 

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatCompactDuration, formatTimerDuration, formatWeekRange, getElapsedSeconds, getManualStartedAt,
-  getTimeTrackingErrorMessage, getTimeTrackingStats, getTodaySeconds, getWeekBounds, getWeeklyHistory,
-  mapDatabaseTimeEntry, normalizeManualTimeForm, normalizeTimerForm, validateManualTimeForm, validateTimerForm,
+  canViewTeamTimesheet, formatCompactDuration, formatTimerDuration, formatWeekRange, getElapsedSeconds,
+  getManualStartedAt, getTeamTimesheetSummary, getTimeTrackingErrorMessage, getTimeTrackingStats,
+  getTodaySeconds, getWeekBounds, getWeeklyHistory, mapDatabaseTeamTimesheetEntry, mapDatabaseTimeEntry,
+  normalizeManualTimeForm, normalizeTimerForm, validateManualTimeForm, validateTimerForm,
 } from './timeTrackingUtils';
 
 describe('Time tracking utilities', () => {
@@ -84,6 +85,37 @@ describe('Time tracking utilities', () => {
     expect(getWeeklyHistory(entries, now, { archive: 'archived' }).entries.map(entry => entry.id)).toEqual(['archived']);
     expect(getWeeklyHistory(entries, now, { archive: 'all' }).totalSeconds).toBe(7200);
     expect(getTimeTrackingStats(entries, now)).toMatchObject({ sessions: 1, todaySeconds: 3600 });
+  });
+
+  it('allows only owners and admins to view team timesheets', () => {
+    expect(canViewTeamTimesheet('owner')).toBe(true);
+    expect(canViewTeamTimesheet('admin')).toBe(true);
+    expect(canViewTeamTimesheet('project_manager')).toBe(false);
+    expect(canViewTeamTimesheet('member')).toBe(false);
+  });
+
+  it('maps and summarizes filtered team timesheet records', () => {
+    const rangeStart = new Date('2026-07-13T00:00:00Z');
+    const rangeEnd = new Date('2026-07-20T00:00:00Z');
+    const entries = [
+      mapDatabaseTeamTimesheetEntry({
+        id: 'e1', user_id: 'u1', member_name: 'Ayşe Kaya', member_email: 'ayse@example.com',
+        project_id: 'p1', project_name: 'Web', task_id: 't1', task_title: 'Tasarım', entry_type: 'manual',
+        started_at: '2026-07-14T09:00:00Z', ended_at: '2026-07-14T10:00:00Z', duration_seconds: 3600,
+      }),
+      mapDatabaseTeamTimesheetEntry({
+        id: 'e2', user_id: 'u2', member_name: 'Can Demir', member_email: 'can@example.com',
+        project_id: 'p2', project_name: 'Mobil', entry_type: 'timer',
+        started_at: '2026-07-15T09:00:00Z', ended_at: '2026-07-15T09:30:00Z', duration_seconds: 1800,
+      }),
+    ];
+    expect(entries[0]).toMatchObject({ memberName: 'Ayşe Kaya', taskTitle: 'Tasarım', isActive: false });
+    expect(getTeamTimesheetSummary(entries, rangeStart, rangeEnd)).toMatchObject({
+      members: 2, projects: 2, sessions: 2, totalSeconds: 5400,
+    });
+    expect(getTeamTimesheetSummary(entries, rangeStart, rangeEnd, { memberId: 'u1' })).toMatchObject({
+      members: 1, projects: 1, sessions: 1, totalSeconds: 3600,
+    });
   });
 
   it('formats timer and compact durations', () => {

@@ -284,6 +284,7 @@ h1 { font-size:clamp(34px,3.2vw,54px);letter-spacing:-.055em;font-weight:400;mar
 .deactivate-confirm > div { display:flex;gap:8px; }
 .danger-button { flex:1;border:0;border-radius:999px;background:#b5473c;color:#fff;height:42px;padding:0 15px;font-size:10px;cursor:pointer; }
 .drawer-actions { display:flex;gap:9px;margin-top:24px; }.drawer-actions > * { flex:1; }
+.member-remove-button{color:#9b3a30;display:flex;align-items:center;justify-content:center;gap:7px}.member-remove-button svg{width:14px}
 .app-toast { position:fixed;right:28px;bottom:28px;z-index:160;min-height:48px;max-width:360px;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:0 18px 55px #0003;padding:0 17px;display:flex;align-items:center;gap:10px;font-size:10px;animation:toast-in .22s ease-out; }
 .app-toast svg { width:17px;color:#25805d; }
 @keyframes toast-in { from { opacity:0;transform:translateY(10px); } to { opacity:1;transform:translateY(0); } }

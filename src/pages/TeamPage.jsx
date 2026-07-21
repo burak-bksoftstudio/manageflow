@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BriefcaseBusiness, Building2, CalendarDays, Check, ChevronRight,
   CircleAlert, LoaderCircle, Mail, MailCheck, MoreHorizontal, RefreshCw,
-  Search, ShieldCheck, UserCheck, UserPlus, Users, X,
+  Search, ShieldCheck, Trash2, UserCheck, UserPlus, Users, X,
 } from 'lucide-react';
 import { useOrganization } from '../features/organizations/OrganizationContext';
 import {
-  canChangeOwnerAccess, canManageTeamMember, filterTeamMembers, getTeamStats, validateInvite,
+  canChangeOwnerAccess, canManageTeamMember, canRemoveTeamMember, filterTeamMembers,
+  getTeamMemberRemovalErrorMessage, getTeamStats, validateInvite,
 } from '../features/team/teamUtils';
 import { useTeamMembers } from '../features/team/useTeamMembers';
 
@@ -97,13 +98,14 @@ function InviteMemberModal({ close, inviteMember, members }) {
   );
 }
 
-function MemberDrawer({ member, close, updateMember, revokeInvitation, canManage, canEditIdentity }) {
+function MemberDrawer({ member, close, updateMember, revokeInvitation, removeMember, canManage, canEditIdentity, canRemove }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(member);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmingRevoke, setConfirmingRevoke] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   useOverlayDismiss(close);
   const update = event => setDraft(value => ({ ...value, [event.target.name]: event.target.value }));
   const persist = async () => {
@@ -128,6 +130,14 @@ function MemberDrawer({ member, close, updateMember, revokeInvitation, canManage
     setSaving(false);
     if (result?.error) { setError('Davet iptal edilemedi. Yetkinizi ve bağlantınızı kontrol edip tekrar deneyin.'); return; }
     close({ revoked: true, member });
+  };
+  const remove = async () => {
+    setSaving(true);
+    setError('');
+    const result = await removeMember(member.id);
+    setSaving(false);
+    if (result?.error) { setError(getTeamMemberRemovalErrorMessage(result.error)); return; }
+    close({ removed: true, member });
   };
 
   return (
@@ -166,9 +176,10 @@ function MemberDrawer({ member, close, updateMember, revokeInvitation, canManage
 
         {confirming && <div className="deactivate-confirm" role="alert"><b>Üyenin erişimi kapatılsın mı?</b><p>Üye çalışma alanına erişemez; geçmiş kayıtları korunur.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirming(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={persist} disabled={saving}>{saving ? 'Kaydediliyor…' : 'Erişimi kapat'}</button></div></div>}
         {confirmingRevoke && <div className="deactivate-confirm" role="alert"><b>Davet iptal edilsin mi?</b><p>Bu bağlantı artık üyelik oluşturamaz. Gerekirse daha sonra yeni davet gönderebilirsiniz.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingRevoke(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={revoke} disabled={saving}>{saving ? 'İptal ediliyor…' : 'Daveti iptal et'}</button></div></div>}
-        {!confirming && !confirmingRevoke && member.isInvitation && canManage && <div className="drawer-actions"><button className="soft-button full" onClick={() => setConfirmingRevoke(true)}>Daveti iptal et</button></div>}
-        {!confirming && !confirmingRevoke && !member.isInvitation && canManage && <div className="drawer-actions">
-          {editing ? <><button className="soft-button" onClick={() => { setDraft(member); setEditing(false); setError(''); }} disabled={saving}>Vazgeç</button><button className="agenda-button" onClick={save} disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} {saving ? 'Kaydediliyor…' : 'Kaydet'}</button></> : <button className="agenda-button full" onClick={() => setEditing(true)}>Bilgileri düzenle</button>}
+        {confirmingRemove && <div className="deactivate-confirm" role="alert"><b>{member.name} ekipten kaldırılsın mı?</b><p>Üyenin çalışma alanı erişimi ve aktif proje atamaları kaldırılır. Kullanıcı hesabı, geçmiş süreleri, yorumları ve aktivite kayıtları silinmez.</p>{error && <div className="form-error">{error}</div>}<div><button className="soft-button" onClick={() => setConfirmingRemove(false)} disabled={saving}>Vazgeç</button><button className="danger-button" onClick={remove} disabled={saving}>{saving ? 'Kaldırılıyor…' : 'Üyeyi kaldır'}</button></div></div>}
+        {!confirming && !confirmingRevoke && !confirmingRemove && member.isInvitation && canManage && <div className="drawer-actions"><button className="soft-button full" onClick={() => setConfirmingRevoke(true)}>Daveti iptal et</button></div>}
+        {!confirming && !confirmingRevoke && !confirmingRemove && !member.isInvitation && canManage && <div className="drawer-actions">
+          {editing ? <><button className="soft-button" onClick={() => { setDraft(member); setEditing(false); setError(''); }} disabled={saving}>Vazgeç</button><button className="agenda-button" onClick={save} disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} {saving ? 'Kaydediliyor…' : 'Kaydet'}</button></> : <><button className="agenda-button" onClick={() => setEditing(true)}>Bilgileri düzenle</button>{canRemove && <button className="soft-button member-remove-button" onClick={() => setConfirmingRemove(true)}><Trash2 /> Üyeyi kaldır</button>}</>}
         </div>}
       </aside>
     </div>
@@ -177,7 +188,7 @@ function MemberDrawer({ member, close, updateMember, revokeInvitation, canManage
 
 export default function TeamPage() {
   const {
-    error: teamError, inviteMember, isDemoMode, loading, members, refresh, revokeInvitation,
+    error: teamError, inviteMember, isDemoMode, loading, members, refresh, removeMember, revokeInvitation,
     updateMember: persistMember,
   } = useTeamMembers();
   const { activeOrganization } = useOrganization();
@@ -208,6 +219,7 @@ export default function TeamPage() {
   const closeMemberDrawer = result => {
     setSelectedMember(null);
     if (result?.revoked) setToast(`${result.member.name} için bekleyen davet iptal edildi.`);
+    if (result?.removed) setToast(`${result.member.name} çalışma alanından kaldırıldı.`);
   };
   const updateMember = async updated => {
     const { error } = await persistMember(updated);
@@ -275,7 +287,7 @@ export default function TeamPage() {
 
       {toast && <div className="app-toast" role="status"><Check />{toast}</div>}
       {inviteOpen && <InviteMemberModal close={() => setInviteOpen(false)} inviteMember={sendInvite} members={members} />}
-      {selectedMember && <MemberDrawer member={selectedMember} close={closeMemberDrawer} updateMember={updateMember} revokeInvitation={revokeInvitation} canManage={isDemoMode || canManageTeamMember(activeOrganization?.role, selectedMember)} canEditIdentity={isDemoMode} />}
+      {selectedMember && <MemberDrawer member={selectedMember} close={closeMemberDrawer} updateMember={updateMember} revokeInvitation={revokeInvitation} removeMember={removeMember} canManage={isDemoMode || canManageTeamMember(activeOrganization?.role, selectedMember)} canEditIdentity={isDemoMode} canRemove={isDemoMode || canRemoveTeamMember(activeOrganization?.role, selectedMember)} />}
     </>
   );
 }

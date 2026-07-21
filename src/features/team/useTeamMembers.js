@@ -181,6 +181,21 @@ export function useTeamMembers() {
     return { error: null };
   }, [activeOrganization, isDemoMode, loadMembers]);
 
+  const removeMember = useCallback(async membershipId => {
+    if (isDemoMode) {
+      setMembers(value => value.filter(member => member.id !== membershipId));
+      return { error: null };
+    }
+    const client = requireSupabase();
+    const { error: removeError } = await client.rpc('remove_organization_member', {
+      target_membership_id: membershipId,
+      target_organization_id: activeOrganization.id,
+    });
+    if (removeError) return { error: removeError };
+    await loadMembers();
+    return { error: null };
+  }, [activeOrganization, isDemoMode, loadMembers]);
+
   return useMemo(() => ({
     addDemoMember,
     error,
@@ -189,7 +204,8 @@ export function useTeamMembers() {
     loading,
     members,
     refresh: loadMembers,
+    removeMember,
     revokeInvitation,
     updateMember,
-  }), [addDemoMember, error, inviteMember, isDemoMode, loadMembers, loading, members, revokeInvitation, updateMember]);
+  }), [addDemoMember, error, inviteMember, isDemoMode, loadMembers, loading, members, removeMember, revokeInvitation, updateMember]);
 }

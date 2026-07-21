@@ -55,7 +55,7 @@ Durumlar:
 |---|---|---|---|---|
 | Kimlik doğrulama | Kayıt, giriş ve hesap erişimi | Supabase Auth, doğrulama, şifre yenileme ve korumalı rotalar çalışıyor | Hazır | Oturum/cihaz yönetimi ve sosyal girişler daha sonra eklenebilir |
 | Organizasyon | Organizasyon çalışma alanı | Onboarding, aktif organizasyon ve RLS izolasyonu çalışıyor | Hazır | Çoklu organizasyon değiştirme |
-| Ekip ve roller | Üye, takım ve rol görünümü | Davet, kabul, iptal, üye listesi ve temel roller çalışıyor | Kısmi | Gelişmiş izin matrisi ve bağımsız takım grupları |
+| Ekip ve roller | Üye, takım ve rol görünümü | Davet, kabul, iptal, güvenli üye kaldırma, üye listesi ve temel roller çalışıyor | Kısmi | Gelişmiş izin matrisi ve bağımsız takım grupları |
 | Müşteriler | Marka, iletişim kişileri, sorumlular ve müşteri hesabı | Temel müşteri CRUD ve detay ekranı çalışıyor | Kısmi | Çoklu iletişim kişisi, ajans sorumlusu, müşteri hesabı ve görünürlük ayarları |
 | Projeler | Müşteriye bağlı proje, ekip ve ilerleme | CRUD, ekip atama, durum, ilerleme ve arşiv çalışıyor | Hazır | Proje şablonları, özel durumlar ve dosya bağlamı |
 | Görevler | Sorumlu, tarih, tekrar, alt görev, yorum, dosya ve şablon | CRUD, liste/Kanban, alt görev, checklist, yorum, aktivite ve filtreler çalışıyor | Kısmi | Tekrarlı görevler, görev şablonları ve görev dosyaları |
@@ -183,3 +183,9 @@ Bir madde yalnızca şu koşullar sağlandığında `Hazır` kabul edilir:
 - Üçüncü hızlı eşleşme kazanımı tamamlandı.
 - Filtrelenmiş ekip zamanları proje ve müşteri bazında gruplanarak görsel rapora dönüştürüldü.
 - Süre, kayıt, çalışan kişi ve yüzde dağılımları otomatik testle doğrulandı.
+
+### 22 Temmuz 2026 — Güvenli ekip üyesi kaldırma
+
+- Owner/admin için eksik olan gerçek üye kaldırma arayüzü eklendi.
+- Organizasyon sahibi, kendi üyeliği ve doğrudan tablo silme sunucuda engellendi.
+- Kullanıcı hesabı ve tarihsel iş kayıtları korunurken aktif çalışma alanı üyeliği kaldırılabilir hale getirildi.

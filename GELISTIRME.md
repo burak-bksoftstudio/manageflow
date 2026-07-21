@@ -10,8 +10,8 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 22 Temmuz 2026 |
-| Mevcut sürüm | `0.34.0-time-breakdown` |
-| Mevcut aşama | Owner/admin ekip zaman raporu seçili filtreler için proje ve müşteri bazlı süre dağılımını gösteriyor |
+| Mevcut sürüm | `0.35.0-member-removal` |
+| Mevcut aşama | Owner/admin normal ekip üyelerini sunucu doğrulamalı akışla çalışma alanından güvenle kaldırabiliyor |
 | Sonraki ana hedef | Merkezi arşiv görünümü ve Çalışma Alanı not düzeni |
 
 ---
@@ -371,6 +371,9 @@ Bildirimler henüz kullanıcı hesabına veya gerçek olaylara bağlı değildir
 - Owner rolü ve erişimini arayüz/veritabanı seviyesinde koruma
 - Profil adı ve e-posta alanlarını ekip yöneticisinin değişikliğine kapatma
 - Owner/admin rolüyle gerçek davet e-postası gönderme
+- Owner/admin için normal üyeyi güvenli onayla çalışma alanından kaldırma
+- Üye kaldırılırken kullanıcı hesabını ve tarihsel iş kayıtlarını koruma
+- Organizasyon sahibini, yöneticinin kendisini ve doğrudan tablo silmeyi sunucuda engelleme
 - Daveti Supabase Edge Function içinde server-side oluşturma ve gönderme
 - Yeni hesap için Auth invite, mevcut hesap için güvenli magic link geri dönüşü
 - Bekleyen davetleri gerçek ekip listesi ve metriklerine ekleme
@@ -762,6 +765,21 @@ Yerel test sayısı 98'e yükselmiştir; production build başarılıdır. Yeni 
 
 Yerel test sayısı 99'a yükselmiştir; production build başarılıdır. Rapor mevcut owner/admin-only RPC verisini kullandığı için yeni migration veya genişletilmiş tablo yetkisi gerekmemiştir.
 
+### 4.28 Güvenli ekip üyesi kaldırma
+
+- Üye detay çekmecesinde owner/admin için `Üyeyi kaldır` aksiyonu
+- Erişim ve aktif proje atamalarının kaldırılacağını, geçmiş kayıtların korunacağını açıklayan onay adımı
+- Organizasyon sahibini ve işlemi yapan yöneticinin kendi üyeliğini kaldırmayı engelleme
+- Normal member ve project manager rollerinin kaldırma RPC'sine erişimini reddetme
+- Authenticated rolünden doğrudan `organization_members DELETE` yetkisini kaldırma
+- Organizasyon ve üyelik kimliğini sunucuda yeniden doğrulayan `remove_organization_member` RPC'si
+- Üyelik kaldırıldığında proje üyeliklerini cascade ile temizleme ve atanmış görevleri güvenli biçimde boşa çıkarma
+- Kullanıcı Auth hesabı, geçmiş zaman kayıtları, yorumlar ve aktiviteleri koruma
+- Yetki görünürlüğü ve güvenli hata mesajları için domain testleri
+- Member reddi, direct-delete reddi, owner koruması ve owner kaldırma yetkisi için rollback güvenlik testi
+
+Uzak migration sayısı 24'e yükselmiştir. Üye kaldırma güvenlik testi `result: passed`, uzak schema lint temizdir. Yerel test sayısı 101'e yükselmiş ve production build başarılıdır.
+
 ---
 
 ## 5. Henüz yapılmamış bağlantılar
@@ -769,7 +787,7 @@ Yerel test sayısı 99'a yükselmiştir; production build başarılıdır. Rapor
 Aşağıdaki sistemler mevcut prototipin kullanıcı akışlarına henüz bağlı değildir:
 
 - Dosya, mesaj, bildirim ve takvim modüllerinin Supabase sorguları
-- Ekip zaman raporu CSV/PDF dışa aktarma ve proje/müşteri bazlı ileri raporlama
+- Ekip zaman raporu PDF dışa aktarma ve faturalandırılabilir süre/bütçe raporları
 - Özel domainde production kayıt doğrulama ve davet kabul callback'lerinin canlı hesaplarla smoke testi
 - Google ile giriş
 - Birden fazla organizasyon arasında çalışma alanı değiştirme akışı
@@ -1605,6 +1623,23 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 22 Temmuz 2026 — `0.35.0-member-removal`
+
+Eklenenler:
+
+- Owner/admin için ekip üyesi kaldırma butonu ve onay akışı
+- Sunucu doğrulamalı `remove_organization_member` RPC'si
+- Organizasyon sahibi, kendi üyeliği ve doğrudan tablo silme korumaları
+- Kaldırma sonrasında açıklayıcı toast ve güvenli hata mesajları
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 101/101 test başarılı
+- `npm run build` — başarılı
+- `member_removal_rls_smoke.sql` — `result: passed`
+- Uzak Supabase schema lint — hata/uyarı yok
+- Uzak migration sayısı 24
 
 ### 22 Temmuz 2026 — `0.34.0-time-breakdown`
 

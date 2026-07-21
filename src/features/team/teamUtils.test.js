@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { initialTeamMembers } from '../../data/demo';
 import {
-  canChangeOwnerAccess, canManageTeamMember, filterTeamMembers, getInitials, getTeamRoleLabel, getTeamRoleValue,
-  getTeamStats, mapInvitationToTeamMember, mapMembershipToTeamMember, validateInvite,
+  canChangeOwnerAccess, canManageTeamMember, canRemoveTeamMember, filterTeamMembers, getInitials,
+  getTeamMemberRemovalErrorMessage, getTeamRoleLabel, getTeamRoleValue, getTeamStats,
+  mapInvitationToTeamMember, mapMembershipToTeamMember, validateInvite,
 } from './teamUtils';
 
 describe('team utilities', () => {
@@ -58,6 +59,20 @@ describe('team utilities', () => {
     expect(canManageTeamMember('member', initialTeamMembers[1])).toBe(false);
   });
 
+  it('allows managers to remove only non-owner, non-current memberships', () => {
+    expect(canRemoveTeamMember('owner', { role: 'Ekip Üyesi', isCurrent: false })).toBe(true);
+    expect(canRemoveTeamMember('admin', { role: 'Yönetici', isCurrent: false })).toBe(true);
+    expect(canRemoveTeamMember('admin', { role: 'Sahip', isCurrent: false })).toBe(false);
+    expect(canRemoveTeamMember('owner', { role: 'Ekip Üyesi', isCurrent: true })).toBe(false);
+    expect(canRemoveTeamMember('member', { role: 'Ekip Üyesi', isCurrent: false })).toBe(false);
+  });
+
+  it('returns safe member removal errors', () => {
+    expect(getTeamMemberRemovalErrorMessage({ code: '42501' })).toContain('yetkiniz');
+    expect(getTeamMemberRemovalErrorMessage({ code: 'P0002' })).toContain('bulunamadı');
+    expect(getTeamMemberRemovalErrorMessage(new Error('private detail'))).not.toContain('private detail');
+  });
+
   it('maps database roles in both directions', () => {
     expect(getTeamRoleLabel('project_manager')).toBe('Proje Yöneticisi');
     expect(getTeamRoleValue('Yönetici')).toBe('admin');
@@ -69,7 +84,7 @@ describe('team utilities', () => {
       department: null, title: null, joined_at: '2026-07-18T20:00:00.000Z', created_at: '2026-07-18T20:00:00.000Z',
     }, { full_name: 'Burak Kiriş', email: 'burak@example.com' }, 'user-1');
     expect(member).toMatchObject({
-      id: 'membership-1', userId: 'user-1', name: 'Burak Kiriş', role: 'Sahip',
+      id: 'membership-1', userId: 'user-1', name: 'Burak Kiriş', role: 'Sahip', isCurrent: true,
       department: 'Belirtilmedi', title: 'Unvan belirtilmedi', lastActive: 'Şimdi',
     });
   });

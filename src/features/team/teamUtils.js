@@ -30,6 +30,7 @@ export function mapMembershipToTeamMember(membership, profile, currentUserId) {
 
   return {
     id: membership.id,
+    isCurrent: membership.user_id === currentUserId,
     userId: membership.user_id,
     name,
     email: profile?.email || 'E-posta bilgisi yok',
@@ -106,4 +107,17 @@ export function canChangeOwnerAccess(member) {
 export function canManageTeamMember(actorRole, member) {
   if (!['owner', 'admin'].includes(actorRole)) return false;
   return member.role !== 'Sahip' || actorRole === 'owner';
+}
+
+export function canRemoveTeamMember(actorRole, member) {
+  return ['owner', 'admin'].includes(actorRole)
+    && !member.isInvitation
+    && !member.isCurrent
+    && member.role !== 'Sahip';
+}
+
+export function getTeamMemberRemovalErrorMessage(error) {
+  if (error?.code === '42501') return 'Bu üyeyi çalışma alanından kaldırma yetkiniz yok.';
+  if (error?.code === 'P0002') return 'Üyelik bulunamadı veya daha önce kaldırıldı.';
+  return 'Üye kaldırılamadı. Bağlantınızı kontrol edip tekrar deneyin.';
 }

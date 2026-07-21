@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 22 Temmuz 2026 |
-| Mevcut sürüm | `0.35.0-member-removal` |
-| Mevcut aşama | Owner/admin normal ekip üyelerini sunucu doğrulamalı akışla çalışma alanından güvenle kaldırabiliyor |
-| Sonraki ana hedef | Merkezi arşiv görünümü ve Çalışma Alanı not düzeni |
+| Mevcut sürüm | `0.36.0-central-archive` |
+| Mevcut aşama | Arşivlenen proje, görev ve kişisel zaman kayıtları merkezi ekranda aranıp filtrelenebiliyor ve güvenle geri yüklenebiliyor |
+| Sonraki ana hedef | Çalışma Alanı not sabitleme, etiket ve arşivleme |
 
 ---
 
@@ -92,6 +92,7 @@ Mevcut sürümde:
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Gerçek bağımsız/proje bağlantılı ortak notlar, bağlam filtresi, arama, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı |
+| Merkezi Arşiv | Arşivlenen proje, görev ve kişisel zaman kayıtları için gerçek birleşik liste, arama, tür filtresi ve izinli geri yükleme bağlı |
 | Dosyalar | Yakında |
 | Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme, owner/admin ekip timesheet, proje/müşteri kırılımı ve filtrelenmiş CSV dışa aktarma Supabase ile bağlı |
 | Flow AI | Yakında |
@@ -779,6 +780,23 @@ Yerel test sayısı 99'a yükselmiştir; production build başarılıdır. Rapor
 - Member reddi, direct-delete reddi, owner koruması ve owner kaldırma yetkisi için rollback güvenlik testi
 
 Uzak migration sayısı 24'e yükselmiştir. Üye kaldırma güvenlik testi `result: passed`, uzak schema lint temizdir. Yerel test sayısı 101'e yükselmiş ve production build başarılıdır.
+
+### 4.29 Merkezi Arşiv v1
+
+- Sidebar'da aktif `/arsiv` rotası ve ayrı lazy-loaded sayfa paketi
+- Arşivlenen proje, görev ve oturum sahibinin kişisel zaman kayıtlarını tek listede birleştirme
+- Toplam, proje, görev ve zaman kaydı metrikleri
+- Başlık, müşteri, proje, görev ve not içeriğinde arama
+- Proje, görev ve zaman kaydı tür filtreleri
+- Arşiv tarihine göre en yeniden eskiye sıralama
+- Proje/görev için mevcut rol yetkilerini, zaman kaydı için mevcut kişisel RPC sınırını koruyan geri yükleme
+- Bağlı proje arşivdeyken görev veya zaman kaydını hatalı biçimde geri yüklemeyi engelleme
+- Member rolünde proje/görev geri yükleme butonunu kapatma; kayıtları salt okunur gösterebilme
+- Loading, hata, yeniden deneme, boş, arama sonucu boş ve işlem hata durumları
+- Masaüstü, tablet, mobil ve koyu tema uyumlu görünüm
+- Birleştirme, sıralama, Türkçe arama, tür filtresi ve metrik hesapları için ayrı domain testleri
+
+Yerel test altyapısı 16 dosyada 104 teste yükselmiştir; production build başarılıdır. Yeni veritabanı migration'ı gerekmemiş, mevcut proje/görev RLS ve kişisel zaman RPC sınırları korunmuştur.
 
 ---
 
@@ -1602,27 +1620,41 @@ Her özellik tamamlanmış sayılmadan önce:
 
 Önerilen bir sonraki çalışma sırası:
 
-1. Production owner hesabıyla Zaman Takibi → Ekip raporu görünümünü aç.
-2. Bu hafta, önceki hafta, ekip üyesi ve proje filtrelerini gerçek kayıtlarla doğrula.
-3. Normal üye hesabında Ekip raporu sekmesinin görünmediğini ve kişisel kayıt izolasyonunun korunduğunu doğrula.
-4. Kabul sonrasında filtrelenmiş ekip raporunu CSV olarak dışa aktarma paketine geç.
-5. Ardından proje/müşteri bazlı zaman özeti ve merkezi raporlama ekranını planla.
+1. `project_notes` için sabitleme, etiketler ve geri alınabilir arşiv alanlarını migration ile ekle.
+2. Not listesindeki aktif/arşiv filtrelerini ve sabit not sıralamasını uygula.
+3. Yazar ile owner/admin/project manager düzenleme sınırını yeni işlemlerde koru.
+4. Not arşivleme, geri yükleme, sabitleme ve etiket davranışlarını rollback RLS testiyle doğrula.
+5. Ardından Supabase Storage tabanlı Dosyalar v1 paketine geç.
 
 Sıradaki ManageFlow geliştirme paketinin başarı ölçütü:
 
 ```text
-Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç zamanıyla görür
-→ Sayacı durdurunca sunucu hesaplı süre kalıcı kayda dönüşür
-→ Manuel süre kayıtları tarih, proje ve isteğe bağlı görev bağlamıyla eklenebilir
-→ Kullanıcı günlük/haftalık geçmişini filtreleyebilir
-→ Tamamlanmış kayıt güvenli RPC ile düzeltilebilir ve aktörü kaydedilir
-→ Arşivlenen kayıt silinmez, varsayılan toplamdan çıkar ve geri alınabilir
-→ Başka kullanıcı veya organizasyonun süre kayıtlarına erişemez
+Kullanıcı bağımsız veya proje bağlantılı not oluşturabilir
+→ Yetkili kullanıcı notu sabitleyebilir ve etiketleyebilir
+→ Arşivlenen not varsayılan görünümden çıkar ancak fiziksel olarak silinmez
+→ Arşiv filtresinden geri yüklenebilir
+→ Sıralama sabit notları ve güncellenme tarihini doğru uygular
+→ Başka organizasyonun notuna hiçbir işlem yapılamaz
 ```
 
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 22 Temmuz 2026 — `0.36.0-central-archive`
+
+Eklenenler:
+
+- Sidebar'da gerçek Merkezi Arşiv modülü
+- Proje, görev ve kişisel zaman kayıtlarını birleştiren arşiv listesi
+- Arama, tür filtresi, metrikler ve izinli geri yükleme
+- Arşivli üst proje nedeniyle geçersiz geri yüklemeyi engelleyen bağlam kontrolü
+
+Doğrulama:
+
+- `npm test` — 16 dosyada 104/104 test başarılı
+- `npm run build` — başarılı
+- Mevcut RLS ve geri yükleme RPC sınırları değiştirilmedi
 
 ### 22 Temmuz 2026 — `0.35.0-member-removal`
 

@@ -96,7 +96,7 @@ Sıra; kullanıcıdan ek bilgi istemeden uygulanabilme, mevcut altyapıyı kulla
 2. ~~Zaman kayıtlarını CSV dışa aktarma~~ — `0.33.0` ile tamamlandı
 3. ~~Proje ve müşteri bazlı zaman özeti~~ — `0.34.0` ile tamamlandı
 4. Çalışma Alanı not sabitleme, etiket ve arşivleme
-5. Merkezi arşiv görünümü
+5. ~~Merkezi arşiv görünümü~~ — `0.36.0` ile tamamlandı
 
 ### B. Çekirdek platform tamamlamaları
 
@@ -189,3 +189,9 @@ Bir madde yalnızca şu koşullar sağlandığında `Hazır` kabul edilir:
 - Owner/admin için eksik olan gerçek üye kaldırma arayüzü eklendi.
 - Organizasyon sahibi, kendi üyeliği ve doğrudan tablo silme sunucuda engellendi.
 - Kullanıcı hesabı ve tarihsel iş kayıtları korunurken aktif çalışma alanı üyeliği kaldırılabilir hale getirildi.
+
+### 22 Temmuz 2026 — Merkezi Arşiv
+
+- Proje, görev ve kişisel zaman kayıtlarının birleşik arşiv görünümü tamamlandı.
+- Arama, kayıt türü filtresi, metrik ve mevcut yetkilere bağlı geri yükleme eklendi.
+- Bağlı proje arşivdeyken alt kaydı hatalı geri yükleme engellendi.

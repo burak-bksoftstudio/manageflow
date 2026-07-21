@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
-  AlarmClock, ArrowLeftRight, Bell, BriefcaseBusiness, Building2, CalendarDays, Check, CheckSquare2,
+  AlarmClock, Archive, ArrowLeftRight, Bell, BriefcaseBusiness, Building2, CalendarDays, Check, CheckSquare2,
   ChevronDown, ChevronLeft, ChevronRight, Files, FolderKanban,
   LayoutDashboard, LogOut, MessageSquare, Settings2, Sparkles, Users, X,
 } from 'lucide-react';
@@ -20,6 +20,7 @@ const navGroups = [
       { label: 'Zaman Takibi', to: '/zaman-takibi', icon: AlarmClock },
       { label: 'Ekipler', to: '/ekipler', icon: Users },
       { label: 'Özelleştirme', to: '/ozellestirme', icon: Settings2 },
+      { label: 'Arşiv', to: '/arsiv', icon: Archive },
     ],
   },
   {

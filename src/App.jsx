@@ -27,6 +27,7 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
 const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage'));
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
+const ArchivePage = lazy(() => import('./pages/ArchivePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function LazyPage({ children }) {
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="/gorevler" element={<LazyPage><TasksPage /></LazyPage>} />
               <Route path="/zaman-takibi" element={<LazyPage><TimeTrackingPage /></LazyPage>} />
               <Route path="/calisma-alani" element={<LazyPage><WorkspacePage /></LazyPage>} />
+              <Route path="/arsiv" element={<LazyPage><ArchivePage /></LazyPage>} />
               <Route path="/ozellestirme" element={<LazyPage><SettingsPage /></LazyPage>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />

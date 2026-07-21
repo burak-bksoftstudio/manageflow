@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTeamTimesheetCsv, canViewTeamTimesheet, formatCompactDuration, formatTimerDuration,
   formatWeekRange, getElapsedSeconds, getManualStartedAt, getTeamTimesheetCsvFilename,
-  getTeamTimesheetSummary, getTimeTrackingErrorMessage, getTimeTrackingStats, getTodaySeconds,
-  getWeekBounds, getWeeklyHistory, mapDatabaseTeamTimesheetEntry, mapDatabaseTimeEntry,
+  getTeamTimesheetBreakdown, getTeamTimesheetSummary, getTimeTrackingErrorMessage,
+  getTimeTrackingStats, getTodaySeconds, getWeekBounds, getWeeklyHistory,
+  mapDatabaseTeamTimesheetEntry, mapDatabaseTimeEntry,
   normalizeManualTimeForm, normalizeTimerForm, validateManualTimeForm, validateTimerForm,
 } from './timeTrackingUtils';
 
@@ -134,6 +135,23 @@ describe('Time tracking utilities', () => {
     expect(csv).toContain('"\'=HYPERLINK(""https://example.com"")"');
     expect(csv).toContain('"3600";"1 sa";"Manuel";"Tamamlandı"');
     expect(getTeamTimesheetCsvFilename(start, end)).toBe('manageflow-ekip-zaman-2026-07-13_2026-07-19.csv');
+  });
+
+  it('summarizes team time by project and customer', () => {
+    const start = new Date('2026-07-13T00:00:00Z');
+    const end = new Date('2026-07-20T00:00:00Z');
+    const entries = [
+      mapDatabaseTeamTimesheetEntry({ id: 'e1', user_id: 'u1', member_name: 'Ayşe', project_id: 'p1', project_name: 'Web', entry_type: 'timer', started_at: '2026-07-14T09:00:00Z', ended_at: '2026-07-14T10:00:00Z' }),
+      mapDatabaseTeamTimesheetEntry({ id: 'e2', user_id: 'u2', member_name: 'Can', project_id: 'p1', project_name: 'Web', entry_type: 'timer', started_at: '2026-07-14T11:00:00Z', ended_at: '2026-07-14T11:30:00Z' }),
+      mapDatabaseTeamTimesheetEntry({ id: 'e3', user_id: 'u1', member_name: 'Ayşe', project_id: 'p2', project_name: 'Mobil', entry_type: 'timer', started_at: '2026-07-15T09:00:00Z', ended_at: '2026-07-15T09:30:00Z' }),
+    ];
+    const projects = [
+      { id: 'p1', clientId: 'c1', clientName: 'Atlas' },
+      { id: 'p2', clientId: 'c1', clientName: 'Atlas' },
+    ];
+    const result = getTeamTimesheetBreakdown(entries, projects, start, end, end);
+    expect(result.projects[0]).toMatchObject({ id: 'p1', sessions: 2, members: 2, totalSeconds: 5400, percentage: 75 });
+    expect(result.clients).toEqual([expect.objectContaining({ id: 'c1', name: 'Atlas', sessions: 3, members: 2, totalSeconds: 7200, percentage: 100 })]);
   });
 
   it('formats timer and compact durations', () => {

@@ -167,6 +167,45 @@ export function getTeamTimesheetCsvFilename(rangeStart, rangeEnd) {
   return `manageflow-ekip-zaman-${start}_${end}.csv`;
 }
 
+function summarizeTimeGroup(entries, rangeStart, rangeEnd, now, resolveGroup) {
+  const groups = new Map();
+  entries.forEach(entry => {
+    const group = resolveGroup(entry);
+    const current = groups.get(group.id) || {
+      id: group.id, members: new Set(), name: group.name, sessions: 0, totalSeconds: 0,
+    };
+    current.members.add(entry.userId);
+    current.sessions += 1;
+    current.totalSeconds += getRangeSeconds(entry, rangeStart, rangeEnd, now);
+    groups.set(group.id, current);
+  });
+  const totalSeconds = [...groups.values()].reduce((total, group) => total + group.totalSeconds, 0);
+  return [...groups.values()]
+    .map(group => ({
+      ...group,
+      members: group.members.size,
+      percentage: totalSeconds ? Math.round((group.totalSeconds / totalSeconds) * 100) : 0,
+    }))
+    .sort((left, right) => right.totalSeconds - left.totalSeconds || left.name.localeCompare(right.name, 'tr'));
+}
+
+export function getTeamTimesheetBreakdown(entries, projects, rangeStart, rangeEnd, now = new Date()) {
+  const projectsById = new Map(projects.map(project => [project.id, project]));
+  return {
+    clients: summarizeTimeGroup(entries, rangeStart, rangeEnd, now, entry => {
+      const project = projectsById.get(entry.projectId);
+      return {
+        id: project?.clientId || `missing-client-${entry.projectId}`,
+        name: project?.clientName || 'Müşteri bulunamadı',
+      };
+    }),
+    projects: summarizeTimeGroup(entries, rangeStart, rangeEnd, now, entry => ({
+      id: entry.projectId,
+      name: entry.projectName,
+    })),
+  };
+}
+
 export function getWeekBounds(value = new Date()) {
   const start = new Date(value);
   start.setHours(0, 0, 0, 0);

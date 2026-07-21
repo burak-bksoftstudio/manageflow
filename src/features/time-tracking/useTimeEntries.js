@@ -1,7 +1,7 @@
 import {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
-import { initialProjects, initialTasks } from '../../data/demo';
+import { initialClients, initialProjects, initialTasks } from '../../data/demo';
 import { requireSupabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { useOrganization } from '../organizations/OrganizationContext';
@@ -16,6 +16,8 @@ export function useTimeEntries() {
   const { activeOrganization } = useOrganization();
   const [entries, setEntries] = useState([]);
   const [projects, setProjects] = useState(() => isDemoMode ? initialProjects.map(project => ({
+    clientId: project.clientId,
+    clientName: initialClients.find(client => client.id === project.clientId)?.name || project.client || 'Müşteri bulunamadı',
     id: project.id, isArchived: false, name: project.name,
   })) : []);
   const [tasks, setTasks] = useState(() => isDemoMode ? initialTasks.map(task => ({
@@ -50,7 +52,7 @@ export function useTimeEntries() {
         .limit(300),
       client
         .from('projects')
-        .select('id, name, archived_at')
+        .select('id, name, client_id, archived_at, client:clients!projects_client_scope_fkey(id, name)')
         .eq('organization_id', activeOrganization.id)
         .order('name'),
       client
@@ -69,9 +71,16 @@ export function useTimeEntries() {
     const projectsById = new Map(projectResult.data.map(project => [project.id, project]));
     const tasksById = new Map(taskResult.data.map(task => [task.id, task]));
     const mappedEntries = entryResult.data.map(entry => mapDatabaseTimeEntry(entry, projectsById, tasksById));
-    const mappedProjects = projectResult.data.map(project => ({
-      id: project.id, isArchived: Boolean(project.archived_at), name: project.name,
-    }));
+    const mappedProjects = projectResult.data.map(project => {
+      const projectClient = Array.isArray(project.client) ? project.client[0] : project.client;
+      return {
+        clientId: project.client_id,
+        clientName: projectClient?.name || 'Müşteri bulunamadı',
+        id: project.id,
+        isArchived: Boolean(project.archived_at),
+        name: project.name,
+      };
+    });
     const mappedTasks = taskResult.data.map(task => ({
       id: task.id,
       isArchived: Boolean(task.archived_at),

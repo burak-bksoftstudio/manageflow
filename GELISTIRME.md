@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 22 Temmuz 2026 |
-| Mevcut sürüm | `0.33.0-timesheet-csv` |
-| Mevcut aşama | Owner/admin ekip zaman raporu aktif hafta, üye ve proje filtrelerine göre güvenli CSV olarak dışa aktarılabiliyor |
-| Sonraki ana hedef | Proje/müşteri bazlı zaman özeti ve merkezi arşiv görünümü |
+| Mevcut sürüm | `0.34.0-time-breakdown` |
+| Mevcut aşama | Owner/admin ekip zaman raporu seçili filtreler için proje ve müşteri bazlı süre dağılımını gösteriyor |
+| Sonraki ana hedef | Merkezi arşiv görünümü ve Çalışma Alanı not düzeni |
 
 ---
 
@@ -72,7 +72,7 @@ Mevcut sürümde:
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı sidebar hesap kartından doğrudan kendi profil ayarına; çalışma alanı menüsünden ajans ayarına gidebilir. Profil adı, telefon ve HTTPS avatar adresi güncellenebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
-- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye ve projeye göre inceleyip filtrelenmiş CSV olarak indirebilir.
+- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye, proje ve müşteri kırılımında inceleyip filtrelenmiş CSV olarak indirebilir.
 - Ekip üyeleri organizasyon geneline bağımsız veya aktif projeye bağlı ortak not ekleyebilir, bağlam/metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
@@ -93,7 +93,7 @@ Mevcut sürümde:
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Gerçek bağımsız/proje bağlantılı ortak notlar, bağlam filtresi, arama, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı |
 | Dosyalar | Yakında |
-| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme, owner/admin ekip timesheet ve filtrelenmiş CSV dışa aktarma Supabase ile bağlı |
+| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme, owner/admin ekip timesheet, proje/müşteri kırılımı ve filtrelenmiş CSV dışa aktarma Supabase ile bağlı |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
@@ -749,6 +749,18 @@ Uzak migration sayısı 23'e yükselmiştir. Proje notları güvenlik testi bağ
 - CSV içerik, kaçış, toplam süre ve dosya adı için otomatik test
 
 Yerel test sayısı 98'e yükselmiştir; production build başarılıdır. Yeni veritabanı migration'ı gerekmemiş, mevcut owner/admin-only raporlama RPC sınırı korunmuştur.
+
+### 4.27 Proje ve müşteri bazlı zaman özeti
+
+- Ekip raporunun aktif hafta, üye ve proje filtrelerini kullanan iki görsel dağılım kartı
+- Proje başına toplam süre, kayıt sayısı, çalışan kişi sayısı ve yüzde dağılımı
+- Aynı müşteriye bağlı birden fazla projeyi tek müşteri toplamında birleştirme
+- Süreye göre azalan sıralama ve en yoğun beş proje/müşteri görünümü
+- Proje sorgusunda müşteri kimliği ve adını güvenli organizasyon RLS kapsamından alma
+- Masaüstünde yan yana, tablet ve mobilde tek kolon responsive düzen
+- Gruplama, kişi/kayıt sayısı, süre ve yüzde hesabı için otomatik test
+
+Yerel test sayısı 99'a yükselmiştir; production build başarılıdır. Rapor mevcut owner/admin-only RPC verisini kullandığı için yeni migration veya genişletilmiş tablo yetkisi gerekmemiştir.
 
 ---
 
@@ -1593,6 +1605,21 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 22 Temmuz 2026 — `0.34.0-time-breakdown`
+
+Eklenenler:
+
+- Haftalık ekip zamanlarında proje bazlı süre dağılımı
+- Aynı müşteriye bağlı projeleri birleştiren müşteri zaman özeti
+- Süre, kayıt, çalışan kişi ve yüzde göstergeleri
+- Responsive rapor kartları
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 99/99 test başarılı
+- `npm run build` — başarılı
+- Mevcut owner/admin rapor yetki sınırı değiştirilmedi
 
 ### 22 Temmuz 2026 — `0.33.0-timesheet-csv`
 

@@ -60,7 +60,7 @@ Durumlar:
 | Projeler | Müşteriye bağlı proje, ekip ve ilerleme | CRUD, ekip atama, durum, ilerleme ve arşiv çalışıyor | Hazır | Proje şablonları, özel durumlar ve dosya bağlamı |
 | Görevler | Sorumlu, tarih, tekrar, alt görev, yorum, dosya ve şablon | CRUD, liste/Kanban, alt görev, checklist, yorum, aktivite ve filtreler çalışıyor | Kısmi | Tekrarlı görevler, görev şablonları ve görev dosyaları |
 | Dashboard | Günlük iş, metrik ve proje görünümü | Gerçek KPI, haftalık ilerleme, proje özeti ve gündem çalışıyor | Kısmi | Widget seçimi, kişiselleştirme ve daha kapsamlı raporlar |
-| Zaman takibi | Proje/görev süresi ve ekip görünümü | Sayaç, manuel kayıt, düzeltme, arşiv, ekip timesheet ve filtrelenmiş CSV çalışıyor | Hazır | Proje/müşteri özet raporları |
+| Zaman takibi | Proje/görev süresi ve ekip görünümü | Sayaç, manuel kayıt, düzeltme, arşiv, ekip timesheet, proje/müşteri özeti ve filtrelenmiş CSV çalışıyor | Hazır | İleri faturalandırılabilir süre ve bütçe raporları daha sonra eklenebilir |
 | Çalışma Alanı | Notion benzeri, proje dışı bilgi alanı | Bağımsız veya projeye bağlı ortak notlar çalışıyor | Kısmi | Sabitleme, etiket, arşiv ve zengin metin |
 | Dosyalar | Klasörler, merkezi dosyalar ve proje/görev dosyaları | Gerçek dosya depolama yok | Planlandı | Supabase Storage, klasör, yükleme, indirme, arşiv ve bağlam ilişkileri |
 | Kanallar | Genel/özel kanal, müşteri kanalı, mention, arama ve dosyalar | Placeholder | Planlandı | Kanal üyeliği, gerçek zamanlı mesaj, thread, mention, tepki ve kanal dosyaları |
@@ -94,7 +94,7 @@ Sıra; kullanıcıdan ek bilgi istemeden uygulanabilme, mevcut altyapıyı kulla
 
 1. ~~Çalışma Alanı bağımsız not desteği~~ — `0.32.0` ile tamamlandı
 2. ~~Zaman kayıtlarını CSV dışa aktarma~~ — `0.33.0` ile tamamlandı
-3. Proje ve müşteri bazlı zaman özeti
+3. ~~Proje ve müşteri bazlı zaman özeti~~ — `0.34.0` ile tamamlandı
 4. Çalışma Alanı not sabitleme, etiket ve arşivleme
 5. Merkezi arşiv görünümü
 
@@ -177,3 +177,9 @@ Bir madde yalnızca şu koşullar sağlandığında `Hazır` kabul edilir:
 - İkinci hızlı eşleşme kazanımı tamamlandı.
 - Owner/admin ekip raporuna aktif filtreleri kullanan CSV indirme eklendi.
 - UTF-8/Excel uyumu ve formül enjeksiyonu koruması otomatik testle doğrulandı.
+
+### 22 Temmuz 2026 — Proje ve müşteri zaman özeti
+
+- Üçüncü hızlı eşleşme kazanımı tamamlandı.
+- Filtrelenmiş ekip zamanları proje ve müşteri bazında gruplanarak görsel rapora dönüştürüldü.
+- Süre, kayıt, çalışan kişi ve yüzde dağılımları otomatik testle doğrulandı.

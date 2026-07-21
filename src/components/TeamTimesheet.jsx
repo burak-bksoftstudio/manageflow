@@ -6,12 +6,24 @@ import {
 import { useTeamTimesheet } from '../features/time-tracking/useTeamTimesheet';
 import {
   buildTeamTimesheetCsv, formatCompactDuration, formatTimeEntryDate, formatTimeEntryRange,
-  formatWeekRange, getRangeSeconds, getTeamTimesheetCsvFilename, getTeamTimesheetSummary, getWeekBounds,
+  formatWeekRange, getRangeSeconds, getTeamTimesheetBreakdown, getTeamTimesheetCsvFilename,
+  getTeamTimesheetSummary, getWeekBounds,
 } from '../features/time-tracking/timeTrackingUtils';
 import { Avatar } from './Brand';
 
 function TeamTimeStat({ icon: Icon, helper, label, value }) {
   return <article className="time-stat"><span><Icon /></span><div><small>{label}</small><strong>{value}</strong><p>{helper}</p></div></article>;
+}
+
+function TimeBreakdown({ eyebrow, rows, title }) {
+  return (
+    <article className="team-time-breakdown-card">
+      <header><small>{eyebrow}</small><h3>{title}</h3></header>
+      <div>
+        {rows.slice(0, 5).map(row => <section key={row.id}><span><b>{row.name}</b><small>{row.sessions} kayıt · {row.members} kişi</small></span><strong>{formatCompactDuration(row.totalSeconds)}</strong><i><em style={{ width: `${Math.max(4, row.percentage)}%` }} /></i></section>)}
+      </div>
+    </article>
+  );
 }
 
 export default function TeamTimesheet({ projects }) {
@@ -34,6 +46,10 @@ export default function TeamTimesheet({ projects }) {
   const summary = useMemo(
     () => getTeamTimesheetSummary(entries, selectedWeek, rangeEnd, filters, now),
     [entries, filters, now, rangeEnd, selectedWeek],
+  );
+  const breakdown = useMemo(
+    () => getTeamTimesheetBreakdown(summary.entries, projects, selectedWeek, rangeEnd, now),
+    [now, projects, rangeEnd, selectedWeek, summary.entries],
   );
 
   useEffect(() => {
@@ -87,7 +103,9 @@ export default function TeamTimesheet({ projects }) {
         {loading && <div className="team-timesheet-state" role="status"><LoaderCircle className="spin" /><span>Ekip zamanları hazırlanıyor…</span></div>}
 
         {!loading && !error && (
-          <div className="team-timesheet-list">
+          <>
+            {summary.entries.length > 0 && <div className="team-time-breakdown"><TimeBreakdown eyebrow="PROJE RAPORU" title="Projelerde harcanan zaman" rows={breakdown.projects} /><TimeBreakdown eyebrow="MÜŞTERİ RAPORU" title="Müşterilere ayrılan zaman" rows={breakdown.clients} /></div>}
+            <div className="team-timesheet-list">
             {summary.entries.map(entry => {
               const member = members.find(item => item.id === entry.userId);
               return (
@@ -100,7 +118,8 @@ export default function TeamTimesheet({ projects }) {
               );
             })}
             {summary.entries.length === 0 && <div className="team-timesheet-empty"><History /><h3>Bu görünümde zaman kaydı yok</h3><p>Haftayı veya filtreleri değiştirin. Ekip süre girdikçe kayıtlar burada görünecek.</p></div>}
-          </div>
+            </div>
+          </>
         )}
       </section>
     </div>

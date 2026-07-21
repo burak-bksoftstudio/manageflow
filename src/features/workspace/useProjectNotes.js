@@ -9,7 +9,7 @@ import { getCommentAuthorName } from '../tasks/commentUtils';
 import { mapDatabaseProject, mapDemoProject } from '../projects/projectUtils';
 import { mapDatabaseProjectNote, normalizeProjectNoteForm } from './workspaceUtils';
 
-const noteSelect = 'id, organization_id, project_id, author_id, title, content, created_at, updated_at';
+const noteSelect = 'id, organization_id, project_id, author_id, title, content, is_pinned, tags, archived_at, archived_by, created_at, updated_at';
 const projectSelect = 'id, name, description, status, progress, client_id, start_date, due_date, archived_at, archived_by, created_at';
 const demoNotes = [];
 
@@ -91,12 +91,17 @@ export function useProjectNotes() {
         authorId: currentUserId,
         authorInitials: 'BK',
         authorName: getCommentAuthorName(profile),
+        archivedAt: null,
+        archivedBy: null,
         content: normalized.content,
         createdAt: now,
         id: `project-note-${Date.now()}`,
+        isArchived: false,
+        isPinned: normalized.isPinned,
         projectArchived: false,
         projectId: normalized.projectId,
         projectName: project?.name || 'Bağımsız not',
+        tags: normalized.tags,
         title: normalized.title,
         updatedAt: now,
       };
@@ -108,8 +113,10 @@ export function useProjectNotes() {
     const { data, error: createError } = await client.from('project_notes').insert({
       author_id: user.id,
       content: normalized.content,
+      is_pinned: normalized.isPinned,
       organization_id: activeOrganization.id,
       project_id: normalized.projectId || null,
+      tags: normalized.tags,
       title: normalized.title,
     }).select(noteSelect).single();
     if (createError) return { data: null, error: createError };
@@ -126,23 +133,101 @@ export function useProjectNotes() {
     const currentNote = notes.find(note => note.id === noteId);
     if (!currentNote) return { data: null, error: new Error('Project note not found') };
     if (isDemoMode) {
-      const updated = { ...currentNote, title: normalized.title, content: normalized.content, updatedAt: new Date().toISOString() };
+      const updated = {
+        ...currentNote,
+        content: normalized.content,
+        isPinned: normalized.isPinned,
+        tags: normalized.tags,
+        title: normalized.title,
+        updatedAt: new Date().toISOString(),
+      };
       setNotes(value => value.map(note => note.id === noteId ? updated : note));
       return { data: updated, error: null };
     }
 
     const client = requireSupabase();
     const { data, error: updateError } = await client.from('project_notes')
-      .update({ content: normalized.content, title: normalized.title })
+      .update({
+        content: normalized.content,
+        is_pinned: normalized.isPinned,
+        tags: normalized.tags,
+        title: normalized.title,
+      })
       .eq('id', noteId)
       .eq('organization_id', activeOrganization.id)
       .select(noteSelect)
       .single();
     if (updateError) return { data: null, error: updateError };
-    const updated = { ...currentNote, content: data.content, title: data.title, updatedAt: data.updated_at };
+    const updated = {
+      ...currentNote,
+      content: data.content,
+      isPinned: data.is_pinned,
+      tags: data.tags || [],
+      title: data.title,
+      updatedAt: data.updated_at,
+    };
     setNotes(value => [updated, ...value.filter(note => note.id !== noteId)]);
     return { data: updated, error: null };
   }, [activeOrganization, isDemoMode, notes]);
+
+  const setNotePinned = useCallback(async (noteId, isPinned) => {
+    const currentNote = notes.find(note => note.id === noteId);
+    if (!currentNote) return { data: null, error: new Error('Project note not found') };
+    if (isDemoMode) {
+      const updated = { ...currentNote, isPinned, updatedAt: new Date().toISOString() };
+      setNotes(value => value.map(note => note.id === noteId ? updated : note));
+      return { data: updated, error: null };
+    }
+
+    const client = requireSupabase();
+    const { data, error: updateError } = await client.from('project_notes')
+      .update({ is_pinned: isPinned })
+      .eq('id', noteId)
+      .eq('organization_id', activeOrganization.id)
+      .select(noteSelect)
+      .single();
+    if (updateError) return { data: null, error: updateError };
+    const updated = { ...currentNote, isPinned: data.is_pinned, updatedAt: data.updated_at };
+    setNotes(value => value.map(note => note.id === noteId ? updated : note));
+    return { data: updated, error: null };
+  }, [activeOrganization, isDemoMode, notes]);
+
+  const setNoteArchived = useCallback(async (noteId, isArchived) => {
+    const currentNote = notes.find(note => note.id === noteId);
+    if (!currentNote) return { data: null, error: new Error('Project note not found') };
+    const archivedAt = isArchived ? new Date().toISOString() : null;
+    if (isDemoMode) {
+      const updated = {
+        ...currentNote,
+        archivedAt,
+        archivedBy: isArchived ? currentUserId : null,
+        isArchived,
+        isPinned: false,
+        updatedAt: new Date().toISOString(),
+      };
+      setNotes(value => value.map(note => note.id === noteId ? updated : note));
+      return { data: updated, error: null };
+    }
+
+    const client = requireSupabase();
+    const { data, error: updateError } = await client.from('project_notes')
+      .update({ archived_at: archivedAt, archived_by: isArchived ? user.id : null })
+      .eq('id', noteId)
+      .eq('organization_id', activeOrganization.id)
+      .select(noteSelect)
+      .single();
+    if (updateError) return { data: null, error: updateError };
+    const updated = {
+      ...currentNote,
+      archivedAt: data.archived_at,
+      archivedBy: data.archived_by,
+      isArchived: Boolean(data.archived_at),
+      isPinned: data.is_pinned,
+      updatedAt: data.updated_at,
+    };
+    setNotes(value => value.map(note => note.id === noteId ? updated : note));
+    return { data: updated, error: null };
+  }, [activeOrganization, currentUserId, isDemoMode, notes, user]);
 
   return useMemo(() => ({
     createNote: createNoteRecord,
@@ -152,6 +237,11 @@ export function useProjectNotes() {
     notes,
     projects,
     refresh: loadWorkspace,
+    setNoteArchived,
+    setNotePinned,
     updateNote: updateNoteRecord,
-  }), [createNoteRecord, currentUserId, error, loadWorkspace, loading, notes, projects, updateNoteRecord]);
+  }), [
+    createNoteRecord, currentUserId, error, loadWorkspace, loading, notes, projects,
+    setNoteArchived, setNotePinned, updateNoteRecord,
+  ]);
 }

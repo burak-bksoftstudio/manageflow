@@ -61,7 +61,7 @@ Durumlar:
 | Görevler | Sorumlu, tarih, tekrar, alt görev, yorum, dosya ve şablon | CRUD, liste/Kanban, alt görev, checklist, yorum, aktivite ve filtreler çalışıyor | Kısmi | Tekrarlı görevler, görev şablonları ve görev dosyaları |
 | Dashboard | Günlük iş, metrik ve proje görünümü | Gerçek KPI, haftalık ilerleme, proje özeti ve gündem çalışıyor | Kısmi | Widget seçimi, kişiselleştirme ve daha kapsamlı raporlar |
 | Zaman takibi | Proje/görev süresi ve ekip görünümü | Sayaç, manuel kayıt, düzeltme, arşiv, ekip timesheet, proje/müşteri özeti ve filtrelenmiş CSV çalışıyor | Hazır | İleri faturalandırılabilir süre ve bütçe raporları daha sonra eklenebilir |
-| Çalışma Alanı | Notion benzeri, proje dışı bilgi alanı | Bağımsız veya projeye bağlı ortak notlar çalışıyor | Kısmi | Sabitleme, etiket, arşiv ve zengin metin |
+| Çalışma Alanı | Notion benzeri, proje dışı bilgi alanı | Bağımsız/projeye bağlı not, sabitleme, etiket, arşiv ve Merkezi Arşiv bağlantısı çalışıyor | Kısmi | Zengin metin, sayfa hiyerarşisi ve gelişmiş bilgi alanı |
 | Dosyalar | Klasörler, merkezi dosyalar ve proje/görev dosyaları | Gerçek dosya depolama yok | Planlandı | Supabase Storage, klasör, yükleme, indirme, arşiv ve bağlam ilişkileri |
 | Kanallar | Genel/özel kanal, müşteri kanalı, mention, arama ve dosyalar | Placeholder | Planlandı | Kanal üyeliği, gerçek zamanlı mesaj, thread, mention, tepki ve kanal dosyaları |
 | Gelen Kutusu | Ekip/müşteriyle birebir mesajlaşma | Placeholder | Planlandı | Direkt konuşma, okunma bilgisi, bildirim ve arama |
@@ -95,7 +95,7 @@ Sıra; kullanıcıdan ek bilgi istemeden uygulanabilme, mevcut altyapıyı kulla
 1. ~~Çalışma Alanı bağımsız not desteği~~ — `0.32.0` ile tamamlandı
 2. ~~Zaman kayıtlarını CSV dışa aktarma~~ — `0.33.0` ile tamamlandı
 3. ~~Proje ve müşteri bazlı zaman özeti~~ — `0.34.0` ile tamamlandı
-4. Çalışma Alanı not sabitleme, etiket ve arşivleme
+4. ~~Çalışma Alanı not sabitleme, etiket ve arşivleme~~ — `0.37.0` ile tamamlandı
 5. ~~Merkezi arşiv görünümü~~ — `0.36.0` ile tamamlandı
 
 ### B. Çekirdek platform tamamlamaları
@@ -195,3 +195,10 @@ Bir madde yalnızca şu koşullar sağlandığında `Hazır` kabul edilir:
 - Proje, görev ve kişisel zaman kayıtlarının birleşik arşiv görünümü tamamlandı.
 - Arama, kayıt türü filtresi, metrik ve mevcut yetkilere bağlı geri yükleme eklendi.
 - Bağlı proje arşivdeyken alt kaydı hatalı geri yükleme engellendi.
+
+### 22 Temmuz 2026 — Çalışma Alanı not yaşam döngüsü
+
+- Dördüncü hızlı eşleşme kazanımı tamamlandı.
+- Notlara en fazla 8 etiket, sabitleme ve aktif/arşiv/tümü filtresi eklendi.
+- Yazar/yönetici yetkili geri alınabilir arşivleme, doğrulanmış arşiv aktörü ve arşivli içerik koruması Supabase üzerinde uygulandı.
+- Arşivlenen notlar Merkezi Arşiv'in aramasına, tür filtresine, metriğine ve geri yükleme akışına bağlandı.

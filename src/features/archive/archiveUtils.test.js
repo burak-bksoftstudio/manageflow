@@ -13,20 +13,23 @@ describe('central archive utilities', () => {
     timeEntries: [
       { id: 'e1', projectId: 'p2', projectName: 'Mobil', taskTitle: '', note: 'Toplantı', isArchived: true, archivedAt: '2026-07-22T10:00:00Z' },
     ],
+    notes: [
+      { id: 'n1', title: 'Brief kararları', content: 'Logo sabit', projectName: 'Mobil', authorName: 'Ece', authorId: 'u1', tags: ['brief'], isArchived: true, projectArchived: false, archivedAt: '2026-07-23T10:00:00Z' },
+    ],
   });
 
   it('combines and sorts archived records from all supported modules', () => {
-    expect(items.map(item => item.id)).toEqual(['e1', 't1', 'p1']);
-    expect(items[1]).toMatchObject({ type: 'task', contextArchived: true });
+    expect(items.map(item => item.id)).toEqual(['n1', 'e1', 't1', 'p1']);
+    expect(items[2]).toMatchObject({ type: 'task', contextArchived: true });
   });
 
   it('filters by type and Turkish-aware query', () => {
     expect(filterArchiveItems(items, { type: 'project', query: 'atlas' }).map(item => item.id)).toEqual(['p1']);
     expect(filterArchiveItems(items, { type: 'all', query: 'toplantı' }).map(item => item.id)).toEqual(['e1']);
+    expect(filterArchiveItems(items, { type: 'note', query: 'brief' }).map(item => item.id)).toEqual(['n1']);
   });
 
   it('calculates archive metrics', () => {
-    expect(getArchiveStats(items)).toEqual({ total: 3, projects: 1, tasks: 1, timeEntries: 1 });
+    expect(getArchiveStats(items)).toEqual({ total: 4, notes: 1, projects: 1, tasks: 1, timeEntries: 1 });
   });
 });
-

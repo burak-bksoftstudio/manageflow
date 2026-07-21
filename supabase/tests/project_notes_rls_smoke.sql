@@ -140,13 +140,15 @@ begin
     raise exception 'Workspace probe failed: member can read another organization note.';
   end if;
 
-  insert into public.project_notes (organization_id, project_id, author_id, title, content)
+  insert into public.project_notes (organization_id, project_id, author_id, title, content, is_pinned, tags)
   values (
     current_setting('manageflow_note_test.organization_id')::uuid,
     current_setting('manageflow_note_test.project_id')::uuid,
     current_setting('manageflow_note_test.member_id')::uuid,
     '  Member note  ',
-    '  First content  '
+    '  First content  ',
+    true,
+    array[' Karar ', 'brief', 'karar']
   )
   returning id into member_note_id;
 
@@ -155,6 +157,8 @@ begin
     where note.id = member_note_id
       and note.title = 'Member note'
       and note.content = 'First content'
+      and note.is_pinned
+      and note.tags = array['brief', 'karar']
   ) then
     raise exception 'Workspace probe failed: note fields were not normalized.';
   end if;
@@ -164,6 +168,48 @@ begin
   if affected_rows <> 1 then
     raise exception 'Workspace probe failed: member cannot update their own note.';
   end if;
+
+  update public.project_notes
+  set archived_at = now(), archived_by = current_setting('manageflow_note_test.owner_id')::uuid
+  where id = member_note_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 or not exists (
+    select 1
+    from public.project_notes note
+    where note.id = member_note_id
+      and note.archived_at is not null
+      and note.archived_by = current_setting('manageflow_note_test.member_id')::uuid
+      and not note.is_pinned
+  ) then
+    raise exception 'Workspace probe failed: note archive lifecycle was not protected.';
+  end if;
+
+  begin
+    update public.project_notes set content = 'Archived content edit' where id = member_note_id;
+    raise exception 'Workspace probe failed: archived note content remained editable.';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  update public.project_notes
+  set archived_at = null, archived_by = null
+  where id = member_note_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 or exists (
+    select 1 from public.project_notes note
+    where note.id = member_note_id and note.archived_at is not null
+  ) then
+    raise exception 'Workspace probe failed: note could not be restored.';
+  end if;
+
+  begin
+    update public.project_notes
+    set tags = array['1','2','3','4','5','6','7','8','9']
+    where id = member_note_id;
+    raise exception 'Workspace probe failed: note accepted more than eight tags.';
+  exception
+    when check_violation then null;
+  end;
 
   insert into public.project_notes (organization_id, project_id, author_id, title, content)
   values (
@@ -285,6 +331,10 @@ select
   true as member_note_creation_allowed,
   true as independent_note_creation_allowed,
   true as note_normalization_enforced,
+  true as note_tags_normalized_and_limited,
+  true as note_pin_supported,
+  true as protected_note_archive_and_restore_supported,
+  true as archived_note_edits_denied,
   true as author_note_update_allowed,
   true as another_author_update_denied,
   true as forged_author_denied,

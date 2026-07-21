@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 22 Temmuz 2026 |
-| Mevcut sürüm | `0.36.0-central-archive` |
-| Mevcut aşama | Arşivlenen proje, görev ve kişisel zaman kayıtları merkezi ekranda aranıp filtrelenebiliyor ve güvenle geri yüklenebiliyor |
-| Sonraki ana hedef | Çalışma Alanı not sabitleme, etiket ve arşivleme |
+| Mevcut sürüm | `0.37.0-workspace-lifecycle` |
+| Mevcut aşama | Çalışma Alanı notları sabitlenebiliyor, etiketlenebiliyor, geri alınabilir biçimde arşivlenebiliyor ve Merkezi Arşiv'den yönetilebiliyor |
+| Sonraki ana hedef | Supabase Storage tabanlı Dosyalar v1 |
 
 ---
 
@@ -73,7 +73,7 @@ Mevcut sürümde:
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı sidebar hesap kartından doğrudan kendi profil ayarına; çalışma alanı menüsünden ajans ayarına gidebilir. Profil adı, telefon ve HTTPS avatar adresi güncellenebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
 - Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye, proje ve müşteri kırılımında inceleyip filtrelenmiş CSV olarak indirebilir.
-- Ekip üyeleri organizasyon geneline bağımsız veya aktif projeye bağlı ortak not ekleyebilir, bağlam/metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
+- Ekip üyeleri organizasyon geneline bağımsız veya aktif projeye bağlı ortak not ekleyebilir; notları etiketleyip sabitleyebilir, bağlam/metin/etiketle arayabilir ve yetkileri kapsamında geri alınabilir biçimde arşivleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
@@ -91,8 +91,8 @@ Mevcut sürümde:
 | Görevler | Gerçek CRUD, hiyerarşi, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar, aktivite geçmişi ve kalıcı gelişmiş filtre/sıralama bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
-| Çalışma Alanı | Gerçek bağımsız/proje bağlantılı ortak notlar, bağlam filtresi, arama, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı |
-| Merkezi Arşiv | Arşivlenen proje, görev ve kişisel zaman kayıtları için gerçek birleşik liste, arama, tür filtresi ve izinli geri yükleme bağlı |
+| Çalışma Alanı | Gerçek bağımsız/proje bağlantılı ortak notlar, sabitleme, etiket, aktif/arşiv filtresi, arama ve rol korumalı yaşam döngüsü Supabase ile bağlı |
+| Merkezi Arşiv | Arşivlenen proje, görev, çalışma alanı notu ve kişisel zaman kayıtları için gerçek birleşik liste, arama, tür filtresi ve izinli geri yükleme bağlı |
 | Dosyalar | Yakında |
 | Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme, owner/admin ekip timesheet, proje/müşteri kırılımı ve filtrelenmiş CSV dışa aktarma Supabase ile bağlı |
 | Flow AI | Yakında |
@@ -798,6 +798,23 @@ Uzak migration sayısı 24'e yükselmiştir. Üye kaldırma güvenlik testi `res
 
 Yerel test altyapısı 16 dosyada 104 teste yükselmiştir; production build başarılıdır. Yeni veritabanı migration'ı gerekmemiş, mevcut proje/görev RLS ve kişisel zaman RPC sınırları korunmuştur.
 
+### 4.30 Çalışma Alanı v1.2 — not yaşam döngüsü
+
+- Not oluşturma ve düzenleme formunda virgülle ayrılan, temizlenen ve benzersizleştirilen en fazla 8 etiket
+- Başlık, içerik, proje, yazar ve etiketlerde Türkçe uyumlu ortak arama
+- Yetkili yazar/yöneticiler için sabitleme; sabit notların güncellenme tarihinden bağımsız olarak listenin üstünde görünmesi
+- Aktif, arşivlenen ve tüm notlar filtreleri; bağlam sayaçlarının seçili yaşam döngüsüne göre güncellenmesi
+- Fiziksel silme yerine `archived_at` ve `archived_by` ile geri alınabilir arşivleme
+- Arşivlenen notları salt okunur tutma, sabitlemeyi otomatik kaldırma ve içerik değişikliğini sunucu trigger'ıyla engelleme
+- Arşivleme aktörünü istemci değerine güvenmeden `auth.uid()` üzerinden kaydetme
+- Not yazarının kendi notunu; owner/admin/project manager rollerinin kapsamlarındaki notları arşivleyip geri yükleyebilmesi
+- Arşivli üst projeye bağlı notu, proje geri yüklenmeden geri çıkaramama
+- Çalışma Alanı notlarını Merkezi Arşiv listesi, tür filtresi, metrik ve aramasına dahil etme
+- Etiket, sabitleme, arşiv filtresi, aktif metrik, izin ve Merkezi Arşiv birleşimi için domain regresyon testleri
+- Etiket sınırı/normalizasyonu, korumalı arşiv aktörü, arşivli not salt okunurluğu ve geri yüklemeyi doğrulayan uzak rollback testi
+
+Uzak migration sayısı 25'e yükselmiştir. `project_notes_rls_smoke.sql` bütün yeni yaşam döngüsü alanlarıyla `result: passed` dönmüş; 16 dosyada 104 otomatik test ve production build başarılıdır.
+
 ---
 
 ## 5. Henüz yapılmamış bağlantılar
@@ -1460,6 +1477,9 @@ Durum: **Devam ediyor**
 - [x] Güvenli manuel süre girişi
 - [x] Haftalık kişisel geçmiş ve proje/görev filtreleri
 - [x] Proje bazlı ortak Çalışma Alanı notları
+- [x] Bağımsız ekip notları
+- [x] Not sabitleme, etiket ve geri alınabilir arşivleme
+- [x] Çalışma Alanı notlarını Merkezi Arşiv'e bağlama
 - [ ] Timesheet
 - [ ] Proje raporları
 - [ ] Global arama
@@ -1640,6 +1660,23 @@ Kullanıcı bağımsız veya proje bağlantılı not oluşturabilir
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 22 Temmuz 2026 — `0.37.0-workspace-lifecycle`
+
+Eklenenler:
+
+- Çalışma Alanı notlarında sabitleme ve en fazla 8 normalize etiket
+- Aktif/arşiv/tümü filtresi ve etikete göre arama
+- Yazar/yönetici yetkili, geri alınabilir not arşivleme yaşam döngüsü
+- Arşivli not salt okunurluğu ve doğrulanmış arşiv aktörü için veritabanı bütünlük trigger'ı
+- Çalışma Alanı notlarının Merkezi Arşiv metrik, filtre, arama ve geri yükleme akışına bağlanması
+
+Doğrulama:
+
+- `npm test` — 16 dosyada 104/104 test başarılı
+- `npm run build` — başarılı
+- `project_notes_rls_smoke.sql` — `result: passed`; etiket, sabitleme, arşiv aktörü, salt okunurluk ve geri yükleme kontrolleri `true`
+- Uzak migration sayısı 25
 
 ### 22 Temmuz 2026 — `0.36.0-central-archive`
 

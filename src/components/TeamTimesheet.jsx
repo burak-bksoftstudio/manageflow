@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Activity, CalendarDays, ChevronLeft, ChevronRight, CircleAlert, Clock3, FolderKanban,
+  Activity, CalendarDays, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FolderKanban,
   History, LoaderCircle, RefreshCw, TimerReset, UsersRound,
 } from 'lucide-react';
 import { useTeamTimesheet } from '../features/time-tracking/useTeamTimesheet';
 import {
-  formatCompactDuration, formatTimeEntryDate, formatTimeEntryRange, formatWeekRange, getRangeSeconds,
-  getTeamTimesheetSummary, getWeekBounds,
+  buildTeamTimesheetCsv, formatCompactDuration, formatTimeEntryDate, formatTimeEntryRange,
+  formatWeekRange, getRangeSeconds, getTeamTimesheetCsvFilename, getTeamTimesheetSummary, getWeekBounds,
 } from '../features/time-tracking/timeTrackingUtils';
 import { Avatar } from './Brand';
 
@@ -49,6 +49,19 @@ export default function TeamTimesheet({ projects }) {
     setFilters(current => ({ ...current, [name]: value }));
   };
 
+  const exportCsv = () => {
+    if (!summary.entries.length) return;
+    const csv = buildTeamTimesheetCsv(summary.entries, selectedWeek, rangeEnd, now);
+    const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = getTeamTimesheetCsvFilename(selectedWeek, rangeEnd);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="team-timesheet-view">
       <section className="time-stats-grid team-timesheet-stats">
@@ -67,6 +80,7 @@ export default function TeamTimesheet({ projects }) {
           <div className="time-week-nav"><button onClick={() => setWeekOffset(value => value - 1)} aria-label="Önceki hafta"><ChevronLeft /></button><button className="week-label" onClick={() => setWeekOffset(0)}><CalendarDays />{weekOffset === 0 ? 'Bu hafta' : formatWeekRange(selectedWeek)}</button><button onClick={() => setWeekOffset(value => value + 1)} disabled={weekOffset >= 0} aria-label="Sonraki hafta"><ChevronRight /></button></div>
           <select name="memberId" value={filters.memberId} onChange={updateFilter} aria-label="Ekip zamanlarını üyeye göre filtrele"><option value="">Tüm ekip üyeleri</option>{members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select>
           <select name="projectId" value={filters.projectId} onChange={updateFilter} aria-label="Ekip zamanlarını projeye göre filtrele"><option value="">Tüm projeler</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
+          <button type="button" className="team-timesheet-export" onClick={exportCsv} disabled={loading || Boolean(error) || !summary.entries.length}><Download /> CSV indir</button>
         </div>
 
         {error && <div className="team-timesheet-error" role="alert"><CircleAlert /><span><b>Ekip raporu yüklenemedi</b><small>Yetkinizi ve bağlantınızı kontrol edip yeniden deneyin.</small></span><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}

@@ -10,9 +10,9 @@
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
 | Son güncelleme | 22 Temmuz 2026 |
-| Mevcut sürüm | `0.32.0-independent-workspace-notes` |
-| Mevcut aşama | Çalışma Alanı notları proje zorunluluğu olmadan organizasyon geneline veya seçilen projeye bağlanabiliyor |
-| Sonraki ana hedef | CSV dışa aktarma ve proje/müşteri bazlı zaman raporu |
+| Mevcut sürüm | `0.33.0-timesheet-csv` |
+| Mevcut aşama | Owner/admin ekip zaman raporu aktif hafta, üye ve proje filtrelerine göre güvenli CSV olarak dışa aktarılabiliyor |
+| Sonraki ana hedef | Proje/müşteri bazlı zaman özeti ve merkezi arşiv görünümü |
 
 ---
 
@@ -72,7 +72,7 @@ Mevcut sürümde:
 - Projeler aktif organizasyona ve zorunlu müşteriye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte ve geri alınabilir biçimde arşivlenebilmektedir.
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı sidebar hesap kartından doğrudan kendi profil ayarına; çalışma alanı menüsünden ajans ayarına gidebilir. Profil adı, telefon ve HTTPS avatar adresi güncellenebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
-- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye ve projeye göre inceleyebilir.
+- Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye ve projeye göre inceleyip filtrelenmiş CSV olarak indirebilir.
 - Ekip üyeleri organizasyon geneline bağımsız veya aktif projeye bağlı ortak not ekleyebilir, bağlam/metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
@@ -93,7 +93,7 @@ Mevcut sürümde:
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
 | Çalışma Alanı | Gerçek bağımsız/proje bağlantılı ortak notlar, bağlam filtresi, arama, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı |
 | Dosyalar | Yakında |
-| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme ve owner/admin ekip timesheet görünümü Supabase ile bağlı; ekip raporu kullanıcı kabulü bekliyor |
+| Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme, owner/admin ekip timesheet ve filtrelenmiş CSV dışa aktarma Supabase ile bağlı |
 | Flow AI | Yakında |
 | Kanallar, Gelen Kutusu ve Takvim | Yakında |
 | Profil ve özelleştirme | Gerçek profil ve rol korumalı organizasyon ayarları Supabase ile bağlı |
@@ -736,6 +736,19 @@ Uzak migration sayısı 22'ye yükselmiştir. Yeni ekip timesheet güvenlik test
 - Bağımsız not oluşturma ve güncellemeyi gerçek member rolüyle doğrulayan genişletilmiş rollback testi
 
 Uzak migration sayısı 23'e yükselmiştir. Proje notları güvenlik testi bağımsız not kontrolüyle `result: passed`; uzak schema lint temizdir. Yerel 97 otomatik test ve production build başarılıdır.
+
+### 4.26 Ekip timesheet CSV dışa aktarma
+
+- Seçilen hafta, ekip üyesi ve proje filtrelerine birebir uyan CSV çıktısı
+- Üye, e-posta, proje, görev, başlangıç/bitiş, saniye, okunabilir süre, kayıt türü, durum ve not sütunları
+- Türkçe karakterler için UTF-8 BOM ve Excel uyumlu noktalı virgül ayracı
+- Kullanıcı tarafından girilen hücrelerde CSV formül enjeksiyonuna karşı güvenli kaçış
+- Seçilen haftayı içeren kararlı ve okunabilir dosya adı
+- Yükleniyor, hata ve boş sonuç durumlarında indirme butonunu güvenli biçimde kapatma
+- Masaüstü, tablet ve mobil toolbar yerleşimi
+- CSV içerik, kaçış, toplam süre ve dosya adı için otomatik test
+
+Yerel test sayısı 98'e yükselmiştir; production build başarılıdır. Yeni veritabanı migration'ı gerekmemiş, mevcut owner/admin-only raporlama RPC sınırı korunmuştur.
 
 ---
 
@@ -1580,6 +1593,21 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 22 Temmuz 2026 — `0.33.0-timesheet-csv`
+
+Eklenenler:
+
+- Filtrelenmiş owner/admin ekip timesheet CSV dışa aktarması
+- Excel uyumlu UTF-8 çıktı ve tarih aralıklı dosya adı
+- Formül enjeksiyonuna karşı güvenli hücre kaçışı
+- Responsive `CSV indir` aksiyonu
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 98/98 test başarılı
+- `npm run build` — başarılı
+- Veritabanı yetki modeli değişmeden mevcut owner/admin rapor RPC'si kullanıldı
 
 ### 22 Temmuz 2026 — `0.32.0-independent-workspace-notes`
 

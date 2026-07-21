@@ -129,6 +129,44 @@ export function getTeamTimesheetSummary(entries, rangeStart, rangeEnd, filters =
   };
 }
 
+function escapeCsvCell(value) {
+  const normalized = String(value ?? '').replace(/\r\n?/g, '\n');
+  const formulaSafe = /^[\s]*[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+  return `"${formulaSafe.replace(/"/g, '""')}"`;
+}
+
+export function buildTeamTimesheetCsv(entries, rangeStart, rangeEnd, now = new Date()) {
+  const headers = [
+    'Üye', 'E-posta', 'Proje', 'Görev', 'Başlangıç', 'Bitiş', 'Süre (saniye)',
+    'Süre', 'Kayıt türü', 'Durum', 'Not',
+  ];
+  const rows = entries.map(entry => {
+    const seconds = getRangeSeconds(entry, rangeStart, rangeEnd, now);
+    return [
+      entry.memberName,
+      entry.memberEmail,
+      entry.projectName,
+      entry.taskTitle || '',
+      new Date(entry.startedAt).toISOString(),
+      entry.endedAt ? new Date(entry.endedAt).toISOString() : '',
+      seconds,
+      formatCompactDuration(seconds),
+      entry.entryType === 'manual' ? 'Manuel' : 'Sayaç',
+      entry.isActive ? 'Aktif' : entry.correctedAt ? 'Düzeltildi' : 'Tamamlandı',
+      entry.note || '',
+    ];
+  });
+  return `\uFEFF${[headers, ...rows].map(row => row.map(escapeCsvCell).join(';')).join('\n')}`;
+}
+
+export function getTeamTimesheetCsvFilename(rangeStart, rangeEnd) {
+  const inclusiveEnd = new Date(rangeEnd);
+  inclusiveEnd.setMilliseconds(inclusiveEnd.getMilliseconds() - 1);
+  const start = new Date(rangeStart).toISOString().slice(0, 10);
+  const end = inclusiveEnd.toISOString().slice(0, 10);
+  return `manageflow-ekip-zaman-${start}_${end}.csv`;
+}
+
 export function getWeekBounds(value = new Date()) {
   const start = new Date(value);
   start.setHours(0, 0, 0, 0);

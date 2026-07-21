@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  canViewTeamTimesheet, formatCompactDuration, formatTimerDuration, formatWeekRange, getElapsedSeconds,
-  getManualStartedAt, getTeamTimesheetSummary, getTimeTrackingErrorMessage, getTimeTrackingStats,
-  getTodaySeconds, getWeekBounds, getWeeklyHistory, mapDatabaseTeamTimesheetEntry, mapDatabaseTimeEntry,
+  buildTeamTimesheetCsv, canViewTeamTimesheet, formatCompactDuration, formatTimerDuration,
+  formatWeekRange, getElapsedSeconds, getManualStartedAt, getTeamTimesheetCsvFilename,
+  getTeamTimesheetSummary, getTimeTrackingErrorMessage, getTimeTrackingStats, getTodaySeconds,
+  getWeekBounds, getWeeklyHistory, mapDatabaseTeamTimesheetEntry, mapDatabaseTimeEntry,
   normalizeManualTimeForm, normalizeTimerForm, validateManualTimeForm, validateTimerForm,
 } from './timeTrackingUtils';
 
@@ -116,6 +117,23 @@ describe('Time tracking utilities', () => {
     expect(getTeamTimesheetSummary(entries, rangeStart, rangeEnd, { memberId: 'u1' })).toMatchObject({
       members: 1, projects: 1, sessions: 1, totalSeconds: 3600,
     });
+  });
+
+  it('exports the filtered team timesheet as formula-safe UTF-8 CSV', () => {
+    const start = new Date('2026-07-13T00:00:00Z');
+    const end = new Date('2026-07-20T00:00:00Z');
+    const entries = [mapDatabaseTeamTimesheetEntry({
+      id: 'e1', user_id: 'u1', member_name: 'Ayşe Kaya', member_email: 'ayse@example.com',
+      project_id: 'p1', project_name: 'Web; Lansman', task_id: 't1', task_title: 'Tasarım',
+      entry_type: 'manual', note: '=HYPERLINK("https://example.com")',
+      started_at: '2026-07-14T09:00:00Z', ended_at: '2026-07-14T10:00:00Z', duration_seconds: 3600,
+    })];
+    const csv = buildTeamTimesheetCsv(entries, start, end, end);
+    expect(csv.startsWith('\uFEFF')).toBe(true);
+    expect(csv).toContain('"Web; Lansman"');
+    expect(csv).toContain('"\'=HYPERLINK(""https://example.com"")"');
+    expect(csv).toContain('"3600";"1 sa";"Manuel";"Tamamlandı"');
+    expect(getTeamTimesheetCsvFilename(start, end)).toBe('manageflow-ekip-zaman-2026-07-13_2026-07-19.csv');
   });
 
   it('formats timer and compact durations', () => {

@@ -18,7 +18,9 @@ function WorkspaceStat({ icon: Icon, label, value, helper }) {
 
 function ProjectNoteModal({ canEdit, close, createNote, note, projects, selectedProjectId, updateNote }) {
   const availableProjects = note ? projects : projects.filter(project => !project.isArchived);
-  const initialProjectId = availableProjects.some(project => project.id === selectedProjectId)
+  const initialProjectId = selectedProjectId === 'independent'
+    ? ''
+    : availableProjects.some(project => project.id === selectedProjectId)
     ? selectedProjectId
     : availableProjects[0]?.id || '';
   const [form, setForm] = useState({
@@ -60,11 +62,11 @@ function ProjectNoteModal({ canEdit, close, createNote, note, projects, selected
   return (
     <div className="modal-layer" onMouseDown={saving ? undefined : close} role="presentation">
       <form className="modal workspace-note-modal" onSubmit={submit} onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="workspace-note-title">
-        <div className="modal-head"><div><span>{note ? (isReadOnly ? 'PROJE NOTU' : 'NOTU DÜZENLE') : 'YENİ PROJE NOTU'}</span><h2 id="workspace-note-title">{note ? note.title : 'Ekip bağlamını kaydedin'}</h2><p>{isReadOnly ? `${note.authorName} tarafından güncellendi.` : 'Kararları, toplantı çıktılarını ve proje bilgisini ekip için kalıcı hale getirin.'}</p></div><button type="button" className="icon-button" onClick={close} disabled={saving} aria-label="Pencereyi kapat"><X /></button></div>
+        <div className="modal-head"><div><span>{note ? (isReadOnly ? 'ÇALIŞMA ALANI NOTU' : 'NOTU DÜZENLE') : 'YENİ NOT'}</span><h2 id="workspace-note-title">{note ? note.title : 'Ekip bağlamını kaydedin'}</h2><p>{isReadOnly ? `${note.authorName} tarafından güncellendi.` : 'Kararları, toplantı çıktılarını ve ortak bilgileri ekip için kalıcı hale getirin.'}</p></div><button type="button" className="icon-button" onClick={close} disabled={saving} aria-label="Pencereyi kapat"><X /></button></div>
         <div className="workspace-note-form">
-          <label>Proje<select name="projectId" value={form.projectId} onChange={update} disabled={saving || Boolean(note) || isReadOnly}><option value="">Proje seçin</option>{availableProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+          <label>Bağlam <small>İsteğe bağlı</small><select name="projectId" value={form.projectId} onChange={update} disabled={saving || Boolean(note) || isReadOnly}><option value="">Bağımsız ekip notu</option>{availableProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
           <label>Not başlığı<input autoFocus={!note} name="title" maxLength="160" value={form.title} onChange={update} placeholder="Örn. Müşteri toplantısı kararları" disabled={saving || isReadOnly} /></label>
-          <label>Not içeriği<textarea name="content" maxLength="10000" value={form.content} onChange={update} placeholder="Proje için önemli bilgileri yazın…" disabled={saving || isReadOnly} /></label>
+          <label>Not içeriği<textarea name="content" maxLength="10000" value={form.content} onChange={update} placeholder="Ekip veya proje için önemli bilgileri yazın…" disabled={saving || isReadOnly} /></label>
           <small>{form.content.length.toLocaleString('tr-TR')} / 10.000 karakter</small>
         </div>
         {isReadOnly && <div className="workspace-readonly-note"><UserRound /><span><b>Salt okunur not</b><small>Bu notu yalnız yazarı veya çalışma alanı yöneticileri düzenleyebilir.</small></span></div>}
@@ -84,7 +86,6 @@ export default function WorkspacePage() {
   const [query, setQuery] = useState('');
   const [modalState, setModalState] = useState(null);
   const [toast, setToast] = useState('');
-  const activeProjects = useMemo(() => projects.filter(project => !project.isArchived), [projects]);
   const stats = useMemo(() => getWorkspaceStats(notes, currentUserId), [currentUserId, notes]);
   const filteredNotes = useMemo(() => filterProjectNotes(notes, {
     projectId: selectedProjectId, query,
@@ -110,7 +111,7 @@ export default function WorkspacePage() {
 
   return (
     <>
-      <section className="workspace-hero"><div><div className="eyebrow"><i /> ÇALIŞMA ALANI</div><h1>Bilgi, proje bağlamında.</h1><p>Toplantı kararlarını, brief detaylarını ve ekip notlarını dağılmadan ilgili projede tutun.</p></div><button className="agenda-button workspace-primary" onClick={() => setModalState({ canEdit: true, note: null })} disabled={loading || !activeProjects.length}><Plus /> Yeni not</button></section>
+      <section className="workspace-hero"><div><div className="eyebrow"><i /> ÇALIŞMA ALANI</div><h1>Bilgi, doğru bağlamda.</h1><p>Ekip bilgisini bağımsız tutun veya toplantı kararlarını ve brief detaylarını ilgili projeye bağlayın.</p></div><button className="agenda-button workspace-primary" onClick={() => setModalState({ canEdit: true, note: null })} disabled={loading}><Plus /> Yeni not</button></section>
 
       <section className="workspace-stats-grid">
         <WorkspaceStat icon={BookOpenText} label="TOPLAM NOT" value={stats.total} helper="Çalışma alanındaki bilgi" />
@@ -124,12 +125,13 @@ export default function WorkspacePage() {
           <header><span><FolderKanban /></span><div><small>PROJE BAĞLAMI</small><h2>Projeler</h2></div></header>
           <div className="workspace-project-list">
             <button className={selectedProjectId === 'all' ? 'active' : ''} onClick={() => setSelectedProjectId('all')}><span><BookOpenText /><b>Tüm notlar</b></span><em>{notes.length}</em></button>
+            <button className={selectedProjectId === 'independent' ? 'active' : ''} onClick={() => setSelectedProjectId('independent')}><span><NotebookPen /><b>Bağımsız notlar</b><small>Genel ekip bilgisi</small></span><em>{noteCounts.get(null) || 0}</em></button>
             {projects.map(project => <button key={project.id} className={selectedProjectId === project.id ? 'active' : ''} onClick={() => setSelectedProjectId(project.id)}><span><FolderKanban /><b>{project.name}</b><small>{project.isArchived ? 'Arşivlendi' : project.statusLabel}</small></span><em>{noteCounts.get(project.id) || 0}</em></button>)}
           </div>
         </aside>
 
         <div className="workspace-notes-card">
-          <header><div><small>PROJE NOTLARI</small><h2>{selectedProjectId === 'all' ? 'Ortak bilgi alanı' : projects.find(project => project.id === selectedProjectId)?.name}</h2><p>{filteredNotes.length} not görüntüleniyor</p></div><label><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Başlık, içerik, proje veya yazar ara" /></label></header>
+          <header><div><small>EKİP BİLGİSİ</small><h2>{selectedProjectId === 'all' ? 'Ortak bilgi alanı' : selectedProjectId === 'independent' ? 'Bağımsız notlar' : projects.find(project => project.id === selectedProjectId)?.name}</h2><p>{filteredNotes.length} not görüntüleniyor</p></div><label><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Başlık, içerik, proje veya yazar ara" /></label></header>
 
           {loading && <div className="workspace-state" role="status"><LoaderCircle className="spin" /><span>Çalışma alanı hazırlanıyor…</span></div>}
           {!loading && error && <div className="workspace-state error"><CircleAlert /><h3>Proje notları yüklenemedi</h3><p>Bağlantınızı kontrol edip tekrar deneyin.</p><button className="soft-button" onClick={refresh}><RefreshCw /> Yeniden dene</button></div>}
@@ -141,7 +143,7 @@ export default function WorkspacePage() {
               })}
             </div>
           )}
-          {!loading && !error && notes.length === 0 && <div className="workspace-state empty"><NotebookPen /><h3>İlk proje notunu oluşturun</h3><p>Kararlar ve proje bilgileri ekibin ortak hafızasını burada oluşturacak.</p>{activeProjects.length > 0 && <button className="soft-button" onClick={() => setModalState({ canEdit: true, note: null })}><Plus /> Not oluştur</button>}</div>}
+          {!loading && !error && notes.length === 0 && <div className="workspace-state empty"><NotebookPen /><h3>İlk ekip notunu oluşturun</h3><p>Kararlar ve ortak bilgiler ekibin kalıcı hafızasını burada oluşturacak.</p><button className="soft-button" onClick={() => setModalState({ canEdit: true, note: null })}><Plus /> Not oluştur</button></div>}
           {!loading && !error && notes.length > 0 && filteredNotes.length === 0 && <div className="workspace-state empty"><Search /><h3>Eşleşen not bulunamadı</h3><p>Proje seçimini veya arama metnini değiştirin.</p></div>}
         </div>
       </section>

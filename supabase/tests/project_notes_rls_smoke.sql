@@ -123,6 +123,7 @@ select set_config(
 do $$
 declare
   member_note_id uuid;
+  independent_note_id uuid;
   affected_rows integer;
 begin
   if not exists (
@@ -162,6 +163,22 @@ begin
   get diagnostics affected_rows = row_count;
   if affected_rows <> 1 then
     raise exception 'Workspace probe failed: member cannot update their own note.';
+  end if;
+
+  insert into public.project_notes (organization_id, project_id, author_id, title, content)
+  values (
+    current_setting('manageflow_note_test.organization_id')::uuid,
+    null,
+    current_setting('manageflow_note_test.member_id')::uuid,
+    'Independent note',
+    'Organization-wide knowledge'
+  )
+  returning id into independent_note_id;
+
+  update public.project_notes set content = 'Updated independent content' where id = independent_note_id;
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 1 then
+    raise exception 'Workspace probe failed: independent note cannot be created and updated.';
   end if;
 
   update public.project_notes set content = content
@@ -266,6 +283,7 @@ select
   true as organization_notes_visible,
   true as cross_organization_notes_hidden,
   true as member_note_creation_allowed,
+  true as independent_note_creation_allowed,
   true as note_normalization_enforced,
   true as author_note_update_allowed,
   true as another_author_update_denied,

@@ -13,9 +13,10 @@ export function normalizeProjectNoteForm(form = {}) {
 
 export function validateProjectNote(form, projects = []) {
   const normalized = normalizeProjectNoteForm(form);
-  if (!normalized.projectId) return 'Notu bağlamak için bir proje seçin.';
-  const project = projects.find(item => item.id === normalized.projectId);
-  if (!project || project.isArchived) return 'Seçilen proje artık not eklemek için kullanılamıyor.';
+  if (normalized.projectId) {
+    const project = projects.find(item => item.id === normalized.projectId);
+    if (!project || project.isArchived) return 'Seçilen proje artık not eklemek için kullanılamıyor.';
+  }
   if (normalized.title.length < 2) return 'Not başlığı en az 2 karakter olmalıdır.';
   if (normalized.title.length > MAX_PROJECT_NOTE_TITLE_LENGTH) {
     return `Not başlığı en fazla ${MAX_PROJECT_NOTE_TITLE_LENGTH} karakter olabilir.`;
@@ -38,9 +39,9 @@ export function mapDatabaseProjectNote(note, projectsById = new Map(), profilesB
     content: note.content,
     createdAt: note.created_at,
     id: note.id,
-    projectArchived: Boolean(project?.archived_at),
+    projectArchived: note.project_id ? Boolean(project?.archived_at) : false,
     projectId: note.project_id,
-    projectName: project?.name || 'Proje bulunamadı',
+    projectName: note.project_id ? (project?.name || 'Proje bulunamadı') : 'Bağımsız not',
     title: note.title,
     updatedAt: note.updated_at,
   };
@@ -58,7 +59,9 @@ export function filterProjectNotes(notes, { projectId = 'all', query = '' } = {}
   const normalizedQuery = String(query).trim().toLocaleLowerCase('tr-TR');
   return notes.filter(note => {
     const searchText = `${note.title} ${note.content} ${note.projectName} ${note.authorName}`.toLocaleLowerCase('tr-TR');
-    return (projectId === 'all' || note.projectId === projectId) && searchText.includes(normalizedQuery);
+    const matchesContext = projectId === 'all'
+      || (projectId === 'independent' ? !note.projectId : note.projectId === projectId);
+    return matchesContext && searchText.includes(normalizedQuery);
   });
 }
 
@@ -69,7 +72,7 @@ export function getWorkspaceStats(notes, currentUserId, now = new Date()) {
   weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
   return {
     mine: notes.filter(note => note.authorId === currentUserId).length,
-    projects: new Set(notes.map(note => note.projectId)).size,
+    projects: new Set(notes.map(note => note.projectId).filter(Boolean)).size,
     total: notes.length,
     updatedThisWeek: notes.filter(note => new Date(note.updatedAt) >= weekStart).length,
   };

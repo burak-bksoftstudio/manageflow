@@ -61,7 +61,7 @@ Durumlar:
 | Görevler | Sorumlu, tarih, tekrar, alt görev, yorum, dosya ve şablon | CRUD, liste/Kanban, alt görev, checklist, yorum, aktivite ve filtreler çalışıyor | Kısmi | Tekrarlı görevler, görev şablonları ve görev dosyaları |
 | Dashboard | Günlük iş, metrik ve proje görünümü | Gerçek KPI, haftalık ilerleme, proje özeti ve gündem çalışıyor | Kısmi | Widget seçimi, kişiselleştirme ve daha kapsamlı raporlar |
 | Zaman takibi | Proje/görev süresi ve ekip görünümü | Sayaç, manuel kayıt, düzeltme, arşiv ve ekip timesheet çalışıyor | Hazır | CSV dışa aktarma ve proje/müşteri raporları |
-| Çalışma Alanı | Notion benzeri, proje dışı bilgi alanı | Projeye bağlı ortak notlar çalışıyor | Kısmi | Bağımsız not, sabitleme, etiket, arşiv ve zengin metin |
+| Çalışma Alanı | Notion benzeri, proje dışı bilgi alanı | Bağımsız veya projeye bağlı ortak notlar çalışıyor | Kısmi | Sabitleme, etiket, arşiv ve zengin metin |
 | Dosyalar | Klasörler, merkezi dosyalar ve proje/görev dosyaları | Gerçek dosya depolama yok | Planlandı | Supabase Storage, klasör, yükleme, indirme, arşiv ve bağlam ilişkileri |
 | Kanallar | Genel/özel kanal, müşteri kanalı, mention, arama ve dosyalar | Placeholder | Planlandı | Kanal üyeliği, gerçek zamanlı mesaj, thread, mention, tepki ve kanal dosyaları |
 | Gelen Kutusu | Ekip/müşteriyle birebir mesajlaşma | Placeholder | Planlandı | Direkt konuşma, okunma bilgisi, bildirim ve arama |
@@ -92,7 +92,7 @@ Sıra; kullanıcıdan ek bilgi istemeden uygulanabilme, mevcut altyapıyı kulla
 
 ### A. Hızlı eşleşme kazanımları
 
-1. Çalışma Alanı bağımsız not desteği
+1. ~~Çalışma Alanı bağımsız not desteği~~ — `0.32.0` ile tamamlandı
 2. Zaman kayıtlarını CSV dışa aktarma
 3. Proje ve müşteri bazlı zaman özeti
 4. Çalışma Alanı not sabitleme, etiket ve arşivleme
@@ -166,3 +166,8 @@ Bir madde yalnızca şu koşullar sağlandığında `Hazır` kabul edilir:
 - ManageFlow'un çalışan, kısmi ve planlanan karşılıkları belgelendi.
 - Hızlı kazanımlardan başlayıp iletişim, ticari süreç ve AI katmanına ilerleyen uygulama sırası oluşturuldu.
 
+### 22 Temmuz 2026 — Çalışma Alanı bağımsız notları
+
+- İlk hızlı eşleşme kazanımı tamamlandı.
+- Notların proje seçmeden organizasyon genelinde oluşturulması sağlandı.
+- Bağımsız not filtresi, gerçek RLS desteği ve uzak güvenlik testi eklendi.

@@ -9,10 +9,10 @@
 | Proje adı | ManageFlow |
 | Belge türü | Yaşayan geliştirme dokümanı |
 | İlk oluşturulma | 18 Temmuz 2026 |
-| Son güncelleme | 20 Temmuz 2026 |
-| Mevcut sürüm | `0.31.0-team-timesheet` |
-| Mevcut aşama | Owner/admin için salt okunur haftalık ekip zaman raporu production şemasına ve Zaman Takibi ekranına bağlandı |
-| Sonraki ana hedef | Ekip raporu production kullanıcı kabulü; ardından CSV dışa aktarma ve proje bazlı zaman raporu |
+| Son güncelleme | 22 Temmuz 2026 |
+| Mevcut sürüm | `0.32.0-independent-workspace-notes` |
+| Mevcut aşama | Çalışma Alanı notları proje zorunluluğu olmadan organizasyon geneline veya seçilen projeye bağlanabiliyor |
+| Sonraki ana hedef | CSV dışa aktarma ve proje/müşteri bazlı zaman raporu |
 
 ---
 
@@ -73,7 +73,7 @@ Mevcut sürümde:
 - Görevler aktif organizasyona ve zorunlu projeye bağlı gerçek Supabase verisiyle oluşturulup düzenlenebilmekte, yeniden atanabilmekte ve geri alınabilir biçimde arşivlenebilmektedir; üst/alt görev ilişkileri, checklist, yorumlar, otomatik aktivite geçmişi ve organizasyon bazlı kalıcı gelişmiş filtre/sıralama tercihleri çalışmaktadır.
 - Kullanıcı sidebar hesap kartından doğrudan kendi profil ayarına; çalışma alanı menüsünden ajans ayarına gidebilir. Profil adı, telefon ve HTTPS avatar adresi güncellenebilir; owner/admin organizasyon adı ve logo adresini değiştirebilir, diğer roller organizasyon ayarlarını salt okunur görür.
 - Kullanıcı bir projeye ve isteğe bağlı göreve bağlı tek aktif zaman sayacı başlatıp durdurabilir; geçmiş çalışmayı güvenli manuel süre olarak ekleyebilir ve haftalık kişisel geçmişini proje/görev bağlamında filtreleyebilir. Owner/admin aynı ekrandaki rol korumalı Ekip Raporu görünümünden haftalık organizasyon sürelerini üye ve projeye göre inceleyebilir.
-- Ekip üyeleri aktif projelere ortak not ekleyebilir, proje veya metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
+- Ekip üyeleri organizasyon geneline bağımsız veya aktif projeye bağlı ortak not ekleyebilir, bağlam/metinle arayabilir ve yetkileri kapsamındaki notları düzenleyebilir.
 - Uygulama `https://manageflow.bksoftstudio.com` özel domaininde yayınlanmaktadır; eski `vercel.app` adresi yedek erişim olarak korunmaktadır.
 - Mevcut ekran ürün tasarımını ve etkileşim yönünü doğrulamak için hazırlanmıştır.
 - Kullanıma hazır olmayan bütün ana modüller arayüzde `Yakında` olarak işaretlenmektedir.
@@ -91,7 +91,7 @@ Mevcut sürümde:
 | Görevler | Gerçek CRUD, hiyerarşi, proje ekibi ataması, güvenli arşivleme, Liste/Kanban, checklist, yorumlar, aktivite geçmişi ve kalıcı gelişmiş filtre/sıralama bağlı |
 | Hızlı proje/görev oluşturma | Gerçek Proje ve Görev oluşturma ekranlarına güvenli yönlendirme yapıyor |
 | Gündem ve bildirimler | Bugünkü görev gündemi gerçek; bildirimler demo |
-| Çalışma Alanı | Gerçek proje bağlantılı ortak notlar, arama, proje filtresi, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı; kabul testi bekliyor |
+| Çalışma Alanı | Gerçek bağımsız/proje bağlantılı ortak notlar, bağlam filtresi, arama, oluşturma, görüntüleme ve rol korumalı düzenleme Supabase ile bağlı |
 | Dosyalar | Yakında |
 | Zaman Takibi | Gerçek sayaç, manuel süre, haftalık kişisel geçmiş, güvenli düzeltme/arşivleme ve owner/admin ekip timesheet görünümü Supabase ile bağlı; ekip raporu kullanıcı kabulü bekliyor |
 | Flow AI | Yakında |
@@ -722,6 +722,20 @@ Uzak migration sayısı 21'e yükselmiştir. Zaman takibi v1.2 güvenlik testi, 
 - Owner erişimi, member reddi, organizasyon kapsamı ve tarih sınırını rollback ile doğrulayan ayrı uzak güvenlik testi
 
 Uzak migration sayısı 22'ye yükselmiştir. Yeni ekip timesheet güvenlik testi, kişisel zaman takibi regresyonu, tam RLS matrisi ve proje notları regresyonu `result: passed`; uzak schema lint temiz ve yerel/uzak migration geçmişi eşleşmektedir.
+
+### 4.25 Çalışma Alanı v1.1 — bağımsız ekip notları
+
+- Notları bir projeye bağlamadan organizasyon genelinde oluşturabilme
+- Yeni not formunda isteğe bağlı bağlam seçimi ve `Bağımsız ekip notu` seçeneği
+- Sidebar içi bağımsız not filtresi ve bağlam bazlı not sayacı
+- Projesi olmayan organizasyonda da ilk notu oluşturabilme
+- Bağımsız notlarda yazar/yönetici düzenleme izinlerini koruma
+- Nullable proje bağlamını destekleyen bütünlük trigger'ı ve RLS yardımcı fonksiyonu
+- Null/değer bağlam değişikliklerini `IS DISTINCT FROM` ile engelleyen güvenli güncelleme sınırı
+- Bağımsız not doğrulama, eşleme, filtreleme ve metrik regresyon testleri
+- Bağımsız not oluşturma ve güncellemeyi gerçek member rolüyle doğrulayan genişletilmiş rollback testi
+
+Uzak migration sayısı 23'e yükselmiştir. Proje notları güvenlik testi bağımsız not kontrolüyle `result: passed`; uzak schema lint temizdir. Yerel 97 otomatik test ve production build başarılıdır.
 
 ---
 
@@ -1566,6 +1580,24 @@ Kullanıcı aktif sayacı sayfa yenilemesinden sonra aynı sunucu başlangıç z
 ---
 
 ## 15. Değişiklik günlüğü
+
+### 22 Temmuz 2026 — `0.32.0-independent-workspace-notes`
+
+Eklenenler:
+
+- Projeden bağımsız organizasyon geneli ekip notları
+- İsteğe bağlı proje bağlamı ve bağımsız not filtresi
+- Projesiz çalışma alanlarında not oluşturma desteği
+- Nullable proje bağlamını güvenli yöneten migration ve RLS güncellemesi
+- `EKSIKLER_VE_FARKLAR.md` ürün karşılaştırma ve uygulama sırası belgesi
+
+Doğrulama:
+
+- `npm test` — 15 dosyada 97/97 test başarılı
+- `npm run build` — başarılı
+- `project_notes_rls_smoke.sql` — bağımsız not kontrolü dahil `result: passed`
+- Uzak Supabase schema lint — hata/uyarı yok
+- Uzak migration sayısı 23
 
 ### 20 Temmuz 2026 — `0.31.0-team-timesheet`
 

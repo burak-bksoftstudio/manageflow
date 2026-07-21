@@ -10,7 +10,8 @@ describe('Workspace utilities', () => {
   it('normalizes and validates project note fields', () => {
     expect(normalizeProjectNoteForm({ projectId: ' p1 ', title: '  Kararlar  ', content: '  İlk madde  ' }))
       .toEqual({ projectId: 'p1', title: 'Kararlar', content: 'İlk madde' });
-    expect(validateProjectNote({ projectId: '', title: '', content: '' }, projects)).toContain('proje');
+    expect(validateProjectNote({ projectId: '', title: '', content: '' }, projects)).toContain('başlığı');
+    expect(validateProjectNote({ projectId: '', title: 'Genel not', content: 'Ekip bilgisi' }, projects)).toBe('');
     expect(validateProjectNote({ projectId: 'p2', title: 'Not', content: 'İçerik' }, projects)).toContain('kullanılamıyor');
     expect(validateProjectNote({ projectId: 'p1', title: 'Not', content: 'İçerik' }, projects)).toBe('');
   });
@@ -21,6 +22,11 @@ describe('Workspace utilities', () => {
       created_at: '2026-07-20T08:00:00Z', updated_at: '2026-07-20T09:00:00Z',
     }, new Map([['p1', { name: 'Web', archived_at: null }]]), new Map([['u1', { full_name: 'Burak Kiriş' }]]));
     expect(mapped).toMatchObject({ projectName: 'Web', authorName: 'Burak Kiriş', authorInitials: 'BK', projectArchived: false });
+    const independent = mapDatabaseProjectNote({
+      id: 'n2', project_id: null, author_id: 'u1', title: 'Genel', content: 'Metin',
+      created_at: '2026-07-20T08:00:00Z', updated_at: '2026-07-20T09:00:00Z',
+    }, new Map(), new Map([['u1', { full_name: 'Burak Kiriş' }]]));
+    expect(independent).toMatchObject({ projectId: null, projectName: 'Bağımsız not', projectArchived: false });
   });
 
   it('applies author and manager edit permissions', () => {
@@ -35,10 +41,12 @@ describe('Workspace utilities', () => {
     const notes = [
       { id: 'n1', title: 'Tasarım kararları', content: 'Mor vurgu', projectName: 'Web', authorName: 'Burak', projectId: 'p1', authorId: 'u1', updatedAt: '2026-07-20T09:00:00Z' },
       { id: 'n2', title: 'Toplantı', content: 'Müşteri onayı', projectName: 'Mobil', authorName: 'Ece', projectId: 'p2', authorId: 'u2', updatedAt: '2026-07-12T09:00:00Z' },
+      { id: 'n3', title: 'Ekip rehberi', content: 'Genel bilgi', projectName: 'Bağımsız not', authorName: 'Ece', projectId: null, authorId: 'u2', updatedAt: '2026-07-20T10:00:00Z' },
     ];
     expect(filterProjectNotes(notes, { projectId: 'p1', query: 'mor' })).toEqual([notes[0]]);
+    expect(filterProjectNotes(notes, { projectId: 'independent' })).toEqual([notes[2]]);
     expect(getWorkspaceStats(notes, 'u1', new Date('2026-07-20T12:00:00Z')))
-      .toEqual({ total: 2, projects: 2, mine: 1, updatedThisWeek: 1 });
+      .toEqual({ total: 3, projects: 2, mine: 1, updatedThisWeek: 2 });
   });
 
   it('returns safe database error messages', () => {

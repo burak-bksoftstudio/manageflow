@@ -96,7 +96,7 @@ export function useProjectNotes() {
         id: `project-note-${Date.now()}`,
         projectArchived: false,
         projectId: normalized.projectId,
-        projectName: project?.name || 'Demo proje',
+        projectName: project?.name || 'Bağımsız not',
         title: normalized.title,
         updatedAt: now,
       };
@@ -109,15 +109,14 @@ export function useProjectNotes() {
       author_id: user.id,
       content: normalized.content,
       organization_id: activeOrganization.id,
-      project_id: normalized.projectId,
+      project_id: normalized.projectId || null,
       title: normalized.title,
     }).select(noteSelect).single();
     if (createError) return { data: null, error: createError };
-    const mapped = mapDatabaseProjectNote(
-      data,
-      new Map([[project.id, { name: project.name, archived_at: project.archivedAt || null }]]),
-      new Map([[user.id, profile]]),
-    );
+    const mappedProjects = project
+      ? new Map([[project.id, { name: project.name, archived_at: project.archivedAt || null }]])
+      : new Map();
+    const mapped = mapDatabaseProjectNote(data, mappedProjects, new Map([[user.id, profile]]));
     setNotes(value => [mapped, ...value]);
     return { data: mapped, error: null };
   }, [activeOrganization, currentUserId, isDemoMode, projects, user]);

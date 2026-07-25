@@ -64,7 +64,9 @@ function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile 
   );
 }
 
-export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, organization, onSignOut }) {
+export default function AppSidebar({
+  collapsed, setCollapsed, mobileOpen, setMobileOpen, account, organization, canViewFinance, onSignOut,
+}) {
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState(() => navGroups.map((group, index) => (
     index === 0 || group.items.some(item => location.pathname === item.to)
@@ -72,6 +74,7 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
   const [organizationMenuOpen, setOrganizationMenuOpen] = useState(false);
   const organizationMenuRef = useRef(null);
   const closeMobile = () => setMobileOpen(false);
+  const visibleNavGroups = canViewFinance ? navGroups : navGroups.filter(group => group.label !== 'FİNANS');
 
   useEffect(() => {
     if (!organizationMenuOpen) return undefined;
@@ -141,7 +144,7 @@ export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMob
           <SideLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" topLevel closeMobile={closeMobile} />
           <SideLink to="/flow-ai" icon={Sparkles} label="Flow AI" badge="Yakında" topLevel closeMobile={closeMobile} />
 
-          {navGroups.map((group, groupIndex) => (
+          {visibleNavGroups.map((group, groupIndex) => (
             <div className="nav-group" key={group.label}>
               <div className="group-label">{group.label}</div>
               <button

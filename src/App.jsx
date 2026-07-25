@@ -1,7 +1,9 @@
 import {
   lazy, Suspense, useEffect, useMemo, useState,
 } from 'react';
-import { Outlet, Route, Routes } from 'react-router-dom';
+import {
+  Navigate, Outlet, Route, Routes,
+} from 'react-router-dom';
 import AppHeader from './components/AppHeader';
 import { AgendaDrawer, QuickCreateModal } from './components/AppOverlays';
 import AppSidebar from './components/AppSidebar';
@@ -35,6 +37,11 @@ function LazyPage({ children }) {
   return <Suspense fallback={<div className="page-inline-loading">Sayfa hazırlanıyor…</div>}>{children}</Suspense>;
 }
 
+function FinanceOwnerRoute({ children }) {
+  const { activeOrganization } = useOrganization();
+  return activeOrganization?.role === 'owner' ? children : <Navigate to="/dashboard" replace />;
+}
+
 const placeholderRoutes = [
   ['/flow-ai', 'Flow AI'],
   ['/dosyalar', 'Dosyalar'],
@@ -64,6 +71,7 @@ function AppLayout({ shellState }) {
     <>
       <AppSidebar
         {...{ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, organization }}
+        canViewFinance={activeOrganization?.role === 'owner'}
         onSignOut={isDemoMode ? null : signOut}
       />
       <main>
@@ -121,7 +129,7 @@ export default function App() {
               <Route path="/calisma-alani" element={<LazyPage><WorkspacePage /></LazyPage>} />
               <Route path="/arsiv" element={<LazyPage><ArchivePage /></LazyPage>} />
               <Route path="/ozellestirme" element={<LazyPage><SettingsPage /></LazyPage>} />
-              <Route path="/finans/:department" element={<LazyPage><FinancePage /></LazyPage>} />
+              <Route path="/finans/:department" element={<FinanceOwnerRoute><LazyPage><FinancePage /></LazyPage></FinanceOwnerRoute>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />
             </Route>

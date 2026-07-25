@@ -32,6 +32,7 @@ const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
 const ArchivePage = lazy(() => import('./pages/ArchivePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const FinancePage = lazy(() => import('./pages/FinancePage'));
+const PrivateNotesPage = lazy(() => import('./pages/PrivateNotesPage'));
 
 function LazyPage({ children }) {
   return <Suspense fallback={<div className="page-inline-loading">Sayfa hazırlanıyor…</div>}>{children}</Suspense>;
@@ -129,6 +130,7 @@ export default function App() {
               <Route path="/calisma-alani" element={<LazyPage><WorkspacePage /></LazyPage>} />
               <Route path="/arsiv" element={<LazyPage><ArchivePage /></LazyPage>} />
               <Route path="/ozellestirme" element={<LazyPage><SettingsPage /></LazyPage>} />
+              <Route path="/notlarim" element={<LazyPage><PrivateNotesPage /></LazyPage>} />
               <Route path="/finans/:department" element={<FinanceOwnerRoute><LazyPage><FinancePage /></LazyPage></FinanceOwnerRoute>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />

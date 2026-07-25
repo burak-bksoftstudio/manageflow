@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   AlarmClock, Archive, ArrowLeftRight, Bell, BriefcaseBusiness, Building2, CalendarDays, Check, CheckSquare2,
   ChevronDown, ChevronLeft, ChevronRight, Files, FolderKanban,
-  Camera, Code2, LayoutDashboard, LogOut, MessageSquare, Settings2, Sparkles, Users, X,
+  Camera, Code2, LayoutDashboard, LogOut, MessageSquare, NotebookPen, Settings2, Sparkles, Users, X,
 } from 'lucide-react';
 import { Avatar, Logo } from './Brand';
 
@@ -48,6 +48,15 @@ const navGroups = [
     icon: Code2,
     items: [
       { label: 'Finans & Ödemeler', to: '/finans/yazilim', icon: Code2 },
+    ],
+  },
+  {
+    label: 'FİNANS',
+    title: 'Ajans Finansı',
+    icon: Building2,
+    items: [
+      { label: 'Ajans Genel', to: '/finans/ajans-genel', icon: Building2 },
+      { label: 'Tüm Ajans', to: '/finans/tum-ajans', icon: LayoutDashboard },
     ],
   },
 ];
@@ -142,6 +151,7 @@ export default function AppSidebar({
 
         <nav>
           <SideLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" topLevel closeMobile={closeMobile} />
+          <SideLink to="/notlarim" icon={NotebookPen} label="Kişisel Notlar" topLevel closeMobile={closeMobile} />
           <SideLink to="/flow-ai" icon={Sparkles} label="Flow AI" badge="Yakında" topLevel closeMobile={closeMobile} />
 
           {visibleNavGroups.map((group, groupIndex) => (

@@ -11,6 +11,17 @@ export const departmentConfig = {
     partner: 'Yazılım Ortağı',
     color: '#5b5ce2',
   },
+  'ajans-genel': {
+    title: 'Ajans Genel',
+    partner: 'Ajans Ortakları',
+    color: '#d08a32',
+  },
+  'tum-ajans': {
+    title: 'Tüm Ajans',
+    partner: 'Tüm Ortaklar',
+    color: '#25805d',
+    consolidated: true,
+  },
 };
 
 const socialSeed = {
@@ -43,6 +54,9 @@ const softwareSeed = {
 };
 
 export function getInitialFinanceData(department) {
+  if (department === 'ajans-genel' || department === 'tum-ajans') {
+    return { incomes: [], expenses: [], settlements: [], customPartners: [], accounts: [], payments: [] };
+  }
   return structuredClone(department === 'yazilim' ? softwareSeed : socialSeed);
 }
 

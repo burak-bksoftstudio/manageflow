@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useOrganization } from '../organizations/OrganizationContext';
 import { requireSupabase } from '../../lib/supabase';
 
-const departmentValues = { 'sosyal-medya': 'social_media', yazilim: 'software' };
+const departmentValues = { 'sosyal-medya': 'social_media', yazilim: 'software', 'ajans-genel': 'shared' };
 
 function mapEntry(row, payments = []) {
   const entryPayments = payments.filter(payment => payment.entry_id === row.id);
@@ -56,14 +56,15 @@ export function useFinanceData(department) {
     setLoading(true);
     setError(null);
     const client = requireSupabase();
-    const [entriesResult, partnersResult, paymentsResult, accountsResult] = await Promise.all([
-      client.from('finance_entries').select(`
+    let entriesQuery = client.from('finance_entries').select(`
         *, client:clients(name), project:projects(name),
         finance_partner_allocations(partner_id, share_amount, partner:finance_partners(name))
       `).eq('organization_id', activeOrganization.id)
-        .eq('department', departmentValues[department])
         .neq('status', 'cancelled')
-        .order('due_date', { ascending: true }),
+        .order('due_date', { ascending: true });
+    if (department !== 'tum-ajans') entriesQuery = entriesQuery.eq('department', departmentValues[department]);
+    const [entriesResult, partnersResult, paymentsResult, accountsResult] = await Promise.all([
+      entriesQuery,
       client.from('finance_partners').select('*').eq('organization_id', activeOrganization.id).eq('is_active', true),
       client.from('finance_payments').select('*, partner:finance_partners(name)')
         .eq('organization_id', activeOrganization.id)
@@ -136,7 +137,7 @@ export function useFinanceData(department) {
       const netAmount = entry.vat === 'included' ? entry.amount / (1 + vatRate / 100) : entry.amount;
       const { data: created, error: createError } = await client.from('finance_entries').insert({
         organization_id: activeOrganization.id,
-        department: departmentValues[department],
+        department: departmentValues[department] || 'shared',
         kind: type === 'income' ? 'income' : 'expense',
         status: entry.status === 'waiting' ? 'planned' : entry.status,
         client_id: entry.clientId || null, project_id: entry.projectId || null,

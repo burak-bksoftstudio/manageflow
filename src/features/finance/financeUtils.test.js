@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatMoney, getAgencyFinanceReport, getDaysInMonth, getFinanceSummary, getInitialFinanceData, getPartnerBalances,
+  formatMoney, getAgencyFinanceReport, getDaysInMonth, getFinanceSummary, getInitialFinanceData,
+  getPartnerBalances, getProfitShareReport,
 } from './financeUtils';
 
 describe('financeUtils', () => {
@@ -62,5 +63,22 @@ describe('financeUtils', () => {
       accruedProfit: 15000, cashProfit: 9000, overdueAmount: 6000,
       vatPayable: 1500, collectionRate: 67,
     });
+  });
+
+  it('shows each person income, expense and net profit without double counting', () => {
+    const report = getProfitShareReport({
+      incomes: [{ amount: 9000, status: 'paid', department: 'shared', partners: [
+        { memberId: 'n', name: 'Nihal', amount: 3000 },
+        { memberId: 'y', name: 'Yağız', amount: 3000 },
+      ] }],
+      expenses: [{ amount: 3000, status: 'paid', department: 'shared', partners: [
+        { memberId: 'n', name: 'Nihal', amount: 1000 },
+        { memberId: 'y', name: 'Yağız', amount: 1000 },
+      ] }],
+      settlements: [],
+    }, 'Burak');
+    expect(report.map(person => [person.name, person.netProfit])).toEqual([
+      ['Burak', 2000], ['Nihal', 2000], ['Yağız', 2000],
+    ]);
   });
 });

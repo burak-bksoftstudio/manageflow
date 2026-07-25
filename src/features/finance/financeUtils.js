@@ -143,3 +143,72 @@ export function getAgencyFinanceReport(data) {
     collectionRate: grossIncome ? Math.round(collected / grossIncome * 100) : 0,
   };
 }
+
+export function getProfitShareReport(data, ownerName = 'Ben') {
+  const people = new Map([['owner', {
+    id: 'owner', name: ownerName, isOwner: true, incomeShare: 0, collectedShare: 0,
+    expenseShare: 0, paidExpenseShare: 0, paidToPartner: 0, receivedFromPartner: 0,
+    departments: {},
+  }]]);
+  const ensure = partner => {
+    if (!people.has(partner.memberId)) people.set(partner.memberId, {
+      id: partner.memberId, name: partner.name, isOwner: false, incomeShare: 0,
+      collectedShare: 0, expenseShare: 0, paidExpenseShare: 0, paidToPartner: 0,
+      receivedFromPartner: 0, departments: {},
+    });
+    return people.get(partner.memberId);
+  };
+  const addDepartment = (person, department, field, amount) => {
+    const key = department || 'shared';
+    person.departments[key] ||= { income: 0, expense: 0 };
+    person.departments[key][field] += amount;
+  };
+  (data.incomes || []).forEach(item => {
+    const amount = Number(item.amount || 0);
+    const partners = item.partners || [];
+    const allocated = partners.reduce((sum, partner) => sum + Number(partner.amount || 0), 0);
+    const ownerShare = Math.max(0, amount - allocated);
+    const collectedRatio = item.status === 'paid' ? 1 : Math.min(1, Number(item.paidAmount || 0) / (amount || 1));
+    const owner = people.get('owner');
+    owner.incomeShare += ownerShare;
+    owner.collectedShare += ownerShare * collectedRatio;
+    addDepartment(owner, item.department, 'income', ownerShare);
+    partners.forEach(partnerData => {
+      const person = ensure(partnerData);
+      const share = Number(partnerData.amount || 0);
+      person.incomeShare += share;
+      person.collectedShare += share * collectedRatio;
+      addDepartment(person, item.department, 'income', share);
+    });
+  });
+  (data.expenses || []).forEach(item => {
+    const amount = Number(item.amount || 0);
+    const partners = item.partners || [];
+    const allocated = partners.reduce((sum, partner) => sum + Number(partner.amount || 0), 0);
+    const ownerShare = Math.max(0, amount - allocated);
+    const paidRatio = item.status === 'paid' ? 1 : Math.min(1, Number(item.paidAmount || 0) / (amount || 1));
+    const owner = people.get('owner');
+    owner.expenseShare += ownerShare;
+    owner.paidExpenseShare += ownerShare * paidRatio;
+    addDepartment(owner, item.department, 'expense', ownerShare);
+    partners.forEach(partnerData => {
+      const person = ensure(partnerData);
+      const share = Number(partnerData.amount || 0);
+      person.expenseShare += share;
+      person.paidExpenseShare += share * paidRatio;
+      addDepartment(person, item.department, 'expense', share);
+    });
+  });
+  (data.settlements || []).forEach(item => {
+    const person = ensure(item);
+    if (item.direction === 'paid') person.paidToPartner += Number(item.amount || 0);
+    else person.receivedFromPartner += Number(item.amount || 0);
+  });
+  return [...people.values()].map(person => ({
+    ...person,
+    netProfit: person.incomeShare - person.expenseShare,
+    cashNet: person.collectedShare - person.paidExpenseShare,
+    settlementBalance: person.isOwner ? 0
+      : person.incomeShare - person.expenseShare - person.paidToPartner + person.receivedFromPartner,
+  }));
+}

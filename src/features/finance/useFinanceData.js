@@ -12,6 +12,7 @@ function mapEntry(row, payments = []) {
   const paidAmount = entryPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   return {
     id: row.id,
+    department: row.department,
     title: row.title,
     amount: Number(row.gross_amount),
     netAmount: Number(row.net_amount),

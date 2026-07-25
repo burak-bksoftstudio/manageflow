@@ -131,6 +131,7 @@ export default function App() {
               <Route path="/arsiv" element={<LazyPage><ArchivePage /></LazyPage>} />
               <Route path="/ozellestirme" element={<LazyPage><SettingsPage /></LazyPage>} />
               <Route path="/notlarim" element={<LazyPage><PrivateNotesPage /></LazyPage>} />
+              <Route path="/finans" element={<FinanceOwnerRoute><Navigate to="/finans/tum-ajans" replace /></FinanceOwnerRoute>} />
               <Route path="/finans/:department" element={<FinanceOwnerRoute><LazyPage><FinancePage /></LazyPage></FinanceOwnerRoute>} />
               {placeholderRoutes.map(([path, page]) => <Route key={path} path={path} element={<PlaceholderPage page={page} />} />)}
               <Route path="*" element={<NotFoundPage />} />

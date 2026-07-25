@@ -3,7 +3,8 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   AlarmClock, Archive, ArrowLeftRight, Bell, BriefcaseBusiness, Building2, CalendarDays, Check, CheckSquare2,
   ChevronDown, ChevronLeft, ChevronRight, Files, FolderKanban,
-  Camera, Code2, LayoutDashboard, LogOut, MessageSquare, NotebookPen, Settings2, Sparkles, Users, X,
+  Camera, Code2, LayoutDashboard, LockKeyhole, LogOut, MessageSquare, NotebookPen, Settings2, Sparkles, Users,
+  WalletCards, X,
 } from 'lucide-react';
 import { Avatar, Logo } from './Brand';
 
@@ -34,31 +35,13 @@ const navGroups = [
       { label: 'Takvim', to: '/takvim', icon: CalendarDays, badge: 'Yakında' },
     ],
   },
-  {
-    label: 'FİNANS',
-    title: 'Sosyal Medya',
-    icon: Camera,
-    items: [
-      { label: 'Finans & Ödemeler', to: '/finans/sosyal-medya', icon: Camera },
-    ],
-  },
-  {
-    label: 'FİNANS',
-    title: 'Yazılım',
-    icon: Code2,
-    items: [
-      { label: 'Finans & Ödemeler', to: '/finans/yazilim', icon: Code2 },
-    ],
-  },
-  {
-    label: 'FİNANS',
-    title: 'Ajans Finansı',
-    icon: Building2,
-    items: [
-      { label: 'Ajans Genel', to: '/finans/ajans-genel', icon: Building2 },
-      { label: 'Tüm Ajans', to: '/finans/tum-ajans', icon: LayoutDashboard },
-    ],
-  },
+];
+
+const financeItems = [
+  { label: 'Tüm Ajans', to: '/finans/tum-ajans', icon: LayoutDashboard, helper: 'Konsolide görünüm' },
+  { label: 'Sosyal Medya', to: '/finans/sosyal-medya', icon: Camera, helper: 'Nihal ile işler' },
+  { label: 'Yazılım', to: '/finans/yazilim', icon: Code2, helper: 'Yağız ile işler' },
+  { label: 'Ajans Genel', to: '/finans/ajans-genel', icon: Building2, helper: 'Ortak ofis giderleri' },
 ];
 
 function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile }) {
@@ -83,7 +66,7 @@ export default function AppSidebar({
   const [organizationMenuOpen, setOrganizationMenuOpen] = useState(false);
   const organizationMenuRef = useRef(null);
   const closeMobile = () => setMobileOpen(false);
-  const visibleNavGroups = canViewFinance ? navGroups : navGroups.filter(group => group.label !== 'FİNANS');
+  const financeMode = location.pathname.startsWith('/finans/');
 
   useEffect(() => {
     if (!organizationMenuOpen) return undefined;
@@ -150,27 +133,40 @@ export default function AppSidebar({
         </div>
 
         <nav>
-          <SideLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" topLevel closeMobile={closeMobile} />
-          <SideLink to="/notlarim" icon={NotebookPen} label="Kişisel Notlar" topLevel closeMobile={closeMobile} />
-          <SideLink to="/flow-ai" icon={Sparkles} label="Flow AI" badge="Yakında" topLevel closeMobile={closeMobile} />
+          {financeMode ? (
+            <>
+              <Link className="finance-app-back" to="/dashboard" onClick={closeMobile}><ChevronLeft /><span><small>MANAGEFLOW</small><b>Operasyona dön</b></span></Link>
+              <div className="finance-app-heading"><i><WalletCards /></i><span><small>AYRI ÇALIŞMA ALANI</small><b>ManageFlow Finans</b></span></div>
+              <div className="group-label finance-nav-label">FİNANS BÖLÜMLERİ</div>
+              <div className="finance-app-nav">{financeItems.map(item => <NavLink key={item.to} to={item.to} onClick={closeMobile} className={({ isActive }) => isActive ? 'active' : ''}><item.icon /><span><b>{item.label}</b><small>{item.helper}</small></span><ChevronRight /></NavLink>)}</div>
+              <div className="finance-app-note"><LockKeyhole /><span><b>Sahibe özel alan</b><small>Finans verileri operasyon ekibinden ayrıdır.</small></span></div>
+            </>
+          ) : (
+            <>
+              <SideLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" topLevel closeMobile={closeMobile} />
+              <SideLink to="/notlarim" icon={NotebookPen} label="Kişisel Notlar" topLevel closeMobile={closeMobile} />
+              {canViewFinance && <SideLink to="/finans/tum-ajans" icon={WalletCards} label="ManageFlow Finans" topLevel closeMobile={closeMobile} />}
+              <SideLink to="/flow-ai" icon={Sparkles} label="Flow AI" badge="Yakında" topLevel closeMobile={closeMobile} />
 
-          {visibleNavGroups.map((group, groupIndex) => (
-            <div className="nav-group" key={group.label}>
-              <div className="group-label">{group.label}</div>
-              <button
-                className="nav-item group-title"
-                onClick={() => setOpenGroups(value => value.map((open, index) => index === groupIndex ? !open : open))}
-                aria-expanded={openGroups[groupIndex]}
-              >
-                <group.icon /><span>{group.title}</span><ChevronDown className={openGroups[groupIndex] ? 'rotated' : ''} />
-              </button>
-              {openGroups[groupIndex] && (
-                <div className="subnav">
-                  {group.items.map(item => <SideLink key={item.to} {...item} closeMobile={closeMobile} />)}
+              {navGroups.map((group, groupIndex) => (
+                <div className="nav-group" key={group.label}>
+                  <div className="group-label">{group.label}</div>
+                  <button
+                    className="nav-item group-title"
+                    onClick={() => setOpenGroups(value => value.map((open, index) => index === groupIndex ? !open : open))}
+                    aria-expanded={openGroups[groupIndex]}
+                  >
+                    <group.icon /><span>{group.title}</span><ChevronDown className={openGroups[groupIndex] ? 'rotated' : ''} />
+                  </button>
+                  {openGroups[groupIndex] && (
+                    <div className="subnav">
+                      {group.items.map(item => <SideLink key={item.to} {...item} closeMobile={closeMobile} />)}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="account">

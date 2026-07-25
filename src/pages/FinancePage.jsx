@@ -46,7 +46,7 @@ function PasswordGate({ department, onUnlock }) {
       setError('Şifre hatalı. Lütfen tekrar deneyin.');
       return;
     }
-    window.sessionStorage.setItem(`manageflow-finance-unlocked-${department}`, 'true');
+    window.sessionStorage.setItem('manageflow-finance-unlocked', 'true');
     onUnlock();
   };
   return (
@@ -356,7 +356,7 @@ export default function FinancePage() {
   const { clients } = useClients();
   const { projects } = useProjects();
   const remoteFinance = useFinanceData(safeDepartment);
-  const [unlocked, setUnlocked] = useState(() => window.sessionStorage.getItem(`manageflow-finance-unlocked-${safeDepartment}`) === 'true');
+  const [unlocked, setUnlocked] = useState(() => window.sessionStorage.getItem('manageflow-finance-unlocked') === 'true');
   const storageKey = `manageflow-finance-${safeDepartment}`;
   const [localData, setLocalData] = useState(() => {
     try { return JSON.parse(window.localStorage.getItem(storageKey)) || getInitialFinanceData(safeDepartment); } catch { return getInitialFinanceData(safeDepartment); }
@@ -366,7 +366,7 @@ export default function FinancePage() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
   useEffect(() => {
-    setUnlocked(window.sessionStorage.getItem(`manageflow-finance-unlocked-${safeDepartment}`) === 'true');
+    setUnlocked(window.sessionStorage.getItem('manageflow-finance-unlocked') === 'true');
     try { setLocalData(JSON.parse(window.localStorage.getItem(`manageflow-finance-${safeDepartment}`)) || getInitialFinanceData(safeDepartment)); } catch { setLocalData(getInitialFinanceData(safeDepartment)); }
   }, [safeDepartment]);
   const data = remoteFinance.enabled ? remoteFinance.data : localData;
@@ -446,7 +446,7 @@ export default function FinancePage() {
     const result = await remoteFinance.addPayment(form);
     if (!result.error) setModal(null);
   };
-  const lock = () => { window.sessionStorage.removeItem(`manageflow-finance-unlocked-${safeDepartment}`); setUnlocked(false); };
+  const lock = () => { window.sessionStorage.removeItem('manageflow-finance-unlocked'); setUnlocked(false); };
 
   if (!unlocked) return <PasswordGate department={safeDepartment} onUnlock={() => setUnlocked(true)} />;
   return (

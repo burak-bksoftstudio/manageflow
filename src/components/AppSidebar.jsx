@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   AlarmClock, Archive, ArrowLeftRight, Bell, BriefcaseBusiness, Building2, CalendarDays, Check, CheckSquare2,
   ChevronDown, ChevronLeft, ChevronRight, Files, FolderKanban,
-  LayoutDashboard, LogOut, MessageSquare, Settings2, Sparkles, Users, X,
+  Camera, Code2, LayoutDashboard, LogOut, MessageSquare, Settings2, Sparkles, Users, X,
 } from 'lucide-react';
 import { Avatar, Logo } from './Brand';
 
@@ -34,6 +34,22 @@ const navGroups = [
       { label: 'Takvim', to: '/takvim', icon: CalendarDays, badge: 'Yakında' },
     ],
   },
+  {
+    label: 'FİNANS',
+    title: 'Sosyal Medya',
+    icon: Camera,
+    items: [
+      { label: 'Finans & Ödemeler', to: '/finans/sosyal-medya', icon: Camera },
+    ],
+  },
+  {
+    label: 'FİNANS',
+    title: 'Yazılım',
+    icon: Code2,
+    items: [
+      { label: 'Finans & Ödemeler', to: '/finans/yazilim', icon: Code2 },
+    ],
+  },
 ];
 
 function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile }) {
@@ -50,7 +66,9 @@ function SideLink({ to, icon: Icon, label, topLevel = false, badge, closeMobile 
 
 export default function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, account, organization, onSignOut }) {
   const location = useLocation();
-  const [openGroups, setOpenGroups] = useState([true, location.pathname === '/musteriler']);
+  const [openGroups, setOpenGroups] = useState(() => navGroups.map((group, index) => (
+    index === 0 || group.items.some(item => location.pathname === item.to)
+  )));
   const [organizationMenuOpen, setOrganizationMenuOpen] = useState(false);
   const organizationMenuRef = useRef(null);
   const closeMobile = () => setMobileOpen(false);
